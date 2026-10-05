@@ -23,10 +23,6 @@ pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 SECRET_KEY = "clave_secreta_smartcity_cloud_2026"
 ALGORITHM = "HS256"
 
-# Inicializar cliente de Google Gemini con SDK oficial
-gemini_api_key = os.environ.get("GEMINI_API_KEY", "")
-ai_client = genai.Client(api_key=gemini_api_key) if gemini_api_key else None
-
 # Modelos Pydantic
 class LoginData(BaseModel):
     email: str
@@ -196,13 +192,18 @@ def obtener_contexto_ciudad_supabase():
 
 @app.post("/api/ia/chat")
 def chat_brunito_ai(req: ChatRequest):
-    if not ai_client:
+    # Obtener API key dinámica desde las variables de entorno
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    if not api_key:
         raise HTTPException(
             status_code=500, 
             detail="La variable de entorno GEMINI_API_KEY no está configurada en el servidor."
         )
 
     try:
+        # Inicializar cliente de Gemini con la clave válida
+        ai_client = genai.Client(api_key=api_key)
+
         # Intenta obtener contexto si existe, si no hay datos de sensores no pasa nada
         datos_supabase = obtener_contexto_ciudad_supabase()
 
@@ -232,9 +233,9 @@ def chat_brunito_ai(req: ChatRequest):
             parts=[types.Part.from_text(text=req.message)]
         ))
 
-        # Usamos 'gemini-1.5-flash' o 'gemini-2.0-flash' que son totalmente estables
+        # Uso del modelo oficial disponible
         response = ai_client.models.generate_content(
-            model="gemini-3.8-flash",
+            model="gemini-2.5-flash",
             contents=contents,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
