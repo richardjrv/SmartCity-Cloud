@@ -233,16 +233,16 @@ def chat_brunito_ai(req: ChatRequest):
             parts=[types.Part.from_text(text=req.message)]
         ))
 
-        # Llamar al modelo oficial Gemini 2.5 Flash
-        response = ai_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.6,
-                max_output_tokens=600
-            )
-        )
+# POR ESTO (usa gemini-2.0-flash o gemini-1.5-flash):
+response = ai_client.models.generate_content(
+    model="gemini-2.0-flash",
+    contents=contents,
+    config=types.GenerateContentConfig(
+        system_instruction=system_instruction,
+        temperature=0.6,
+        max_output_tokens=600
+    )
+)
 
         return {"respuesta": response.text}
 
