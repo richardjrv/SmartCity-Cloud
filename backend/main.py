@@ -248,20 +248,3 @@ def chat_brunito_ai(req: ChatRequest):
     except Exception as e:
         print(f"❌ Error en Brunito AI: {e}")
         raise HTTPException(status_code=500, detail=f"Error procesando la solicitud con Gemini: {str(e)}")
-
-# POR ESTO (usa gemini-2.0-flash o gemini-1.5-flash):
-response = ai_client.models.generate_content(
-    model="gemini-3.8-flash",
-    contents=contents,
-    config=types.GenerateContentConfig(
-        system_instruction=system_instruction,
-        temperature=0.6,
-        max_output_tokens=600
-    )
-)
-
-        return {"respuesta": response.text}
-
-    except Exception as e:
-        print(f"❌ Error en Brunito AI: {e}")
-        raise HTTPException(status_code=500, detail=f"Error procesando la solicitud con Gemini: {str(e)}")
