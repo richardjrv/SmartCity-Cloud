@@ -234,7 +234,7 @@ def chat_brunito_ai(req: ChatRequest):
 
         # Usamos 'gemini-1.5-flash' o 'gemini-2.0-flash' que son totalmente estables
         response = ai_client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             contents=contents,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -251,7 +251,7 @@ def chat_brunito_ai(req: ChatRequest):
 
 # POR ESTO (usa gemini-2.0-flash o gemini-1.5-flash):
 response = ai_client.models.generate_content(
-    model="gemini-2.5-flash",
+    model="gemini-3.8-flashgi",
     contents=contents,
     config=types.GenerateContentConfig(
         system_instruction=system_instruction,
