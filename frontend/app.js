@@ -321,3 +321,72 @@ function agregarMensajeUI(role, content) {
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
+function abrirModalEditarPerfil() {
+    document.getElementById("edit-nombre").value = document.getElementById("perfil-nombre").textContent;
+    document.getElementById("edit-username").value = document.getElementById("perfil-username").textContent.replace("@", "");
+    document.getElementById("modal-editar-perfil").classList.remove("hidden");
+}
+
+function abrirModalCambiarPassword() {
+    document.getElementById("pass-actual").value = "";
+    document.getElementById("pass-nueva").value = "";
+    document.getElementById("modal-cambiar-password").classList.remove("hidden");
+}
+
+function cerrarModal(idModal) {
+    document.getElementById(idModal).classList.add("hidden");
+}
+
+async function guardarEdicionPerfil(e) {
+    e.preventDefault();
+    const token = localStorage.getItem("access_token");
+    const nombre = document.getElementById("edit-nombre").value;
+    const username = document.getElementById("edit-username").value;
+
+    try {
+        const res = await fetch(`${API_URL}/api/perfil/editar`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ nombre, username })
+        });
+        if (res.ok) {
+            cerrarModal("modal-editar-perfil");
+            cargarPerfilUsuario();
+        } else {
+            alert("Error actualizando perfil");
+        }
+    } catch (err) {
+        console.error("❌ Error:", err);
+    }
+}
+
+async function guardarNuevaPassword(e) {
+    e.preventDefault();
+    const token = localStorage.getItem("access_token");
+    const password_actual = document.getElementById("pass-actual").value;
+    const password_nueva = document.getElementById("pass-nueva").value;
+
+    try {
+        const res = await fetch(`${API_URL}/api/perfil/cambiar-password`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ password_actual, password_nueva })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            alert("✅ " + data.mensaje);
+            cerrarModal("modal-cambiar-password");
+        } else {
+            alert("❌ " + data.detail);
+        }
+    } catch (err) {
+        console.error("❌ Error:", err);
+    }
+}
