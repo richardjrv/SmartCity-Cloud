@@ -1,275 +1,292 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="dark" data-accent="blue">
+<html lang="es" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartCity Cloud - Dashboard</title>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Visor 3D Google Model-Viewer -->
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <title>SmartCity Cloud 🏙️ - Monitoreo Urbano e IoT</title>
+    <!-- CDN de Tailwind CSS para estilos modernos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white">
 
-    <!-- Controles superiores (Accesibilidad, Temas y Acento) -->
-    <header class="top-controls">
-        <div class="brand-mini">
-            <i data-lucide="cloud-lightning"></i>
-            <span>SmartCity Cloud</span>
-        </div>
-
-        <div class="controls-wrapper">
-            <!-- Selector de Color de Acento -->
-            <div class="accent-selector" title="Color de acento">
-                <button class="color-dot blue active" data-color="blue"></button>
-                <button class="color-dot green" data-color="green"></button>
-                <button class="color-dot purple" data-color="purple"></button>
-                <button class="color-dot orange" data-color="orange"></button>
-            </div>
-
-            <!-- Menú de Accesibilidad -->
-            <div class="accessibility-dropdown">
-                <button class="icon-btn" id="a11y-toggle" title="Accesibilidad">
-                    <i data-lucide="accessibility"></i>
-                </button>
-                <div class="a11y-menu hidden" id="a11y-menu">
-                    <div class="a11y-option">
-                        <span>Tamaño de texto</span>
-                        <div class="text-size-btn-group">
-                            <button id="btn-text-decrease">A-</button>
-                            <button id="btn-text-reset">A</button>
-                            <button id="btn-text-increase">A+</button>
-                        </div>
-                    </div>
-                    <label class="a11y-switch">
-                        <input type="checkbox" id="check-contrast">
-                        <span>Alto Contraste</span>
-                    </label>
-                    <label class="a11y-switch">
-                        <input type="checkbox" id="check-reduce-motion">
-                        <span>Reducir Animaciones</span>
-                    </label>
+    <!-- 🌐 BARRA DE NAVEGACIÓN PRINCIPAL -->
+    <header class="bg-slate-800/80 backdrop-blur-md border-b border-slate-700/80 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="navegarA('dashboard')">
+                <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl flex items-center justify-center text-xl shadow-lg shadow-blue-500/20">
+                    🏙️
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-white leading-none">SmartCity Cloud</h1>
+                    <span class="text-xs text-blue-400 font-medium">Plataforma IoT Urbana</span>
                 </div>
             </div>
 
-            <!-- Botón Tema Claro/Oscuro -->
-            <button class="icon-btn" id="theme-toggle" title="Cambiar tema">
-                <i data-lucide="moon" id="theme-icon"></i>
-            </button>
+            <!-- Menú de navegación principal -->
+            <nav id="menu-navegacion" class="hidden md:flex items-center gap-2">
+                <button onclick="navegarA('dashboard')" class="px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/60 transition text-slate-300 hover:text-white flex items-center gap-2">
+                    📊 Dashboard
+                </button>
+                <button onclick="navegarA('perfil')" class="px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/60 transition text-slate-300 hover:text-white flex items-center gap-2">
+                    👤 Mi Perfil
+                </button>
+                <button id="btn-menu-admin" onclick="navegarA('admin-usuarios')" class="hidden px-3 py-2 rounded-lg text-sm font-medium bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition flex items-center gap-2">
+                    👑 Gestión Usuarios
+                </button>
+            </nav>
+
+            <!-- Acciones del Usuario (Derecha) -->
+            <div class="flex items-center gap-3">
+                <div id="usuario-badge" class="hidden flex items-center gap-2 bg-slate-900/60 border border-slate-700 px-3 py-1.5 rounded-full">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="nav-usuario-nombre" class="text-xs font-semibold text-slate-200">Usuario</span>
+                </div>
+                <button id="btn-auth-accion" onclick="cerrarSesion()" class="bg-rose-600/20 border border-rose-500/30 text-rose-400 hover:bg-rose-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+                    Cerrar Sesión
+                </button>
+            </div>
         </div>
     </header>
 
-    <!-- UI Principal -->
-    <main class="auth-wrapper">
-        <div class="auth-card" id="main-card">
-            
-            <div class="auth-header">
-                <div class="logo-badge">
-                    <i data-lucide="cpu" class="badge-icon"></i>
+    <!-- 📱 CONTENEDOR PRINCIPAL DE CONTENIDOS -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- 🔐 VISTA 1: LOGIN / REGISTRO -->
+        <section id="vista-auth" class="max-w-md mx-auto my-12 bg-slate-800/90 border border-slate-700 p-8 rounded-2xl shadow-2xl backdrop-blur-md">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-blue-600/20 text-blue-400 rounded-2xl border border-blue-500/30 mx-auto flex items-center justify-center text-2xl mb-3">
+                    🎛️
                 </div>
-                <h2>SmartCity Cloud</h2>
-                <p id="auth-subtitle">Monitoreo Urbano e IoT en la Nube</p>
+                <h2 id="auth-titulo" class="text-2xl font-bold text-white">SmartCity Cloud</h2>
+                <p id="auth-subtitulo" class="text-xs text-slate-400 mt-1">Monitoreo Urbano e IoT en la Nube</p>
             </div>
 
-            <!-- FORMULARIO LOGIN -->
-            <div class="form-container" id="login-container">
-                <form id="login-form">
-                    <div class="input-field">
-                        <label for="login-email">Correo Electrónico</label>
-                        <div class="input-wrapper">
-                            <i data-lucide="mail" class="field-icon"></i>
-                            <input type="email" id="login-email" placeholder="correo@ejemplo.com" required>
-                        </div>
-                    </div>
-
-                    <div class="input-field">
-                        <label for="login-password">Contraseña</label>
-                        <div class="input-wrapper">
-                            <i data-lucide="lock" class="field-icon"></i>
-                            <input type="password" id="login-password" placeholder="••••••••" required>
-                            <button type="button" class="toggle-password" data-target="login-password">
-                                <i data-lucide="eye"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="form-options">
-                        <label class="checkbox-container">
-                            <input type="checkbox" id="remember-me">
-                            Recordarme
-                        </label>
-                        <a href="#" class="forgot-link">¿Olvidaste tu contraseña?</a>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <span>Iniciar Sesión</span>
-                        <i data-lucide="arrow-right"></i>
-                    </button>
-                </form>
-
-                <div class="auth-footer">
-                    <p>¿No tienes cuenta? <a href="#" id="show-register">Crear una cuenta</a></p>
+            <form id="form-auth" onsubmit="procesarAuth(event)" class="space-y-4">
+                <div id="campo-nombre" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Nombre Completo</label>
+                    <input type="text" id="auth-nombre" placeholder="Richard Ruiz" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-                <div id="login-message" class="alert-message"></div>
-            </div>
 
-            <!-- FORMULARIO REGISTRO -->
-            <div class="form-container hidden" id="register-container">
-                <form id="register-form">
-                    <div class="input-field">
-                        <label for="reg-nombre">Nombre Completo</label>
-                        <div class="input-wrapper">
-                            <i data-lucide="user" class="field-icon"></i>
-                            <input type="text" id="reg-nombre" placeholder="Ej: Juan Pérez" required>
-                        </div>
-                    </div>
-
-                    <div class="input-field">
-                        <label for="reg-email">Correo Electrónico</label>
-                        <div class="input-wrapper">
-                            <i data-lucide="mail" class="field-icon"></i>
-                            <input type="email" id="reg-email" placeholder="correo@ejemplo.com" required>
-                        </div>
-                    </div>
-
-                    <div class="input-field">
-                        <label for="reg-rol">Rol de Acceso</label>
-                        <div class="input-wrapper">
-                            <i data-lucide="shield" class="field-icon"></i>
-                            <select id="reg-rol" required>
-                                <option value="2">Usuario (Vista Pública)</option>
-                                <option value="1">Administrador (Control Total)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="input-field">
-                        <label for="reg-password">Contraseña</label>
-                        <div class="input-wrapper">
-                            <i data-lucide="lock" class="field-icon"></i>
-                            <input type="password" id="reg-password" placeholder="••••••••" required>
-                            <button type="button" class="toggle-password" data-target="reg-password">
-                                <i data-lucide="eye"></i>
-                            </button>
-                        </div>
-                        <div class="strength-meter">
-                            <div class="meter-bar"><div class="meter-fill" id="strength-bar"></div></div>
-                            <span class="strength-text" id="strength-text">Escribe una contraseña</span>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <span>Crear Cuenta en Supabase</span>
-                        <i data-lucide="user-plus"></i>
-                    </button>
-                </form>
-
-                <div class="auth-footer">
-                    <p>¿Ya tienes cuenta? <a href="#" id="show-login">Volver al login</a></p>
-                </div>
-                <div id="register-message" class="alert-message"></div>
-            </div>
-
-            <!-- DASHBOARD PRINCIPAL CON MODELO 3D Y DATOS IOT DE SUPABASE -->
-            <div class="form-container hidden" id="dashboard-card">
-                <div class="dashboard-welcome">
-                    <h2>🏙️ Panel de Control Urbano</h2>
-                    <p class="user-subtitle">Bienvenido, <b id="user-name">Usuario</b> | Rol: <span id="user-role">Usuario</span></p>
-
-                    <!-- VISOR 3D MODELO DE LA CIUDAD -->
-                    <div class="viewer-3d-container">
-                        <model-viewer 
-                            src="ciudad.glb" 
-                            alt="Modelo 3D Ciudad Inteligente" 
-                            auto-rotate 
-                            camera-controls 
-                            shadow-intensity="1">
-                        </model-viewer>
-                    </div>
-
-                    <!-- RECUADROS DE SENSORES EN TIEMPO REAL -->
-                    <div class="sensor-grid">
-                        <div class="sensor-card">
-                            <i data-lucide="thermometer" class="sensor-icon"></i>
-                            <div class="sensor-info">
-                                <span>Temperatura</span>
-                                <h3 id="val-temp">-- °C</h3>
-                            </div>
-                        </div>
-                        <div class="sensor-card">
-                            <i data-lucide="droplets" class="sensor-icon"></i>
-                            <div class="sensor-info">
-                                <span>Humedad</span>
-                                <h3 id="val-hum">-- %</h3>
-                            </div>
-                        </div>
-                        <div class="sensor-card">
-                            <i data-lucide="wind" class="sensor-icon"></i>
-                            <div class="sensor-info">
-                                <span>Calidad del Aire</span>
-                                <h3 id="val-air">-- ICA</h3>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="status-card">
-                        <div class="status-item">
-                            <span>Base de Datos:</span>
-                            <span class="badge-online"><i data-lucide="database"></i> Conectado a Supabase (PostgreSQL)</span>
-                        </div>
-                    </div>
-
-                    <button id="btn-logout" class="btn btn-danger">
-                        <i data-lucide="log-out"></i>
-                        <span>Cerrar Sesión</span>
-                    </button>
-                </div>
-            </div>
-
-        </div>
-        <!-- BOTÓN FLOTANTE Y CHATBOT BRUNITO AI -->
-<div class="chat-widget-wrapper">
-    <!-- Botón Flotante -->
-    <button id="chat-toggle-btn" class="chat-floating-btn" title="Hablar con Brunito AI">
-        🤖
-    </button>
-
-    <!-- Ventana de Chat Flotante -->
-    <div id="chat-window" class="chat-window hidden">
-        <div class="chat-header">
-            <div class="chat-title">
-                <span>🤖</span>
                 <div>
-                    <h4>Brunito AI</h4>
-                    <small>Asistente SmartCity</small>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Correo Electrónico</label>
+                    <input type="email" id="auth-email" required placeholder="correo@ejemplo.com" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Contraseña</label>
+                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <button type="submit" id="auth-btn-submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-600/30 transition text-sm flex items-center justify-center gap-2">
+                    Iniciar Sesión ➔
+                </button>
+            </form>
+
+            <div class="mt-6 text-center text-xs text-slate-400">
+                <span id="auth-toggle-texto">¿No tienes cuenta?</span>
+                <button onclick="toggleModoAuth()" id="auth-toggle-btn" class="text-blue-400 font-semibold hover:underline ml-1">Crear una cuenta</button>
+            </div>
+        </section>
+
+
+        <!-- 📊 VISTA 2: DASHBOARD DE SENSORES URBANOS -->
+        <section id="vista-dashboard" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/60 p-6 rounded-2xl border border-slate-700">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Estado de la Ciudad en Tiempo Real 🏙️</h2>
+                    <p class="text-xs text-slate-400 mt-1">Monitoreo continuo mediante nodos sensores y microcontroladores ESP32.</p>
+                </div>
+                <button onclick="cargarUltimasLecturas()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 border border-slate-600">
+                    🔄 Actualizar Datos
+                </button>
+            </div>
+
+            <!-- Tarjetas de Métricas -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Temperatura -->
+                <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Temperatura</span>
+                        <h3 class="text-3xl font-extrabold text-amber-400 mt-2" id="metric-temp">-- °C</h3>
+                        <p class="text-xs text-slate-500 mt-1">Medición ambiental</p>
+                    </div>
+                    <div class="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-2xl border border-amber-500/20 flex items-center justify-center text-2xl">
+                        🌡️
+                    </div>
+                </div>
+
+                <!-- Humedad -->
+                <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Humedad Relativa</span>
+                        <h3 class="text-3xl font-extrabold text-blue-400 mt-2" id="metric-hum">-- %</h3>
+                        <p class="text-xs text-slate-500 mt-1">Humedad del aire</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-2xl border border-blue-500/20 flex items-center justify-center text-2xl">
+                        💧
+                    </div>
+                </div>
+
+                <!-- Calidad del Aire -->
+                <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Calidad del Aire</span>
+                        <h3 class="text-3xl font-extrabold text-emerald-400 mt-2" id="metric-aire">-- ICA</h3>
+                        <p class="text-xs text-slate-500 mt-1">Índice de contaminación</p>
+                    </div>
+                    <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20 flex items-center justify-center text-2xl">
+                        🌫️
+                    </div>
                 </div>
             </div>
-            <button id="chat-close-btn" class="chat-close-btn">&times;</button>
-        </div>
+        </section>
 
-        <div class="chat-body" id="chat-messages">
-            <div class="chat-message model">
-                <div class="message-content">
-                    Hola 👋 Soy <b>Brunito AI</b>, tu asistente de Ciudad Inteligente. ¿En qué puedo ayudarte hoy?
+
+        <!-- 👤 VISTA 3: MI PERFIL (FASE 1) -->
+        <section id="vista-perfil" class="hidden">
+            <div class="max-w-2xl mx-auto bg-slate-800/90 text-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-700/80 my-4 backdrop-blur-md">
+                <!-- Avatar y Nombre -->
+                <div class="flex flex-col items-center border-b border-slate-700/80 pb-6 mb-6">
+                    <div class="w-24 h-24 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-full flex items-center justify-center text-4xl shadow-xl border-2 border-blue-400/50 mb-3 overflow-hidden" id="perfil-avatar">
+                        👤
+                    </div>
+                    <h2 class="text-2xl font-bold tracking-wide" id="perfil-nombre">Cargando...</h2>
+                    <span class="text-xs font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-full mt-2" id="perfil-rol">
+                        👤 Usuario
+                    </span>
+                </div>
+
+                <!-- Detalles de la Cuenta -->
+                <div class="space-y-4 text-slate-300 text-sm">
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-700/40">
+                        <span class="text-slate-400 font-medium">Nombre de Usuario:</span>
+                        <span class="font-semibold text-white" id="perfil-username">-</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-700/40">
+                        <span class="text-slate-400 font-medium">Correo Electrónico:</span>
+                        <span class="font-semibold text-white" id="perfil-email">-</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-700/40">
+                        <span class="text-slate-400 font-medium">Estado de la cuenta:</span>
+                        <span class="inline-flex items-center gap-1.5 text-emerald-400 font-semibold" id="perfil-estado">
+                            🟢 Activo
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center py-2.5 border-b border-slate-700/40">
+                        <span class="text-slate-400 font-medium">Fecha de Registro:</span>
+                        <span class="font-semibold text-white" id="perfil-registro">-</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2.5">
+                        <span class="text-slate-400 font-medium">Último Acceso:</span>
+                        <span class="font-semibold text-white" id="perfil-acceso">-</span>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8 pt-6 border-t border-slate-700">
+                    <button onclick="alert('Opción de editar perfil disponible próximamente')" class="bg-slate-700/80 hover:bg-slate-600 text-white font-medium py-2.5 px-4 rounded-xl transition shadow text-sm flex items-center justify-center gap-2">
+                        ✏️ Editar Perfil
+                    </button>
+                    <button onclick="alert('Opción de cambiar contraseña disponible próximamente')" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-xl transition shadow text-sm flex items-center justify-center gap-2">
+                        🔒 Cambiar Contraseña
+                    </button>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div id="chat-typing" class="chat-typing hidden">
-            <span>Brunito está pensando... 🤔</span>
-        </div>
 
-        <div class="chat-footer">
-            <input type="text" id="chat-input" placeholder="Escribe tu pregunta..." autocomplete="off">
-            <button id="chat-send-btn" class="btn-send-chat">
-                <i data-lucide="send"></i>
-            </button>
-        </div>
-    </div>
-</div>
+        <!-- 👑 VISTA 4: GESTIÓN DE USUARIOS (FASE 3 - SOLO ADMIN) -->
+        <section id="vista-admin-usuarios" class="hidden">
+            <div class="max-w-6xl mx-auto bg-slate-800/90 text-white p-6 rounded-2xl shadow-2xl border border-slate-700/80 my-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-700">
+                    <div>
+                        <h2 class="text-2xl font-bold flex items-center gap-2">👑 Gestión de Usuarios</h2>
+                        <p class="text-xs text-slate-400 mt-1">Administra cuentas, roles de usuario y permisos del sistema SmartCity.</p>
+                    </div>
+                    <input type="text" id="buscar-usuario" onkeyup="filtrarUsuarios()" placeholder="🔎 Buscar usuario..." 
+                           class="bg-slate-900/80 border border-slate-700 text-sm rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64">
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-700/60">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="text-xs text-slate-400 uppercase bg-slate-900/80 border-b border-slate-700">
+                            <tr>
+                                <th class="px-4 py-3">ID</th>
+                                <th class="px-4 py-3">Usuario</th>
+                                <th class="px-4 py-3">Correo</th>
+                                <th class="px-4 py-3">Rol</th>
+                                <th class="px-4 py-3">Estado</th>
+                                <th class="px-4 py-3">Último Acceso</th>
+                                <th class="px-4 py-3 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-usuarios-body" class="divide-y divide-slate-700/50 bg-slate-800/40">
+                            <!-- Filas dinámicas -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
     </main>
 
-    <script src="app.js"></script>
+
+    <!-- 🤖 WIDGET FLOTANTE DE BRUNITO AI -->
+    <div class="fixed bottom-6 right-6 z-50">
+        <!-- Botón para Abrir/Cerrar Chat -->
+        <button onclick="toggleChatBrunito()" class="w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center text-2xl shadow-2xl border-2 border-blue-400 transition transform hover:scale-105 active:scale-95">
+            🤖
+        </button>
+
+        <!-- Ventana de Chat Flotante -->
+        <div id="brunito-chat-window" class="hidden absolute bottom-16 right-0 w-80 sm:w-96 h-[480px] bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl">
+            <!-- Header del Chat -->
+            <div class="bg-slate-900/90 p-4 border-b border-slate-700 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-blue-600/30 text-blue-400 rounded-lg flex items-center justify-center text-lg border border-blue-500/30">
+                        🤖
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm text-white leading-none">Brunito AI</h4>
+                        <span class="text-[10px] text-emerald-400 font-medium">Asistente SmartCity Cloud</span>
+                    </div>
+                </div>
+                <button onclick="toggleChatBrunito()" class="text-slate-400 hover:text-white text-lg">✕</button>
+            </div>
+
+            <!-- Cuerpo de Mensajes -->
+            <div id="chat-mensajes" class="flex-1 p-4 overflow-y-auto space-y-3 text-xs text-slate-200">
+                <div class="bg-slate-700/60 p-3 rounded-xl border border-slate-600/50 max-w-[85%]">
+                    ¡Hola! 👋 Soy <strong>Brunito AI</strong>. ¿En qué puedo ayudarte hoy sobre el estado de la ciudad o los sensores?
+                </div>
+            </div>
+
+            <!-- Input del Chat -->
+            <form onsubmit="enviarMensajeBrunito(event)" class="p-3 bg-slate-900/90 border-t border-slate-700 flex gap-2">
+                <input type="text" id="chat-input" required placeholder="Escribe tu consulta..." class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-xl text-xs font-semibold transition">
+                    Enviar
+                </button>
+            </form>
+        </div>
+    </div>
+
 </body>
 </html>
