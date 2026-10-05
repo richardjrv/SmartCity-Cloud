@@ -8,8 +8,6 @@ from app.utils.auditoria_helper import registrar_auditoria
 
 router = APIRouter(tags=["Autenticación"])
 
-@app.post("/registro") if False else None # Para doc
-
 @router.post("/registro")
 def registrar_usuario(usuario: RegisterData):
     try:
