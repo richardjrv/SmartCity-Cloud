@@ -42,15 +42,28 @@ class LecturaSensorData(BaseModel):
     calidad_aire: float
 
 class MessageHistory(BaseModel):
-    role: str  # "user" o "assistant" (o "model")
+    role: str  # "user" o "assistant"
     content: str
 
 class ChatRequest(BaseModel):
     message: str
-    history: Optional[List[MessageHistory]] = None  # Evita lista mutable en valor por defecto
+    history: Optional[List[MessageHistory]] = None
+
+class ActualizarPerfilData(BaseModel):
+    nombre: Optional[str] = None
+    username: Optional[str] = None
+    avatar: Optional[str] = None
+
+class CambiarPasswordData(BaseModel):
+    password_actual: str
+    password_nueva: str
+
+class ModificarUsuarioAdminData(BaseModel):
+    id_rol: Optional[int] = None
+    estado: Optional[str] = None  # "activo" o "inactivo"
 
 # ==========================================
-# 🔒 DEPENDENCIAS DE SEGURIDAD Y ROLES (FASE 5)
+# 🔒 DEPENDENCIAS DE SEGURIDAD Y ROLES (FASE 2)
 # ==========================================
 def obtener_usuario_actual(authorization: str = Header(...)):
     """Valida el token JWT enviado en la cabecera Authorization."""
@@ -74,27 +87,6 @@ def requerir_admin(usuario: dict = Depends(obtener_usuario_actual)):
     return usuario
 
 # ==========================================
-# 📋 UTILIDAD DE AUDITORÍA (FASE 4)
-# ==========================================
-def registrar_auditoria(usuario_id: Optional[int], accion: str, modulo: str, descripcion: str, recurso_id: Optional[int] = None):
-    """Guarda un registro de actividad importante en la base de datos."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO auditoria (usuario_id, accion, modulo, recurso_id, descripcion)
-            VALUES (%s, %s, %s, %s, %s)
-            """,
-            (usuario_id, accion, modulo, recurso_id, descripcion)
-        )
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f"⚠️ Error registrando auditoría: {e}")
-
-# ==========================================
 # 🚀 ENDPOINTS PÚBLICOS Y AUTENTICACIÓN
 # ==========================================
 @app.get("/")
@@ -108,22 +100,12 @@ def registrar_usuario(usuario: RegisterData):
         cursor = conn.cursor()
         hashed_password = pwd_context.hash(usuario.password)
         cursor.execute(
-            "INSERT INTO usuarios (nombre, email, password_hash, id_rol) VALUES (%s, %s, %s, %s) RETURNING id",
+            "INSERT INTO usuarios (nombre, email, password_hash, id_rol) VALUES (%s, %s, %s, %s)",
             (usuario.nombre, usuario.email, hashed_password, usuario.id_rol)
         )
-        nuevo_id = cursor.fetchone()[0]
         conn.commit()
         cursor.close()
         conn.close()
-
-        # Registro en auditoría
-        registrar_auditoria(
-            usuario_id=nuevo_id, 
-            accion="REGISTER", 
-            modulo="usuarios", 
-            descripcion=f"Nuevo usuario registrado: {usuario.email}"
-        )
-
         return {"mensaje": "Usuario registrado exitosamente en Supabase ✅"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error en BD: {str(e)}")
@@ -133,13 +115,18 @@ def login(datos: LoginData):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id, nombre, password_hash, id_rol FROM usuarios WHERE email = %s", (datos.email,))
+        cursor.execute("SELECT id, nombre, password_hash, id_rol, COALESCE(estado, 'activo') FROM usuarios WHERE email = %s", (datos.email,))
         usuario = cursor.fetchone()
 
         if not usuario or not pwd_context.verify(datos.password, usuario[2]):
             cursor.close()
             conn.close()
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+        if usuario[4] == "inactivo":
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=403, detail="Tu cuenta está desactivada. Contacta al Administrador.")
 
         # Actualizar fecha de último acceso
         cursor.execute("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = %s", (usuario[0],))
@@ -149,19 +136,164 @@ def login(datos: LoginData):
 
         token = jwt.encode({"user_id": usuario[0], "nombre": usuario[1], "id_rol": usuario[3]}, SECRET_KEY, algorithm=ALGORITHM)
 
-        # Registro en auditoría
-        registrar_auditoria(
-            usuario_id=usuario[0], 
-            accion="LOGIN", 
-            modulo="autenticacion", 
-            descripcion="Inicio de sesión exitoso"
-        )
-
         return {"access_token": token, "token_type": "bearer", "id_rol": usuario[3], "nombre": usuario[1]}
     except HTTPException as he:
         raise he
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error en BD: {str(e)}")
+
+# ==========================================
+# 👤 FASE 1: MI PERFIL (USUARIOS Y ADMINS)
+# ==========================================
+@app.get("/api/perfil")
+def obtener_perfil(usuario: dict = Depends(obtener_usuario_actual)):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT id, nombre, email, username, id_rol, COALESCE(estado, 'activo'), avatar, fecha_registro, ultimo_acceso 
+            FROM usuarios WHERE id = %s
+            """, 
+            (usuario["user_id"],)
+        )
+        data = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not data:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        return {
+            "id": data[0],
+            "nombre": data[1],
+            "email": data[2],
+            "username": data[3] or data[2].split("@")[0],
+            "id_rol": data[4],
+            "rol": "👑 Administrador" if data[4] == 1 else "👤 Usuario",
+            "estado": data[5],
+            "avatar": data[6] or "",
+            "fecha_registro": str(data[7]),
+            "ultimo_acceso": str(data[8])
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al obtener perfil: {str(e)}")
+
+@app.put("/api/perfil/editar")
+def editar_perfil(datos: ActualizarPerfilData, usuario: dict = Depends(obtener_usuario_actual)):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        if datos.nombre:
+            cursor.execute("UPDATE usuarios SET nombre = %s WHERE id = %s", (datos.nombre, usuario["user_id"]))
+        if datos.username:
+            cursor.execute("UPDATE usuarios SET username = %s WHERE id = %s", (datos.username, usuario["user_id"]))
+        if datos.avatar is not None:
+            cursor.execute("UPDATE usuarios SET avatar = %s WHERE id = %s", (datos.avatar, usuario["user_id"]))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"mensaje": "Perfil actualizado correctamente ✅"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al actualizar perfil: {str(e)}")
+
+@app.put("/api/perfil/cambiar-password")
+def cambiar_password(datos: CambiarPasswordData, usuario: dict = Depends(obtener_usuario_actual)):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT password_hash FROM usuarios WHERE id = %s", (usuario["user_id"],))
+        pass_actual_hash = cursor.fetchone()[0]
+
+        if not pwd_context.verify(datos.password_actual, pass_actual_hash):
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
+
+        nuevo_hash = pwd_context.hash(datos.password_nueva)
+        cursor.execute("UPDATE usuarios SET password_hash = %s WHERE id = %s", (nuevo_hash, usuario["user_id"]))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {"mensaje": "Contraseña actualizada exitosamente 🔒"}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al cambiar contraseña: {str(e)}")
+
+# ==========================================
+# 👑 FASE 3: GESTIÓN DE USUARIOS (SOLO ADMINISTRADOR)
+# ==========================================
+@app.get("/api/admin/usuarios")
+def listar_usuarios_admin(admin: dict = Depends(requerir_admin)):
+    """Obtiene la lista completa de usuarios para la tabla de administración."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT id, nombre, email, username, id_rol, COALESCE(estado, 'activo'), fecha_registro, ultimo_acceso 
+            FROM usuarios ORDER BY id ASC
+            """
+        )
+        filas = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return [
+            {
+                "id": f[0],
+                "nombre": f[1],
+                "email": f[2],
+                "username": f[3] or f[2].split("@")[0],
+                "id_rol": f[4],
+                "rol": "👑 Admin" if f[4] == 1 else "👤 Usuario",
+                "estado": f[5],
+                "fecha_registro": str(f[6]),
+                "ultimo_acceso": str(f[7])
+            } for f in filas
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al listar usuarios: {str(e)}")
+
+@app.put("/api/admin/usuarios/{usuario_id}")
+def modificar_usuario_admin(usuario_id: int, datos: ModificarUsuarioAdminData, admin: dict = Depends(requerir_admin)):
+    """Permite al Admin cambiar el rol o activar/desactivar un usuario."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        if datos.id_rol is not None:
+            cursor.execute("UPDATE usuarios SET id_rol = %s WHERE id = %s", (datos.id_rol, usuario_id))
+        if datos.estado is not None:
+            cursor.execute("UPDATE usuarios SET estado = %s WHERE id = %s", (datos.estado, usuario_id))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"mensaje": f"Usuario #{usuario_id} actualizado por el Administrador ✅"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error modificando usuario: {str(e)}")
+
+@app.delete("/api/admin/usuarios/{usuario_id}")
+def eliminar_usuario_admin(usuario_id: int, admin: dict = Depends(requerir_admin)):
+    """Permite al Administrador eliminar un usuario del sistema."""
+    if usuario_id == admin["user_id"]:
+        raise HTTPException(status_code=400, detail="No puedes eliminar tu propia cuenta de Administrador.")
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM usuarios WHERE id = %s", (usuario_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"mensaje": f"Usuario #{usuario_id} eliminado del sistema 🗑️"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error eliminando usuario: {str(e)}")
 
 # ==========================================
 # 📡 ENDPOINTS DE SENSORES
@@ -203,125 +335,19 @@ def obtener_ultimas_lecturas():
         raise HTTPException(status_code=400, detail=f"Error en BD: {str(e)}")
 
 # ==========================================
-# 👤 FASE 1: PERFIL DE USUARIO
-# ==========================================
-@app.get("/api/perfil")
-def obtener_perfil(usuario: dict = Depends(obtener_usuario_actual)):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT id, nombre, email, username, id_rol, estado, avatar, fecha_registro, ultimo_acceso 
-            FROM usuarios WHERE id = %s
-            """, 
-            (usuario["user_id"],)
-        )
-        data = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if not data:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-        return {
-            "id": data[0],
-            "nombre": data[1],
-            "email": data[2],
-            "username": data[3] or data[2].split("@")[0],
-            "id_rol": data[4],
-            "rol": "👑 Administrador" if data[4] == 1 else "👤 Usuario",
-            "estado": data[5] or "activo",
-            "avatar": data[6] or "",
-            "fecha_registro": str(data[7]),
-            "ultimo_acceso": str(data[8])
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error al obtener perfil: {str(e)}")
-
-# ==========================================
-# 👥 FASE 3 Y 4: ADMINISTRACIÓN Y AUDITORÍA
-# ==========================================
-@app.get("/api/admin/usuarios")
-def listar_usuarios(admin: dict = Depends(requerir_admin)):
-    """Lista todos los usuarios del sistema (solo visible para Administradores)."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT id, nombre, email, username, id_rol, COALESCE(estado, 'activo'), ultimo_acceso 
-            FROM usuarios ORDER BY id ASC
-            """
-        )
-        filas = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
-        return [
-            {
-                "id": f[0],
-                "nombre": f[1],
-                "email": f[2],
-                "username": f[3] or f[2].split("@")[0],
-                "id_rol": f[4],
-                "rol": "👑 Admin" if f[4] == 1 else "👤 Usuario",
-                "estado": f[5],
-                "ultimo_acceso": str(f[6])
-            } for f in filas
-        ]
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error al listar usuarios: {str(e)}")
-
-@app.get("/api/admin/auditoria")
-def obtener_auditoria(admin: dict = Depends(requerir_admin)):
-    """Muestra el historial de auditoría de actividades del sistema."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT a.id, COALESCE(u.nombre, 'Sistema') AS usuario, a.accion, a.modulo, a.recurso_id, a.descripcion, a.fecha 
-            FROM auditoria a
-            LEFT JOIN usuarios u ON a.usuario_id = u.id
-            ORDER BY a.fecha DESC LIMIT 50
-            """
-        )
-        filas = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
-        return [
-            {
-                "id": f[0],
-                "usuario": f[1],
-                "accion": f[2],
-                "modulo": f[3],
-                "recurso_id": f[4],
-                "descripcion": f[5],
-                "fecha": str(f[6])
-            } for f in filas
-        ]
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error al consultar auditoría: {str(e)}")
-
-# ==========================================
 # 🤖 ENDPOINT INTELIGENTE: BRUNITO AI (GROQ + SUPABASE)
 # ==========================================
 def obtener_contexto_ciudad_supabase():
-    """Consulta los datos en tiempo real y métricas históricas de Supabase para alimentar al LLM."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # 1. Última lectura registrada
         cursor.execute("""
             SELECT sensor_id, temperatura, humedad, calidad_aire, fecha_hora 
             FROM lecturas_sensores ORDER BY fecha_hora DESC LIMIT 1
         """)
         ultima = cursor.fetchone()
 
-        # 2. Resumen de las últimas 24 horas
         cursor.execute("""
             SELECT 
                 ROUND(AVG(temperatura)::numeric, 2) AS temp_prom,
@@ -335,7 +361,6 @@ def obtener_contexto_ciudad_supabase():
         """)
         stats_24h = cursor.fetchone()
 
-        # 3. Sensores activos únicos
         cursor.execute("SELECT DISTINCT sensor_id FROM lecturas_sensores WHERE fecha_hora >= NOW() - INTERVAL '7 days'")
         sensores_activos = [s[0] for s in cursor.fetchall()]
 
@@ -383,18 +408,14 @@ def chat_brunito_ai(req: ChatRequest):
 
     try:
         client = Groq(api_key=groq_api_key)
-
-        # Obtener datos reales desde Supabase
         datos_supabase = obtener_contexto_ciudad_supabase()
 
         system_instruction = (
             "Eres Brunito AI, el asistente virtual e inteligente "
             "de la plataforma SmartCity Cloud.\n\n"
-
             "Tu función es conversar con el usuario y responder "
             "preguntas sobre ciudades inteligentes, tecnología, IoT "
             "y los datos de sensores de SmartCity.\n\n"
-
             "INSTRUCCIONES:\n"
             "1. Si el usuario saluda, responde amablemente.\n"
             "2. Usa los datos reales de Supabase cuando el usuario "
@@ -403,38 +424,17 @@ def chat_brunito_ai(req: ChatRequest):
             "4. Si no existen datos, dilo claramente.\n"
             "5. Responde en español.\n"
             "6. Sé breve, claro y amigable.\n\n"
-
-            f"DATOS ACTUALES DE SUPABASE:\n"
-            f"{datos_supabase}"
+            f"DATOS ACTUALES DE SUPABASE:\n{datos_supabase}"
         )
 
-        messages = [
-            {
-                "role": "system",
-                "content": system_instruction
-            }
-        ]
+        messages = [{"role": "system", "content": system_instruction}]
 
-        # Mantener historial del chat sin usar listas mutables
         for msg in (req.history or []):
-            role_mapped = (
-                "assistant"
-                if msg.role in ["model", "assistant"]
-                else "user"
-            )
+            role_mapped = "assistant" if msg.role in ["model", "assistant"] else "user"
+            messages.append({"role": role_mapped, "content": msg.content})
 
-            messages.append({
-                "role": role_mapped,
-                "content": msg.content
-            })
+        messages.append({"role": "user", "content": req.message})
 
-        # Mensaje actual
-        messages.append({
-            "role": "user",
-            "content": req.message
-        })
-
-        # 🤖 Modelo activo de Groq
         completion = client.chat.completions.create(
             model="openai/gpt-oss-20b",
             messages=messages,
@@ -443,15 +443,8 @@ def chat_brunito_ai(req: ChatRequest):
         )
 
         respuesta_texto = completion.choices[0].message.content
-
-        return {
-            "respuesta": respuesta_texto
-        }
+        return {"respuesta": respuesta_texto}
 
     except Exception as e:
         print(f"❌ Error en Brunito AI (Groq): {e}")
-
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error procesando la solicitud con Groq: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error procesando la solicitud con Groq: {str(e)}")
