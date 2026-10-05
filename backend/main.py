@@ -214,23 +214,35 @@ def chat_brunito_ai(req: ChatRequest):
             f"ESTADO DE LA BASE DE DATOS:\n{datos_supabase}"
         )
 
-        # Mapeo de historial en formato OpenAI / Groq
         messages = [{"role": "system", "content": system_instruction}]
 
         for msg in req.history:
-            # Mapeamos 'model' a 'assistant' para compatibilidad
             role_mapped = "assistant" if msg.role in ["model", "assistant"] else "user"
             messages.append({"role": role_mapped, "content": msg.content})
 
         messages.append({"role": "user", "content": req.message})
 
-        # Consulta ultra rápida a Groq con Llama 3.3 70B
-        completion = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages,
-            temperature=0.7,
-            max_tokens=500
-        )
+        # Lista de modelos válidos en Groq por orden de preferencia
+        modelos_groq = ["llama-3.1-8b-instant", "llama3-70b-8192", "mixtral-8x7b-32768"]
+        completion = None
+        ultimo_error = None
+
+        for mod in modelos_groq:
+            try:
+                completion = client.chat.completions.create(
+                    model=mod,
+                    messages=messages,
+                    temperature=0.7,
+                    max_tokens=500
+                )
+                if completion and completion.choices:
+                    break
+            except Exception as err:
+                ultimo_error = err
+                print(f"⚠️️ Modelo {mod} en Groq no disponible ({err}), reintentando...")
+
+        if not completion or not completion.choices:
+            raise ultimo_error
 
         respuesta_texto = completion.choices[0].message.content
         return {"respuesta": respuesta_texto}
