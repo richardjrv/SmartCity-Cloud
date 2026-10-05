@@ -228,6 +228,46 @@
             </div>
 
         </div>
+        <!-- BOTÓN FLOTANTE Y CHATBOT BRUNITO AI -->
+<div class="chat-widget-wrapper">
+    <!-- Botón Flotante -->
+    <button id="chat-toggle-btn" class="chat-floating-btn" title="Hablar con Brunito AI">
+        🤖
+    </button>
+
+    <!-- Ventana de Chat Flotante -->
+    <div id="chat-window" class="chat-window hidden">
+        <div class="chat-header">
+            <div class="chat-title">
+                <span>🤖</span>
+                <div>
+                    <h4>Brunito AI</h4>
+                    <small>Asistente SmartCity</small>
+                </div>
+            </div>
+            <button id="chat-close-btn" class="chat-close-btn">&times;</button>
+        </div>
+
+        <div class="chat-body" id="chat-messages">
+            <div class="chat-message model">
+                <div class="message-content">
+                    Hola 👋 Soy <b>Brunito AI</b>, tu asistente de Ciudad Inteligente. ¿En qué puedo ayudarte hoy?
+                </div>
+            </div>
+        </div>
+
+        <div id="chat-typing" class="chat-typing hidden">
+            <span>Brunito está pensando... 🤔</span>
+        </div>
+
+        <div class="chat-footer">
+            <input type="text" id="chat-input" placeholder="Escribe tu pregunta..." autocomplete="off">
+            <button id="chat-send-btn" class="btn-send-chat">
+                <i data-lucide="send"></i>
+            </button>
+        </div>
+    </div>
+</div>
     </main>
 
     <script src="app.js"></script>

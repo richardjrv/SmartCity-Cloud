@@ -238,3 +238,86 @@ document.getElementById("btn-logout").addEventListener("click", () => {
     mainCard.classList.remove("dashboard-mode");
     loginContainer.classList.remove("hidden");
 });
+// ==========================================
+// 🤖 LÓGICA DE CHATBOT BRUNITO AI
+// ==========================================
+const chatToggleBtn = document.getElementById("chat-toggle-btn");
+const chatCloseBtn = document.getElementById("chat-close-btn");
+const chatWindow = document.getElementById("chat-window");
+const chatMessages = document.getElementById("chat-messages");
+const chatInput = document.getElementById("chat-input");
+const chatSendBtn = document.getElementById("chat-send-btn");
+const chatTyping = document.getElementById("chat-typing");
+
+let chatHistory = [];
+
+// Abrir / Cerrar Chat
+chatToggleBtn.addEventListener("click", () => {
+    chatWindow.classList.toggle("hidden");
+    if (!chatWindow.classList.contains("hidden")) {
+        chatInput.focus();
+    }
+});
+
+chatCloseBtn.addEventListener("click", () => {
+    chatWindow.classList.add("hidden");
+});
+
+// Enviar Mensaje
+chatSendBtn.addEventListener("click", enviarMensajeChat);
+chatInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") enviarMensajeChat();
+});
+
+async function enviarMensajeChat() {
+    const texto = chatInput.value.trim();
+    if (!texto) return;
+
+    // Agregar mensaje del usuario en UI
+    agregarMensajeUI("user", texto);
+    chatInput.value = "";
+
+    // Mostrar "Pensando..."
+    chatTyping.classList.remove("hidden");
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    try {
+        const response = await fetch(`${API_URL}/api/ia/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: texto,
+                history: chatHistory
+            })
+        });
+
+        const data = await response.json();
+        chatTyping.classList.add("hidden");
+
+        if (response.ok) {
+            agregarMensajeUI("model", data.respuesta);
+
+            // Guardar en el historial local
+            chatHistory.push({ role: "user", content: texto });
+            chatHistory.push({ role: "model", content: data.respuesta });
+        } else {
+            agregarMensajeUI("model", `⚠️ Error: ${data.detail || "No se pudo consultar a Brunito AI."}`);
+        }
+    } catch (err) {
+        chatTyping.classList.add("hidden");
+        agregarMensajeUI("model", "⚠️ Error de conexión con el servidor de la API.");
+    }
+}
+
+function agregarMensajeUI(role, content) {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = `chat-message ${role}`;
+
+    const innerContent = document.createElement("div");
+    innerContent.className = "message-content";
+    innerContent.innerText = content;
+
+    msgDiv.appendChild(innerContent);
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}

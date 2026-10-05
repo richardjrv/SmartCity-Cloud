@@ -4,3 +4,4 @@ psycopg2-binary
 passlib[pbkdf2_sha256]
 python-jose
 pydantic
+google-genai
