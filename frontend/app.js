@@ -1,5 +1,4 @@
-const API_URL = "http://127.0.0.1:8000";
-
+const API_URL = "https://smartcity-backend-shdc.onrender.com";
 lucide.createIcons();
 
 // --- TEMA Y ESTILOS ---
