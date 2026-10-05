@@ -234,7 +234,7 @@ def chat_brunito_ai(req: ChatRequest):
         ))
 
         # Lista de modelos por orden de preferencia para evitar fallos por saturación (503)
-        modelos_disponibles = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+        modelos_disponibles = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.5-flash"]
         response = None
         ultimo_error = None
 
