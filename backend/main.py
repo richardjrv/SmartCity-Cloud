@@ -6,8 +6,7 @@ from typing import List, Optional
 from passlib.context import CryptContext
 from jose import jwt
 from database import get_db_connection
-from google import genai
-from google.genai import types
+from groq import Groq
 
 app = FastAPI(title="SmartCity Cloud API 🏙️")
 
@@ -41,7 +40,7 @@ class LecturaSensorData(BaseModel):
     calidad_aire: float
 
 class MessageHistory(BaseModel):
-    role: str # "user" o "model"
+    role: str # "user" o "assistant" (o "model")
     content: str
 
 class ChatRequest(BaseModel):
@@ -125,10 +124,10 @@ def obtener_ultimas_lecturas():
         raise HTTPException(status_code=400, detail=f"Error en BD: {str(e)}")
 
 # ==========================================
-# 🤖 ENDPOINT INTELIGENTE: BRUNITO AI (GEMINI + SUPABASE)
+# 🤖 ENDPOINT INTELIGENTE: BRUNITO AI (GROQ + SUPABASE)
 # ==========================================
 def obtener_contexto_ciudad_supabase():
-    """Consulta los datos en tiempo real y métricas históricas de Supabase para alimentar a Gemini."""
+    """Consulta los datos en tiempo real y métricas históricas de Supabase para alimentar al LLM."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -140,7 +139,7 @@ def obtener_contexto_ciudad_supabase():
         """)
         ultima = cursor.fetchone()
 
-        # 2. Resumen de las últimas 24 horas (Promedios, Max, Min)
+        # 2. Resumen de las últimas 24 horas
         cursor.execute("""
             SELECT 
                 ROUND(AVG(temperatura)::numeric, 2) AS temp_prom,
@@ -192,15 +191,15 @@ def obtener_contexto_ciudad_supabase():
 
 @app.post("/api/ia/chat")
 def chat_brunito_ai(req: ChatRequest):
-    api_key = os.environ.get("GEMINI_API_KEY", "")
-    if not api_key:
+    groq_api_key = os.environ.get("GROQ_API_KEY", "")
+    if not groq_api_key:
         raise HTTPException(
             status_code=500, 
-            detail="La variable de entorno GEMINI_API_KEY no está configurada en el servidor."
+            detail="La variable de entorno GROQ_API_KEY no está configurada en el servidor."
         )
 
     try:
-        ai_client = genai.Client(api_key=api_key)
+        client = Groq(api_key=groq_api_key)
         datos_supabase = obtener_contexto_ciudad_supabase()
 
         system_instruction = (
@@ -209,37 +208,33 @@ def chat_brunito_ai(req: ChatRequest):
             "tecnología, IoT, o cualquier saludo e inquietud general.\n"
             "INSTRUCCIONES:\n"
             "1. Si el usuario solo saluda (ej: 'hola'), salúdalo amablemente como Brunito AI.\n"
-            "2. Si hay datos de sensores disponibles, utilízalos cuando te pregunten sobre la temperatura o estado de la ciudad.\n"
-            "3. Si aún no hay sensores conectados o no hay datos registrados, indícale amablemente que el sistema está listo y esperando mediciones.\n"
+            "2. Si hay datos de sensores disponibles en la base de datos, utilízalos cuando te pregunten sobre la temperatura o estado de la ciudad.\n"
+            "3. Si aún no hay sensores conectados o no hay lecturas, indícale amablemente que el sistema está listo y esperando mediciones.\n"
             "4. Responde en español por defecto, de forma breve, amable y profesional.\n\n"
             f"ESTADO DE LA BASE DE DATOS:\n{datos_supabase}"
         )
 
-        contents = []
-        for msg in req.history:
-            contents.append(types.Content(
-                role="user" if msg.role == "user" else "model",
-                parts=[types.Part.from_text(text=msg.content)]
-            ))
-        
-        contents.append(types.Content(
-            role="user",
-            parts=[types.Part.from_text(text=req.message)]
-        ))
+        # Mapeo de historial en formato OpenAI / Groq
+        messages = [{"role": "system", "content": system_instruction}]
 
-        # Modelo estable gemini-1.5-flash como principal
-        response = ai_client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.7,
-                max_output_tokens=500
-            )
+        for msg in req.history:
+            # Mapeamos 'model' a 'assistant' para compatibilidad
+            role_mapped = "assistant" if msg.role in ["model", "assistant"] else "user"
+            messages.append({"role": role_mapped, "content": msg.content})
+
+        messages.append({"role": "user", "content": req.message})
+
+        # Consulta ultra rápida a Groq con Llama 3.3 70B
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=500
         )
 
-        return {"respuesta": response.text}
+        respuesta_texto = completion.choices[0].message.content
+        return {"respuesta": respuesta_texto}
 
     except Exception as e:
-        print(f"❌ Error en Brunito AI: {e}")
-        raise HTTPException(status_code=500, detail=f"Error procesando la solicitud con Gemini: {str(e)}")
+        print(f"❌ Error en Brunito AI (Groq): {e}")
+        raise HTTPException(status_code=500, detail=f"Error procesando la solicitud con Groq: {str(e)}")
