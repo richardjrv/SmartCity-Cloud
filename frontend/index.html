@@ -285,53 +285,46 @@
     </main>
 
 
-    <!-- ============================================================ -->
-    <!-- 3. CHATBOT FLOTANTE (BRUNITO AI)                             -->
-    <!-- ============================================================ -->
 <!-- ============================================================ -->
-    <!-- 3. CHATBOT FLOTANTE (BRUNITO AI) - POSICIÓN CORREGIDA        -->
+    <!-- 3. CHATBOT FLOTANTE (BRUNITO AI) - POSICIONAMIENTO FIJO      -->
     <!-- ============================================================ -->
-    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        
-        <!-- Ventana Flotante del Chat (Posicionada Arriba del Botón) -->
-        <div id="brunito-chat-window" class="hidden mb-4 w-80 sm:w-96 bg-slate-800/95 border border-slate-700/80 rounded-3xl shadow-2xl flex flex-col h-[450px] max-h-[80vh] overflow-hidden backdrop-blur-xl">
-            
-            <!-- Header Chat -->
-            <div class="bg-slate-900/90 p-4 border-b border-slate-700/60 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-xl bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-base">🤖</div>
-                    <div>
-                        <h4 class="font-bold text-sm text-white">Brunito AI</h4>
-                        <p class="text-[10px] text-emerald-400 flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Groq + Supabase
-                        </p>
-                    </div>
-                </div>
-                <button onclick="toggleChatBrunito()" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
-            </div>
-
-            <!-- Cuerpo Mensajes -->
-            <div id="chat-mensajes" class="flex-1 p-4 overflow-y-auto space-y-3">
-                <div class="bg-slate-700/60 p-3 rounded-2xl border border-slate-600/50 max-w-[85%] text-slate-200 text-xs">
-                    ¡Hola! 👋 Soy Brunito AI. ¿En qué te puedo ayudar sobre los sensores de SmartCity Cloud hoy?
+    
+    <!-- Ventana del Chat (Independiente y fija arriba del botón) -->
+    <div id="brunito-chat-window" class="hidden fixed bottom-24 right-6 z-50 w-80 sm:w-96 bg-slate-800/95 border border-slate-700 rounded-3xl shadow-2xl flex flex-col h-[420px] max-h-[70vh] overflow-hidden backdrop-blur-xl">
+        <!-- Header Chat -->
+        <div class="bg-slate-900/90 p-4 border-b border-slate-700/60 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-base">🤖</div>
+                <div>
+                    <h4 class="font-bold text-sm text-white">Brunito AI</h4>
+                    <p class="text-[10px] text-emerald-400 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Groq + Supabase
+                    </p>
                 </div>
             </div>
-
-            <!-- Formulario Entrada -->
-            <form onsubmit="enviarMensajeBrunito(event)" class="p-3 bg-slate-900/90 border-t border-slate-700/60 flex gap-2">
-                <input type="text" id="chat-input" placeholder="Escribe tu consulta..." class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-xl font-semibold transition">
-                    Enviar
-                </button>
-            </form>
+            <button onclick="toggleChatBrunito()" class="text-slate-400 hover:text-white text-lg font-bold p-1">✕</button>
         </div>
 
-        <!-- Botón Lanzador Chatbot -->
-        <button onclick="toggleChatBrunito()" class="w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition hover:scale-105 active:scale-95">
-            🤖
-        </button>
+        <!-- Cuerpo Mensajes -->
+        <div id="chat-mensajes" class="flex-1 p-4 overflow-y-auto space-y-3">
+            <div class="bg-slate-700/60 p-3 rounded-2xl border border-slate-600/50 max-w-[85%] text-slate-200 text-xs">
+                ¡Hola! 👋 Soy Brunito AI. ¿En qué te puedo ayudar sobre los sensores de SmartCity Cloud hoy?
+            </div>
+        </div>
 
+        <!-- Formulario Entrada -->
+        <form onsubmit="enviarMensajeBrunito(event)" class="p-3 bg-slate-900/90 border-t border-slate-700/60 flex gap-2 shrink-0">
+            <input type="text" id="chat-input" placeholder="Escribe tu consulta..." class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-xl font-semibold transition">
+                Enviar
+            </button>
+        </form>
     </div>
+
+    <!-- Botón Flotante (Fijo abajo a la derecha) -->
+    <button onclick="toggleChatBrunito()" class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition hover:scale-105 active:scale-95">
+        🤖
+    </button>
 
 
     <!-- ============================================================ -->
