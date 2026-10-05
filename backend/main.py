@@ -192,7 +192,7 @@ def obtener_contexto_ciudad_supabase():
 
 @app.post("/api/ia/chat")
 def chat_brunito_ai(req: ChatRequest):
-    # Obtener API key dinámica desde las variables de entorno
+    # Obtener la API key directamente de las variables de entorno
     api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
         raise HTTPException(
@@ -201,10 +201,10 @@ def chat_brunito_ai(req: ChatRequest):
         )
 
     try:
-        # Inicializar cliente de Gemini con la clave válida
+        # Inicializar cliente con la clave del entorno
         ai_client = genai.Client(api_key=api_key)
 
-        # Intenta obtener contexto si existe, si no hay datos de sensores no pasa nada
+        # Intenta obtener contexto de Supabase (si no hay datos o el ESP32 no está conectado, no falla)
         datos_supabase = obtener_contexto_ciudad_supabase()
 
         system_instruction = (
@@ -219,7 +219,7 @@ def chat_brunito_ai(req: ChatRequest):
             f"ESTADO DE LA BASE DE DATOS:\n{datos_supabase}"
         )
 
-        # Construir historial para la API
+        # Construir historial de la conversación
         contents = []
         for msg in req.history:
             contents.append(types.Content(
@@ -233,16 +233,31 @@ def chat_brunito_ai(req: ChatRequest):
             parts=[types.Part.from_text(text=req.message)]
         ))
 
-        # Uso del modelo oficial disponible
-        response = ai_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.7,
-                max_output_tokens=500
-            )
-        )
+        # Lista de modelos por orden de preferencia para evitar fallos por saturación (503)
+        modelos_disponibles = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+        response = None
+        ultimo_error = None
+
+        # Bucle con fallback: si un modelo falla o está saturado, intenta con el siguiente
+        for modelo in modelos_disponibles:
+            try:
+                response = ai_client.models.generate_content(
+                    model=modelo,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=0.7,
+                        max_output_tokens=500
+                    )
+                )
+                if response and response.text:
+                    break
+            except Exception as err:
+                ultimo_error = err
+                print(f"⚠️ Modelo {modelo} no disponible ({err}), intentando con modelo secundario...")
+
+        if not response or not response.text:
+            raise ultimo_error
 
         return {"respuesta": response.text}
 
