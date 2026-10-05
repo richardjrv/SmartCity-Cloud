@@ -235,7 +235,7 @@ def chat_brunito_ai(req: ChatRequest):
 
 # POR ESTO (usa gemini-2.0-flash o gemini-1.5-flash):
 response = ai_client.models.generate_content(
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     contents=contents,
     config=types.GenerateContentConfig(
         system_instruction=system_instruction,
