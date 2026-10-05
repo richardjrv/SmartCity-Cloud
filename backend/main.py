@@ -45,7 +45,7 @@ class MessageHistory(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
-    history: Optional[List[MessageHistory]] = []
+    history: Optional[List[MessageHistory]] = None
 
 @app.get("/")
 def inicio():
@@ -192,61 +192,84 @@ def obtener_contexto_ciudad_supabase():
 @app.post("/api/ia/chat")
 def chat_brunito_ai(req: ChatRequest):
     groq_api_key = os.environ.get("GROQ_API_KEY", "")
+
     if not groq_api_key:
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail="La variable de entorno GROQ_API_KEY no está configurada en el servidor."
         )
 
     try:
         client = Groq(api_key=groq_api_key)
+
+        # Obtener datos reales desde Supabase
         datos_supabase = obtener_contexto_ciudad_supabase()
 
         system_instruction = (
-            "Eres Brunito AI, el asistente virtual e inteligente de la plataforma SmartCity Cloud. "
-            "Tu función principal es conversar amablemente con el usuario y responder sus dudas sobre ciudades inteligentes, "
-            "tecnología, IoT, o cualquier saludo e inquietud general.\n"
+            "Eres Brunito AI, el asistente virtual e inteligente "
+            "de la plataforma SmartCity Cloud.\n\n"
+
+            "Tu función es conversar con el usuario y responder "
+            "preguntas sobre ciudades inteligentes, tecnología, IoT "
+            "y los datos de sensores de SmartCity.\n\n"
+
             "INSTRUCCIONES:\n"
-            "1. Si el usuario solo saluda (ej: 'hola'), salúdalo amablemente como Brunito AI.\n"
-            "2. Si hay datos de sensores disponibles en la base de datos, utilízalos cuando te pregunten sobre la temperatura o estado de la ciudad.\n"
-            "3. Si aún no hay sensores conectados o no hay lecturas, indícale amablemente que el sistema está listo y esperando mediciones.\n"
-            "4. Responde en español por defecto, de forma breve, amable y profesional.\n\n"
-            f"ESTADO DE LA BASE DE DATOS:\n{datos_supabase}"
+            "1. Si el usuario saluda, responde amablemente.\n"
+            "2. Usa los datos reales de Supabase cuando el usuario "
+            "pregunte por sensores, temperatura, humedad o calidad del aire.\n"
+            "3. Nunca inventes valores de sensores.\n"
+            "4. Si no existen datos, dilo claramente.\n"
+            "5. Responde en español.\n"
+            "6. Sé breve, claro y amigable.\n\n"
+
+            f"DATOS ACTUALES DE SUPABASE:\n"
+            f"{datos_supabase}"
         )
 
-        messages = [{"role": "system", "content": system_instruction}]
+        messages = [
+            {
+                "role": "system",
+                "content": system_instruction
+            }
+        ]
 
-        for msg in req.history:
-            role_mapped = "assistant" if msg.role in ["model", "assistant"] else "user"
-            messages.append({"role": role_mapped, "content": msg.content})
+        # Mantener historial del chat
+        for msg in (req.history or []):
+            role_mapped = (
+                "assistant"
+                if msg.role in ["model", "assistant"]
+                else "user"
+            )
 
-        messages.append({"role": "user", "content": req.message})
+            messages.append({
+                "role": role_mapped,
+                "content": msg.content
+            })
 
-        # Lista de modelos válidos en Groq por orden de preferencia
-        modelos_groq = ["llama-3.1-8b-instant", "llama3-70b-8192", "mixtral-8x7b-32768"]
-        completion = None
-        ultimo_error = None
+        # Mensaje actual
+        messages.append({
+            "role": "user",
+            "content": req.message
+        })
 
-        for mod in modelos_groq:
-            try:
-                completion = client.chat.completions.create(
-                    model=mod,
-                    messages=messages,
-                    temperature=0.7,
-                    max_tokens=500
-                )
-                if completion and completion.choices:
-                    break
-            except Exception as err:
-                ultimo_error = err
-                print(f"⚠️️ Modelo {mod} en Groq no disponible ({err}), reintentando...")
-
-        if not completion or not completion.choices:
-            raise ultimo_error
+        # 🤖 Modelo actual de Groq
+        completion = client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=500
+        )
 
         respuesta_texto = completion.choices[0].message.content
-        return {"respuesta": respuesta_texto}
+
+        return {
+            "respuesta": respuesta_texto
+        }
 
     except Exception as e:
         print(f"❌ Error en Brunito AI (Groq): {e}")
-        raise HTTPException(status_code=500, detail=f"Error procesando la solicitud con Groq: {str(e)}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error procesando la solicitud con Groq: {str(e)}"
+        )
