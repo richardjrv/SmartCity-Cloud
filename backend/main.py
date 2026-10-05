@@ -203,23 +203,22 @@ def chat_brunito_ai(req: ChatRequest):
         )
 
     try:
-        # Extraer datos reales de Supabase
+        # Intenta obtener contexto si existe, si no hay datos de sensores no pasa nada
         datos_supabase = obtener_contexto_ciudad_supabase()
 
         system_instruction = (
             "Eres Brunito AI, el asistente virtual e inteligente de la plataforma SmartCity Cloud. "
-            "Tu función es ayudar al usuario a comprender el estado de la ciudad utilizando los datos proporcionados por el sistema.\n"
-            "REGLAS E INSTRUCCIONES:\n"
-            "1. Cuando recibas datos reales de sensores de Supabase, UTILÍZALOS estrictamente para responder.\n"
-            "2. NUNCA inventes temperaturas, mediciones ni alertas. Si no hay datos, indícalo con claridad.\n"
-            "3. Diferencia siempre entre datos reales medidos por el sistema y recomendaciones generales de optimización.\n"
-            "4. Explica los datos de forma sencilla, fluida y comprensible.\n"
-            "5. Si la Calidad del Aire es mayor a 50 ICA o la temperatura supera 30°C, indícalo como un valor de atención.\n"
-            "6. Responde en español por defecto, con un tono educado, conciso, útil y natural.\n\n"
-            f"DATOS ACTUALES DE LA BASE DE DATOS:\n{datos_supabase}"
+            "Tu función principal es conversar amablemente con el usuario y responder sus dudas sobre ciudades inteligentes, "
+            "tecnología, IoT, o cualquier saludo e inquietud general.\n"
+            "INSTRUCCIONES:\n"
+            "1. Si el usuario solo saluda (ej: 'hola'), salúdalo amablemente como Brunito AI.\n"
+            "2. Si hay datos de sensores disponibles, utilízalos cuando te pregunten sobre la temperatura o estado de la ciudad.\n"
+            "3. Si aún no hay sensores conectados o no hay datos registrados, indícale amablemente que el sistema está listo y esperando mediciones.\n"
+            "4. Responde en español por defecto, de forma breve, amable y profesional.\n\n"
+            f"ESTADO DE LA BASE DE DATOS:\n{datos_supabase}"
         )
 
-        # Construir historial para la API de Gemini
+        # Construir historial para la API
         contents = []
         for msg in req.history:
             contents.append(types.Content(
@@ -227,11 +226,28 @@ def chat_brunito_ai(req: ChatRequest):
                 parts=[types.Part.from_text(text=msg.content)]
             ))
         
-        # Agregar la pregunta actual del usuario
+        # Agregar el mensaje actual del usuario
         contents.append(types.Content(
             role="user",
             parts=[types.Part.from_text(text=req.message)]
         ))
+
+        # Usamos 'gemini-1.5-flash' o 'gemini-2.0-flash' que son totalmente estables
+        response = ai_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.7,
+                max_output_tokens=500
+            )
+        )
+
+        return {"respuesta": response.text}
+
+    except Exception as e:
+        print(f"❌ Error en Brunito AI: {e}")
+        raise HTTPException(status_code=500, detail=f"Error procesando la solicitud con Gemini: {str(e)}")
 
 # POR ESTO (usa gemini-2.0-flash o gemini-1.5-flash):
 response = ai_client.models.generate_content(
