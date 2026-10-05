@@ -102,7 +102,7 @@ function mostrarMensajeAuth(texto, tipo) {
 async function comprobarSesion() {
     const token = obtenerToken();
     if (!token) {
-        document.getElementById("vista-auth")?.classList.remove("hidden");
+        navegarA("auth");
         return;
     }
 
@@ -120,6 +120,7 @@ async function comprobarSesion() {
         mostrarDashboard(data.nombre, data.id_rol);
     } catch (error) {
         console.error("No se pudo comprobar sesión:", error);
+        cerrarSesion();
     }
 }
 
@@ -129,16 +130,9 @@ function cerrarSesion() {
     localStorage.removeItem("user_name_cloud");
     localStorage.removeItem("user_id_cloud");
 
-    // Ocultar vistas
-    document.getElementById("vista-dashboard")?.classList.add("hidden");
-    document.getElementById("vista-perfil")?.classList.add("hidden");
-    document.getElementById("vista-admin-usuarios")?.classList.add("hidden");
-
-    // Mostrar login
-    document.getElementById("vista-auth")?.classList.remove("hidden");
-    document.getElementById("usuario-badge")?.classList.add("hidden");
-    document.getElementById("btn-menu-admin")?.classList.add("hidden");
-
     if (modoRegistro) toggleModoAuth();
     document.getElementById("form-auth")?.reset();
+
+    // Redirige al login y oculta todo el header
+    navegarA("auth");
 }

@@ -3,14 +3,28 @@
 // ============================================================
 
 function navegarA(vista) {
+    const token = obtenerToken();
+
+    // 🔒 Si no hay sesión activa y no está en 'auth', redirigir forzosamente al Login
+    if (!token && vista !== "auth") {
+        navegarA("auth");
+        return;
+    }
+
     // Ocultar todas las secciones
     document.getElementById("vista-dashboard")?.classList.add("hidden");
     document.getElementById("vista-perfil")?.classList.add("hidden");
     document.getElementById("vista-admin-usuarios")?.classList.add("hidden");
     document.getElementById("vista-auth")?.classList.add("hidden");
 
-    // Mostrar vista seleccionada
-    if (vista === "dashboard") {
+    if (vista === "auth") {
+        // Ocultar menú y componentes del header si está en el login
+        document.getElementById("menu-navegacion")?.classList.add("hidden");
+        document.getElementById("usuario-badge")?.classList.add("hidden");
+        document.getElementById("btn-auth-accion")?.classList.add("hidden");
+        
+        document.getElementById("vista-auth")?.classList.remove("hidden");
+    } else if (vista === "dashboard") {
         document.getElementById("vista-dashboard")?.classList.remove("hidden");
         cargarUltimasLecturas();
     } else if (vista === "perfil") {
@@ -25,20 +39,17 @@ function navegarA(vista) {
         }
         document.getElementById("vista-admin-usuarios")?.classList.remove("hidden");
         cargarUsuariosAdmin();
-    } else if (vista === "auth") {
-        document.getElementById("vista-auth")?.classList.remove("hidden");
     }
 }
 
 function mostrarDashboard(nombre, idRol) {
-    document.getElementById("vista-auth")?.classList.add("hidden");
-    document.getElementById("vista-dashboard")?.classList.remove("hidden");
+    // 🔓 Mostrar el menú superior únicamente cuando la sesión sea válida
+    document.getElementById("menu-navegacion")?.classList.remove("hidden");
+    document.getElementById("usuario-badge")?.classList.remove("hidden");
+    document.getElementById("btn-auth-accion")?.classList.remove("hidden");
 
     const navNombre = document.getElementById("nav-usuario-nombre");
     if (navNombre) navNombre.innerText = nombre;
-
-    document.getElementById("usuario-badge")?.classList.remove("hidden");
-    document.getElementById("btn-auth-accion")?.classList.remove("hidden");
 
     const btnAdmin = document.getElementById("btn-menu-admin");
     if (btnAdmin) {
@@ -49,7 +60,7 @@ function mostrarDashboard(nombre, idRol) {
         }
     }
 
-    cargarUltimasLecturas();
+    navegarA("dashboard");
 }
 
 async function cargarUltimasLecturas() {
@@ -71,7 +82,7 @@ async function cargarUltimasLecturas() {
     }
 }
 
-// Inicialización de la aplicación
+// Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
     comprobarSesion();
 });
