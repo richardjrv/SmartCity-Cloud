@@ -4,6 +4,68 @@
 
 const TEXT_SIZE_STEPS = [0.875, 1, 1.125, 1.25];
 const TEXT_SIZE_STORAGE_KEY = "smartcity_text_size";
+const THEME_STORAGE_KEY = "smartcity_theme";
+
+function installAccessibilityStyles() {
+    if (document.getElementById("accessibility-view-styles")) return;
+
+    const style = document.createElement("style");
+    style.id = "accessibility-view-styles";
+    style.textContent = `
+        body.login-only #menu-navegacion,
+        body.login-only #usuario-badge,
+        body.login-only #btn-auth-accion,
+        body.login-only #vista-dashboard,
+        body.login-only #vista-perfil,
+        body.login-only #vista-admin-usuarios,
+        body.login-only #brunito-chat-window,
+        body.login-only button[onclick="toggleChatBrunito()"] {
+            display: none !important;
+        }
+        body.login-only #vista-auth { display: flex !important; }
+
+        html[data-theme="light"] body {
+            background-color: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
+        html[data-theme="light"] [class~="bg-slate-900"],
+        html[data-theme="light"] [class~="bg-slate-900/80"],
+        html[data-theme="light"] [class~="bg-slate-900/90"],
+        html[data-theme="light"] [class~="bg-slate-800"],
+        html[data-theme="light"] [class~="bg-slate-800/90"],
+        html[data-theme="light"] [class~="bg-slate-800/80"],
+        html[data-theme="light"] [class~="bg-slate-800/60"],
+        html[data-theme="light"] [class~="bg-slate-800/40"] {
+            background-color: #fff !important;
+        }
+        html[data-theme="light"] [class~="bg-slate-700"],
+        html[data-theme="light"] [class~="bg-slate-700/80"],
+        html[data-theme="light"] [class~="bg-slate-700/60"],
+        html[data-theme="light"] [class~="bg-slate-700/50"],
+        html[data-theme="light"] [class~="bg-slate-700/40"] {
+            background-color: #e2e8f0 !important;
+        }
+        html[data-theme="light"] [class~="border-slate-700"],
+        html[data-theme="light"] [class~="border-slate-700/60"],
+        html[data-theme="light"] [class~="border-slate-700/50"],
+        html[data-theme="light"] [class~="border-slate-700/30"],
+        html[data-theme="light"] [class~="border-slate-600"],
+        html[data-theme="light"] [class~="border-slate-600/50"] {
+            border-color: #cbd5e1 !important;
+        }
+        html[data-theme="light"] [class~="text-slate-100"],
+        html[data-theme="light"] [class~="text-slate-200"],
+        html[data-theme="light"] [class~="text-slate-300"] {
+            color: #0f172a !important;
+        }
+        html[data-theme="light"] [class~="text-slate-400"] { color: #475569 !important; }
+        html[data-theme="light"] [class~="text-slate-500"] { color: #64748b !important; }
+        html[data-theme="light"] [class~="text-white"]:not([class*="bg-blue-"]):not([class*="bg-rose-"]):not([class*="bg-emerald-"]):not([class*="bg-amber-"]) {
+            color: #0f172a !important;
+        }
+    `;
+    document.head.appendChild(style);
+}
 
 function initTextSizeControls() {
     const badge = document.getElementById("usuario-badge");
@@ -29,24 +91,30 @@ function initTextSizeControls() {
     const decreaseButton = makeButton("A−", "Disminuir tamaño del texto", () => changeTextSize(-1));
     const resetButton = makeButton("A", "Restablecer tamaño normal del texto", () => applyTextSize(1));
     const increaseButton = makeButton("A+", "Aumentar tamaño del texto", () => changeTextSize(1));
-
+    const themeButton = makeButton("☀️", "Activar modo claro", toggleTheme);
+    themeButton.id = "theme-toggle";
+    themeButton.classList.add("inline-flex", "items-center", "gap-1");
     const status = document.createElement("span");
     status.id = "text-size-status";
     status.className = "sr-only";
     status.setAttribute("aria-live", "polite");
 
-    group.append(decreaseButton, resetButton, increaseButton, status);
+    group.append(decreaseButton, resetButton, increaseButton, themeButton, status);
     toolbarParent.insertBefore(group, badge);
 
     window.textSizeControls = { decreaseButton, increaseButton, status };
     let savedScale = 1;
+    let savedTheme = "dark";
     try {
         const storedScale = Number(localStorage.getItem(TEXT_SIZE_STORAGE_KEY));
         if (TEXT_SIZE_STEPS.includes(storedScale)) savedScale = storedScale;
+        const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+        if (storedTheme === "light" || storedTheme === "dark") savedTheme = storedTheme;
     } catch (error) {
-        console.warn("No se pudo leer la preferencia de tamaño de texto.", error);
+        console.warn("No se pudieron leer las preferencias de accesibilidad.", error);
     }
     applyTextSize(savedScale, false);
+    applyTheme(savedTheme, false);
 }
 
 function changeTextSize(direction) {
@@ -78,7 +146,37 @@ function applyTextSize(scale, persist = true) {
     }
 }
 
+function applyTheme(theme, persist = true) {
+    const normalizedTheme = theme === "light" ? "light" : "dark";
+    document.documentElement.dataset.theme = normalizedTheme;
+    document.documentElement.classList.toggle("dark", normalizedTheme === "dark");
+
+    const button = document.getElementById("theme-toggle");
+    if (button) {
+        const nextTheme = normalizedTheme === "dark" ? "claro" : "nocturno";
+        button.innerHTML = normalizedTheme === "dark"
+            ? '<span aria-hidden="true">☀️</span><span class="hidden sm:inline">Modo claro</span>'
+            : '<span aria-hidden="true">🌙</span><span class="hidden sm:inline">Modo nocturno</span>';
+        button.setAttribute("aria-label", `Activar modo ${nextTheme}`);
+        button.title = `Activar modo ${nextTheme}`;
+    }
+
+    if (persist) {
+        try {
+            localStorage.setItem(THEME_STORAGE_KEY, normalizedTheme);
+        } catch (error) {
+            console.warn("No se pudo guardar la preferencia de tema.", error);
+        }
+    }
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.dataset.theme || "dark";
+    applyTheme(currentTheme === "dark" ? "light" : "dark");
+}
+
 function navegarA(vista) {
+    document.body.classList.toggle("login-only", vista === "auth");
     const token = obtenerToken();
 
     if (!token && vista !== "auth") {
@@ -154,6 +252,8 @@ async function cargarUltimasLecturas() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("login-only");
+    installAccessibilityStyles();
     initTextSizeControls();
     comprobarSesion();
 });
