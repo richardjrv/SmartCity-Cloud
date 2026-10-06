@@ -611,11 +611,17 @@
         </div>
 
         <!-- Formulario Entrada -->
-        <form onsubmit="enviarMensajeBrunito(event)" class="p-3 bg-slate-900/90 border-t border-slate-700/60 flex gap-2 shrink-0">
-            <input type="text" id="chat-input" aria-label="Escribe tu consulta a Brunito" placeholder="Escribe tu consulta..." autocomplete="off" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-xl font-semibold transition">
-                Enviar
-            </button>
+        <form onsubmit="enviarMensajeBrunito(event)" class="brunito-chat-form p-3 bg-slate-900/90 border-t border-slate-700/60 shrink-0">
+            <div class="brunito-chat-controls">
+                <input type="text" id="chat-input" aria-label="Escribe o dicta tu consulta a Brunito" placeholder="Escribe tu consulta..." autocomplete="off" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+                <button id="chat-mic-button" type="button" onclick="alternarDictadoBrunito()" aria-label="Dictar consulta por micrófono" aria-pressed="false" title="Dictar consulta" class="brunito-mic-button">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"></path></svg>
+                </button>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-xl font-semibold transition">
+                    Enviar
+                </button>
+            </div>
+            <p id="chat-voice-status" class="chat-voice-status" role="status" aria-live="polite"></p>
         </form>
     </div>
 
