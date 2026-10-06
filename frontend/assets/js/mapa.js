@@ -34,11 +34,18 @@ async function cargarMapaSensores() {
         if (actualizado) actualizado.textContent = `Datos consultados: ${new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}`;
 
         renderizarMarcadoresSensores(document.getElementById("sensor-map-search")?.value || "");
-        if (sensoresEnMapa.length && !sensoresEnMapa.some(sensor => sensor.id === sensorEnDetalle)) {
+        const sensorSeleccionado = sensoresEnMapa.find(sensor => sensor.id === sensorEnDetalle);
+        if (sensorSeleccionado) {
+            mostrarDetalleSensor(sensorSeleccionado);
+        } else if (sensoresEnMapa.length) {
             mostrarDetalleSensor(sensoresEnMapa[0]);
+        } else {
+            sensorEnDetalle = null;
+            mostrarDetalleVacio("Aún no hay lecturas para mostrar.");
         }
     } catch (error) {
         console.error("Error cargando el mapa de sensores:", error);
+        sensorEnDetalle = null;
         emptyState.textContent = "No se pudieron cargar las lecturas. Intenta actualizar.";
         emptyState.classList.remove("hidden");
         mostrarDetalleVacio("No hay datos disponibles en este momento.");
