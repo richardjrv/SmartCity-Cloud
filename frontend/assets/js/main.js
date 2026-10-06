@@ -42,42 +42,6 @@ const TEXT_SIZE_STORAGE_KEY = "smartcity_text_size";
 const THEME_STORAGE_KEY = "smartcity_theme";
 
 function initTextSizeControls() {
-    const badge = document.getElementById("usuario-badge");
-    const accountWrap = badge?.parentElement;
-    const toolbarParent = accountWrap?.parentElement;
-    if (!toolbarParent || document.getElementById("text-size-controls")) return;
-
-    const group = document.createElement("div");
-    group.id = "text-size-controls";
-    group.className = "flex items-center gap-1";
-    group.setAttribute("role", "group");
-    group.setAttribute("aria-label", "Tamaño del texto");
-
-    const makeButton = (label, accessibleName, action) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = label;
-        button.className = "px-2.5 py-2 rounded-lg bg-slate-700/60 border border-slate-600 text-slate-100 hover:bg-slate-600 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-400 disabled:opacity-40 disabled:cursor-not-allowed";
-        button.setAttribute("aria-label", accessibleName);
-        button.addEventListener("click", action);
-        return button;
-    };
-
-    const decreaseButton = makeButton("A−", "Disminuir tamaño del texto", () => changeTextSize(-1));
-    const resetButton = makeButton("A", "Restablecer tamaño normal del texto", () => applyTextSize(1));
-    const increaseButton = makeButton("A+", "Aumentar tamaño del texto", () => changeTextSize(1));
-    const themeButton = makeButton("☀️", "Activar modo claro", toggleTheme);
-    themeButton.id = "theme-toggle";
-    themeButton.classList.add("inline-flex", "items-center", "gap-1");
-    const status = document.createElement("span");
-    status.id = "text-size-status";
-    status.className = "sr-only";
-    status.setAttribute("aria-live", "polite");
-
-    group.append(decreaseButton, resetButton, increaseButton, themeButton, status);
-    toolbarParent.insertBefore(group, accountWrap);
-    window.textSizeControls = { decreaseButton, increaseButton, status };
-
     let savedScale = 1;
     try {
         const storedScale = Number(localStorage.getItem(TEXT_SIZE_STORAGE_KEY));
@@ -96,13 +60,6 @@ function initTextSizeControls() {
     applyTheme(savedTheme, false);
 }
 
-function changeTextSize(direction) {
-    const currentScale = Number(document.documentElement.dataset.textScale || 1);
-    const currentIndex = TEXT_SIZE_STEPS.indexOf(currentScale);
-    const nextIndex = Math.max(0, Math.min(TEXT_SIZE_STEPS.length - 1, currentIndex + direction));
-    applyTextSize(TEXT_SIZE_STEPS[nextIndex]);
-}
-
 function applyTextSize(scale, persist = true) {
     const percentage = Math.round(scale * 100);
     document.documentElement.dataset.textScale = String(scale);
@@ -110,13 +67,6 @@ function applyTextSize(scale, persist = true) {
     document.documentElement.style.setProperty("--font-scale", String(scale));
     const settingsSize = document.getElementById("config-text-size");
     if (settingsSize) settingsSize.value = String(scale);
-
-    if (window.textSizeControls) {
-        const { decreaseButton, increaseButton, status } = window.textSizeControls;
-        decreaseButton.disabled = scale <= TEXT_SIZE_STEPS[0];
-        increaseButton.disabled = scale >= TEXT_SIZE_STEPS[TEXT_SIZE_STEPS.length - 1];
-        status.textContent = `Tamaño del texto: ${percentage} por ciento.`;
-    }
 
     if (persist) {
         try {
@@ -133,14 +83,6 @@ function applyTheme(theme, persist = true) {
     const settingsTheme = document.getElementById("config-theme");
     if (settingsTheme) settingsTheme.value = normalizedTheme;
 
-    const button = document.getElementById("theme-toggle");
-    if (button) {
-        const nextTheme = normalizedTheme === "dark" ? "claro" : "nocturno";
-        button.innerHTML = normalizedTheme === "dark" ? '<span aria-hidden="true">☀️</span><span class="hidden sm:inline">Modo claro</span>' : '<span aria-hidden="true">🌙</span><span class="hidden sm:inline">Modo nocturno</span>';
-        button.setAttribute("aria-label", `Activar modo ${nextTheme}`);
-        button.title = `Activar modo ${nextTheme}`;
-    }
-
     if (persist) {
         try {
             localStorage.setItem(THEME_STORAGE_KEY, normalizedTheme);
@@ -148,11 +90,6 @@ function applyTheme(theme, persist = true) {
             console.warn("No se pudo guardar la preferencia de tema.", error);
         }
     }
-}
-
-function toggleTheme() {
-    const currentTheme = document.documentElement.dataset.theme || "dark";
-    applyTheme(currentTheme === "dark" ? "light" : "dark");
 }
 
 function navegarA(vista) {

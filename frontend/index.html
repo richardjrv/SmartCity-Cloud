@@ -54,8 +54,8 @@
                 <button onclick="navegarA('dashboard')" class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
                     📊 Dashboard
                 </button>
-                <button id="btn-menu-configuracion" onclick="navegarA('configuracion')" class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
-                    ⚙️ Configuración
+                <button id="btn-menu-configuracion" type="button" onclick="navegarA('configuracion')" aria-label="Configuración" title="Configuración" class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
+                    <span aria-hidden="true">⚙️</span>
                 </button>
                 <button id="btn-menu-admin" onclick="navegarA('admin-usuarios')" class="hidden px-3.5 py-2 rounded-xl text-sm font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition">
                     👑 Gestión Usuarios
@@ -359,7 +359,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <section class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-6">
                     <h3 class="font-bold text-white">Apariencia y accesibilidad</h3>
-                    <p class="text-xs text-slate-400 mt-1">Estas preferencias también se pueden cambiar rápidamente desde los controles de la barra superior.</p>
+                    <p class="text-xs text-slate-400 mt-1">Personaliza el tema y el tamaño del texto para adaptar la interfaz a tus necesidades.</p>
                     <div class="mt-5 space-y-4">
                         <div>
                             <label for="config-theme" class="block text-sm text-slate-200 mb-2">Tema visual</label>
