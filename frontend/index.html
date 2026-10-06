@@ -47,23 +47,11 @@
                 </div>
             </div>
 
-            <button id="btn-mobile-nav" type="button" class="hidden md:hidden px-3 py-2 rounded-lg border border-slate-600 text-slate-200" aria-expanded="false" aria-controls="menu-navegacion" aria-label="Abrir navegación" onclick="toggleMobileNav()">☰</button>
-
-            <!-- Menú de Navegación Principal -->
-            <nav id="menu-navegacion" class="hidden md:flex items-center gap-2">
-                <button onclick="navegarA('dashboard')" class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
-                    📊 Dashboard
-                </button>
-                <button id="btn-menu-configuracion" type="button" onclick="navegarA('configuracion')" aria-label="Configuración" title="Configuración" class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button id="btn-mobile-nav" type="button" class="hidden md:hidden px-3 py-2 rounded-lg border border-slate-600 text-slate-200" aria-expanded="false" aria-controls="app-sidebar" aria-label="Abrir navegación" onclick="toggleMobileNav()">☰</button>
+                <button id="btn-menu-configuracion" type="button" onclick="navegarA('configuracion')" aria-label="Configuración" title="Configuración" class="hidden px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
                     <span aria-hidden="true">⚙️</span>
                 </button>
-                <button id="btn-menu-admin" onclick="navegarA('admin-usuarios')" class="hidden px-3.5 py-2 rounded-xl text-sm font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition">
-                    👑 Gestión Usuarios
-                </button>
-            </nav>
-
-            <!-- Badge Usuario y Botón Sesión -->
-            <div class="flex items-center gap-3">
                 <div id="account-menu-wrap" class="hidden relative">
                     <button id="usuario-badge" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="account-menu" onclick="toggleAccountMenu()" class="flex items-center gap-2 bg-slate-700/40 border border-slate-600/50 rounded-xl px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 transition">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true"></span>
@@ -85,10 +73,34 @@
         </div>
     </header>
 
+    <div id="app-layout" class="app-layout">
+        <aside id="app-sidebar" class="app-sidebar hidden" aria-label="Navegación principal">
+            <div class="sidebar-topline">
+                <span class="sidebar-section-title">MENÚ</span>
+                <button id="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Contraer barra lateral" title="Contraer barra lateral" aria-expanded="true">‹</button>
+            </div>
+            <nav class="sidebar-nav" aria-label="Secciones del sitio">
+                <button type="button" class="sidebar-link" data-sidebar-view="dashboard" onclick="navegarA('dashboard')" aria-label="Inicio" title="Inicio">
+                    <span class="sidebar-icon" aria-hidden="true">⌂</span><span class="sidebar-link-label">Inicio</span>
+                </button>
+                <button type="button" class="sidebar-link" data-sidebar-view="sensores" onclick="navegarA('sensores')" aria-label="Sensores" title="Sensores">
+                    <span class="sidebar-icon" aria-hidden="true">◉</span><span class="sidebar-link-label">Sensores</span>
+                    <span id="sensor-alert-badge" class="sidebar-alert-badge hidden" aria-label="0 lecturas fuera de rango">0</span>
+                </button>
+                <button type="button" class="sidebar-link" data-sidebar-view="reportes" onclick="navegarA('reportes')" aria-label="Reportes" title="Reportes">
+                    <span class="sidebar-icon" aria-hidden="true">▤</span><span class="sidebar-link-label">Reportes</span>
+                </button>
+                <button id="btn-menu-admin" type="button" class="sidebar-link hidden" data-sidebar-view="admin-usuarios" onclick="navegarA('admin-usuarios')" aria-label="Gestión de usuarios" title="Gestión de usuarios">
+                    <span class="sidebar-icon" aria-hidden="true">♙</span><span class="sidebar-link-label">Gestión de usuarios</span>
+                </button>
+            </nav>
+        </aside>
+        <button id="sidebar-backdrop" type="button" class="sidebar-backdrop hidden" aria-label="Cerrar menú" onclick="cerrarMobileNav()"></button>
+
     <!-- ============================================================ -->
     <!-- 2. CONTENIDO PRINCIPAL (SECCIONES Y VISTAS)                  -->
     <!-- ============================================================ -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+    <main id="main-content" class="main-content flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
 
         <!-- ========================================== -->
         <!-- VISTA A: AUTENTICACIÓN (LOGIN / REGISTRO)  -->
@@ -161,7 +173,7 @@
         <!-- VISTA B: DASHBOARD (PANEL PRINCIPAL)       -->
         <!-- ========================================== -->
         <section id="vista-dashboard" class="hidden space-y-6">
-            <div class="flex flex-wrap items-center gap-2">
+<div id="sensor-report-toolbar" class="flex flex-wrap items-center gap-2">
     <button onclick="exportarSensoresCSV()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition flex items-center gap-1.5">
         📊 Exportar CSV
     </button>
@@ -450,6 +462,7 @@
         </section>
 
     </main>
+    </div>
 
     <footer id="site-footer" class="border-t border-slate-700/60 bg-slate-900/60">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">

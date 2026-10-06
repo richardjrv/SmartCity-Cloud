@@ -40,6 +40,7 @@ function mostrarNotificacion(mensaje, tipo = "info") {
 const TEXT_SIZE_STEPS = [0.875, 1, 1.125, 1.25];
 const TEXT_SIZE_STORAGE_KEY = "smartcity_text_size";
 const THEME_STORAGE_KEY = "smartcity_theme";
+const SIDEBAR_STORAGE_KEY = "smartcity_sidebar_collapsed";
 
 function initTextSizeControls() {
     let savedScale = 1;
@@ -110,19 +111,23 @@ function navegarA(vista) {
     document.getElementById("vista-admin-usuarios")?.classList.add("hidden");
     document.getElementById("vista-auth")?.classList.add("hidden");
     cerrarAccountMenu();
+    actualizarNavegacionLateral(vista);
 
     if (vista === "auth") {
-        // Ocultar menú y componentes del header si está en el login
-        document.getElementById("menu-navegacion")?.classList.add("hidden");
+        // La sesión es el requisito para mostrar la navegación de la aplicación.
+        document.getElementById("app-sidebar")?.classList.add("hidden");
         document.getElementById("btn-mobile-nav")?.classList.add("hidden");
         document.getElementById("account-menu-wrap")?.classList.add("hidden");
         document.getElementById("btn-menu-configuracion")?.classList.add("hidden");
 
         document.getElementById("vista-auth")?.classList.remove("hidden");
-    } else if (vista === "dashboard") {
+    } else if (["dashboard", "sensores", "reportes"].includes(vista)) {
+        document.getElementById("app-sidebar")?.classList.remove("hidden");
         document.getElementById("vista-dashboard")?.classList.remove("hidden");
         cargarUltimasLecturas();
         cargarMapaSensores();
+        const destino = vista === "reportes" ? "sensor-report-toolbar" : "sensor-map-section";
+        requestAnimationFrame(() => document.getElementById(destino)?.scrollIntoView({ behavior: "smooth", block: "start" }));
     } else if (vista === "perfil") {
         document.getElementById("vista-perfil")?.classList.remove("hidden");
         cargarPerfilUsuario();
@@ -142,8 +147,8 @@ function navegarA(vista) {
 }
 
 function mostrarDashboard(nombre, idRol) {
-    // 🔓 Mostrar el menú superior únicamente cuando la sesión sea válida
-    document.getElementById("menu-navegacion")?.classList.remove("hidden");
+    // 🔓 Mostrar navegación y acciones superiores únicamente con sesión válida
+    document.getElementById("app-sidebar")?.classList.remove("hidden");
     document.getElementById("btn-mobile-nav")?.classList.remove("hidden");
     document.getElementById("account-menu-wrap")?.classList.remove("hidden");
     document.getElementById("btn-menu-configuracion")?.classList.remove("hidden");
@@ -166,18 +171,70 @@ function mostrarDashboard(nombre, idRol) {
 }
 
 function toggleMobileNav() {
-    const menu = document.getElementById("menu-navegacion");
+    const sidebar = document.getElementById("app-sidebar");
     const button = document.getElementById("btn-mobile-nav");
-    const opening = !menu?.classList.contains("mobile-nav-open");
-    menu?.classList.toggle("mobile-nav-open", opening);
+    const backdrop = document.getElementById("sidebar-backdrop");
+    const opening = !document.body.classList.contains("mobile-sidebar-open");
+    document.body.classList.toggle("mobile-sidebar-open", opening);
+    sidebar?.classList.remove("hidden");
+    backdrop?.classList.toggle("hidden", !opening);
     button?.setAttribute("aria-expanded", String(opening));
     button?.setAttribute("aria-label", opening ? "Cerrar navegación" : "Abrir navegación");
 }
 
 function cerrarMobileNav() {
-    document.getElementById("menu-navegacion")?.classList.remove("mobile-nav-open");
+    document.body.classList.remove("mobile-sidebar-open");
+    document.getElementById("sidebar-backdrop")?.classList.add("hidden");
     document.getElementById("btn-mobile-nav")?.setAttribute("aria-expanded", "false");
     document.getElementById("btn-mobile-nav")?.setAttribute("aria-label", "Abrir navegación");
+}
+
+function toggleSidebar() {
+    const collapsed = !document.body.classList.contains("sidebar-collapsed");
+    document.body.classList.toggle("sidebar-collapsed", collapsed);
+    const button = document.getElementById("sidebar-toggle");
+    const label = collapsed ? "Expandir barra lateral" : "Contraer barra lateral";
+    if (button) {
+        button.setAttribute("aria-label", label);
+        button.title = label;
+        button.setAttribute("aria-expanded", String(!collapsed));
+        button.textContent = collapsed ? "›" : "‹";
+    }
+    try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, String(collapsed));
+    } catch (error) {
+        console.warn("No se pudo guardar el estado de la barra lateral.", error);
+    }
+}
+
+function actualizarNavegacionLateral(vista) {
+    const activa = vista === "sensores" || vista === "reportes" ? vista : vista === "dashboard" ? "dashboard" : vista;
+    document.querySelectorAll("[data-sidebar-view]").forEach(button => {
+        if (button.dataset.sidebarView === activa) {
+            button.setAttribute("aria-current", "page");
+        } else {
+            button.removeAttribute("aria-current");
+        }
+    });
+}
+
+function inicializarBarraLateral() {
+    try {
+        const collapsed = localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
+        document.body.classList.toggle("sidebar-collapsed", collapsed);
+        const button = document.getElementById("sidebar-toggle");
+        if (button && collapsed) {
+            button.textContent = "›";
+            button.setAttribute("aria-label", "Expandir barra lateral");
+            button.title = "Expandir barra lateral";
+            button.setAttribute("aria-expanded", "false");
+        }
+    } catch (error) {
+        console.warn("No se pudo recuperar el estado de la barra lateral.", error);
+    }
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") cerrarMobileNav();
+    });
 }
 
 async function cargarUltimasLecturas() {
@@ -202,6 +259,7 @@ async function cargarUltimasLecturas() {
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("login-only");
+    inicializarBarraLateral();
     initTextSizeControls();
     initAccountMenu();
     initSiteInformation();

@@ -31,6 +31,7 @@ async function cargarMapaSensores() {
             if (id && !lecturasPorSensor.has(id)) lecturasPorSensor.set(id, lectura);
         });
         sensoresEnMapa = Array.from(lecturasPorSensor, ([id, lectura]) => ({ id, lectura }));
+        actualizarBadgeAlertasSensores(sensoresEnMapa);
 
         const actualizado = document.getElementById("sensor-map-updated");
         if (actualizado) actualizado.textContent = `Datos consultados: ${new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}`;
@@ -47,11 +48,34 @@ async function cargarMapaSensores() {
         }
     } catch (error) {
         console.error("Error cargando el mapa de sensores:", error);
+        actualizarBadgeAlertasSensores([]);
         sensorEnDetalle = null;
         emptyState.textContent = "No se pudieron cargar las lecturas. Intenta actualizar.";
         emptyState.classList.remove("hidden");
         mostrarDetalleVacio("No hay datos disponibles en este momento.");
     }
+}
+
+function actualizarBadgeAlertasSensores(sensores) {
+    const badge = document.getElementById("sensor-alert-badge");
+    if (!badge) return;
+
+    const fueraDeRango = sensores.filter(({ lectura }) => {
+        const esNumero = valor => valor !== null && valor !== undefined && valor !== "" && Number.isFinite(Number(valor));
+        const temperatura = Number(lectura.temperatura);
+        const humedad = Number(lectura.humedad);
+        const calidadAire = Number(lectura.calidad_aire);
+        return (esNumero(lectura.temperatura) && (temperatura < 0 || temperatura >= 35))
+            || (esNumero(lectura.humedad) && (humedad < 20 || humedad > 80))
+            || (esNumero(lectura.calidad_aire) && (calidadAire < 0 || calidadAire > 100));
+    }).length;
+
+    badge.textContent = fueraDeRango > 99 ? "99+" : String(fueraDeRango);
+    badge.setAttribute("aria-label", `${fueraDeRango} sensores con lecturas fuera de los rangos informativos configurados`);
+    badge.title = fueraDeRango
+        ? `${fueraDeRango} sensores con lecturas que requieren revisión. Rangos orientativos: 0 a menos de 35 °C, 20–80 % y 0–100 ICA.`
+        : "Todas las lecturas están dentro de los rangos informativos.";
+    badge.classList.toggle("hidden", fueraDeRango === 0);
 }
 
 function instalarEventosMapaSensores() {
