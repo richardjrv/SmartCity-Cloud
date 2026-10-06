@@ -187,7 +187,59 @@
                     <div class="text-xs text-slate-500 mt-2">🍃 Índice ICA Supabase</div>
                 </div>
             </div>
-        </section>
+                    <!-- Mapa esquemático de sensores: faltan coordenadas GPS en la API -->
+            <section id="sensor-map-section" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                    <div>
+                        <h2 class="text-xl font-bold text-white">🗺️ Mapa de sensores</h2>
+                        <p class="text-sm text-slate-400 mt-1">Selecciona un marcador para consultar su última lectura.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label class="sr-only" for="sensor-map-search">Buscar sensor</label>
+                        <input id="sensor-map-search" type="search" placeholder="Buscar sensor…" class="w-full sm:w-40 bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                        <button id="sensor-map-refresh" type="button" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition">↻ Actualizar</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_280px] gap-4">
+                    <div id="sensor-map-canvas" class="sensor-map-canvas relative rounded-2xl border border-slate-700/60 overflow-hidden" role="group" aria-label="Mapa esquemático con marcadores de sensores">
+                        <span class="sensor-map-park" aria-hidden="true">Parque central</span>
+                        <span class="sensor-map-road sensor-map-road-h1" aria-hidden="true"></span>
+                        <span class="sensor-map-road sensor-map-road-h2" aria-hidden="true"></span>
+                        <span class="sensor-map-road sensor-map-road-v1" aria-hidden="true"></span>
+                        <span class="sensor-map-road sensor-map-road-v2" aria-hidden="true"></span>
+                        <span class="sensor-map-road sensor-map-road-diagonal" aria-hidden="true"></span>
+                        <span class="sensor-map-label sensor-map-label-north" aria-hidden="true">NORTE</span>
+                        <span class="sensor-map-label sensor-map-label-center" aria-hidden="true">CENTRO</span>
+                        <div id="sensor-map-markers"></div>
+                        <p id="sensor-map-empty" class="sensor-map-empty">Cargando lecturas de sensores…</p>
+                    </div>
+                    <aside class="sensor-map-details bg-slate-900/70 border border-slate-700/60 rounded-2xl p-5" aria-live="polite">
+                        <div class="flex items-start justify-between gap-3 mb-4">
+                            <div>
+                                <p class="text-xs uppercase tracking-wider text-slate-400">Sensor seleccionado</p>
+                                <h3 id="sensor-detail-id" class="text-lg font-bold text-white mt-1">Elige un marcador</h3>
+                            </div>
+                            <span id="sensor-detail-status" class="sensor-detail-status">—</span>
+                        </div>
+                        <p id="sensor-detail-message" class="text-sm text-slate-400">Sus lecturas aparecerán aquí.</p>
+                        <div id="sensor-detail-content" class="hidden space-y-3 mt-5">
+                            <div class="sensor-reading-row"><span>🌡️ Temperatura</span><strong id="sensor-detail-temperature">—</strong></div>
+                            <div class="sensor-reading-row"><span>💧 Humedad</span><strong id="sensor-detail-humidity">—</strong></div>
+                            <div class="sensor-reading-row"><span>🍃 Calidad del aire</span><strong id="sensor-detail-air">—</strong></div>
+                            <div class="pt-3 border-t border-slate-700/60">
+                                <span class="block text-xs text-slate-400">Última lectura</span>
+                                <time id="sensor-detail-time" class="block text-sm text-slate-200 mt-1">—</time>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-4 text-xs text-slate-400">
+                    <p>Posiciones referenciales: la base de datos aún no incluye coordenadas GPS.</p>
+                    <p id="sensor-map-updated" aria-live="polite">Aún no actualizado</p>
+                </div>
+            </section>
+
+</section>
 
 
         <!-- ========================================== -->
@@ -382,6 +434,7 @@
     <script src="assets/js/perfil.js"></script>
     <script src="assets/js/admin.js"></script>
     <script src="assets/js/brunito.js"></script>
+    <script src="assets/js/mapa.js"></script>
     <script src="assets/js/main.js"></script>
 
 </body>
