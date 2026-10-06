@@ -126,6 +126,7 @@ function applyAccent(color, persist = true) {
 function navegarA(vista) {
     document.body.classList.toggle("login-only", vista === "auth");
     cerrarMobileNav();
+    cerrarMenuNotificaciones();
     const token = obtenerToken();
 
     // 🔒 Si no hay sesión activa y no está en 'auth', redirigir forzosamente al Login
@@ -148,6 +149,7 @@ function navegarA(vista) {
         document.getElementById("app-sidebar")?.classList.add("hidden");
         document.getElementById("btn-mobile-nav")?.classList.add("hidden");
         document.getElementById("account-menu-wrap")?.classList.add("hidden");
+        document.getElementById("notification-menu-wrap")?.classList.add("hidden");
         document.getElementById("btn-menu-configuracion")?.classList.add("hidden");
 
         document.getElementById("vista-auth")?.classList.remove("hidden");
@@ -196,7 +198,9 @@ function mostrarDashboard(nombre, idRol) {
     document.getElementById("app-sidebar")?.classList.remove("hidden");
     document.getElementById("btn-mobile-nav")?.classList.remove("hidden");
     document.getElementById("account-menu-wrap")?.classList.remove("hidden");
+    document.getElementById("notification-menu-wrap")?.classList.remove("hidden");
     document.getElementById("btn-menu-configuracion")?.classList.remove("hidden");
+    renderizarNotificaciones();
 
     const navNombre = document.getElementById("nav-usuario-nombre");
     if (navNombre) navNombre.innerText = nombre;
@@ -390,14 +394,221 @@ const SETTINGS_KEYS = {
 let dashboardRefreshTimer = null;
 let jsPDFLoadPromise = null;
 
+function claveNotificacionesUsuario(sufijo) {
+    const usuarioId = localStorage.getItem("user_id_cloud") || localStorage.getItem("user_name_cloud") || "usuario";
+    return `smartcity_${sufijo}_${usuarioId}`;
+}
+
+function leerNotificacionesUsuario() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(claveNotificacionesUsuario("notificaciones")) || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function guardarNotificacionesUsuario(notificaciones) {
+    try {
+        localStorage.setItem(claveNotificacionesUsuario("notificaciones"), JSON.stringify(notificaciones.slice(0, 40)));
+    } catch (error) {
+        console.warn("No se pudieron guardar las notificaciones en este navegador.", error);
+    }
+}
+
+function leerEstadosAlertasUsuario() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(claveNotificacionesUsuario("estados_alertas")) || "{}");
+        return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch (error) {
+        return {};
+    }
+}
+
+function obtenerEstadoAlertaSensor(clave) {
+    const estado = leerEstadosAlertasUsuario()[clave];
+    return ["pendiente", "revision", "resuelta"].includes(estado) ? estado : "pendiente";
+}
+
+function guardarEstadoAlertaSensor(clave, estado) {
+    if (!["pendiente", "revision", "resuelta"].includes(estado)) return;
+    const estados = leerEstadosAlertasUsuario();
+    estados[clave] = estado;
+    try {
+        localStorage.setItem(claveNotificacionesUsuario("estados_alertas"), JSON.stringify(estados));
+    } catch (error) {
+        console.warn("No se pudo guardar el estado de la alerta.", error);
+    }
+}
+
+function renderizarNotificaciones() {
+    const list = document.getElementById("notification-list");
+    const badge = document.getElementById("notification-unread-count");
+    const button = document.getElementById("btn-notificaciones");
+    if (!list || !badge || !button) return;
+
+    const notificaciones = leerNotificacionesUsuario();
+    const unread = notificaciones.filter(item => !item.leida).length;
+    badge.textContent = unread > 99 ? "99+" : String(unread);
+    badge.classList.toggle("hidden", unread === 0);
+    button.setAttribute("aria-label", unread ? `Notificaciones, ${unread} sin leer` : "Notificaciones");
+    list.replaceChildren();
+
+    if (!notificaciones.length) {
+        const empty = document.createElement("p");
+        empty.className = "notification-empty";
+        empty.textContent = "No tienes avisos por ahora.";
+        list.appendChild(empty);
+        return;
+    }
+
+    notificaciones.forEach(item => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = `notification-item${item.leida ? "" : " is-unread"}`;
+        row.setAttribute("role", "listitem");
+        row.addEventListener("click", () => abrirNotificacion(item.id));
+
+        const heading = document.createElement("span");
+        heading.className = "notification-item-heading";
+        const title = document.createElement("strong");
+        title.textContent = item.titulo || "Aviso de sensor";
+        const time = document.createElement("time");
+        const date = new Date(item.fecha);
+        time.textContent = Number.isNaN(date.getTime()) ? "" : date.toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" });
+        heading.append(title, time);
+
+        const message = document.createElement("span");
+        message.className = "notification-item-message";
+        message.textContent = item.mensaje || "";
+        row.append(heading, message);
+
+        const tags = document.createElement("span");
+        tags.className = "notification-item-tags";
+        if (item.sensorId) {
+            const sensor = document.createElement("span");
+            sensor.className = "notification-sensor-tag";
+            sensor.textContent = item.sensorId;
+            tags.appendChild(sensor);
+        }
+        if (item.demo) {
+            const demo = document.createElement("span");
+            demo.className = "notification-demo-tag";
+            demo.textContent = "DEMO";
+            tags.appendChild(demo);
+        }
+        const action = document.createElement("span");
+        action.className = "notification-open-hint";
+        action.textContent = "Abrir sensor →";
+        tags.append(action);
+        row.appendChild(tags);
+        list.appendChild(row);
+    });
+}
+
+function toggleMenuNotificaciones() {
+    const menu = document.getElementById("notification-menu");
+    const trigger = document.getElementById("btn-notificaciones");
+    if (!menu || !trigger) return;
+    const opening = menu.classList.contains("hidden");
+    if (opening) cerrarAccountMenu();
+    menu.classList.toggle("hidden", !opening);
+    trigger.setAttribute("aria-expanded", String(opening));
+}
+
+function cerrarMenuNotificaciones() {
+    document.getElementById("notification-menu")?.classList.add("hidden");
+    document.getElementById("btn-notificaciones")?.setAttribute("aria-expanded", "false");
+}
+
+function marcarTodasNotificacionesLeidas() {
+    guardarNotificacionesUsuario(leerNotificacionesUsuario().map(item => ({ ...item, leida: true })));
+    renderizarNotificaciones();
+}
+
+function abrirNotificacion(id) {
+    const notificaciones = leerNotificacionesUsuario();
+    const seleccionada = notificaciones.find(item => item.id === id);
+    if (!seleccionada) return;
+    guardarNotificacionesUsuario(notificaciones.map(item => item.id === id ? { ...item, leida: true } : item));
+    renderizarNotificaciones();
+    cerrarMenuNotificaciones();
+    if (seleccionada.sensorId) {
+        navegarA("tiempo");
+        const sensor = typeof sensoresEnMapa !== "undefined"
+            ? sensoresEnMapa.find(item => item.id === seleccionada.sensorId)
+            : null;
+        if (sensor && typeof mostrarDetalleSensor === "function") mostrarDetalleSensor(sensor);
+    }
+}
+
+function registrarNotificacionesSensores(sensores, esDemo = false) {
+    const estadoKey = claveNotificacionesUsuario("alertas_activas");
+    let anteriores = {};
+    try {
+        anteriores = JSON.parse(localStorage.getItem(estadoKey) || "{}");
+        if (!anteriores || typeof anteriores !== "object" || Array.isArray(anteriores)) anteriores = {};
+    } catch (error) {
+        anteriores = {};
+    }
+
+    const actuales = {};
+    const eventos = [];
+    sensores.forEach(({ id, lectura }) => {
+        valoresFueraDeRango(lectura).forEach(valor => {
+            const metrica = valor.split(/\s+/)[0];
+            const key = `${id}::${metrica}`;
+            actuales[key] = { sensorId: id, valor };
+            if (!anteriores[key]) {
+                guardarEstadoAlertaSensor(key, "pendiente");
+                eventos.push({ titulo: "Lectura fuera de rango", mensaje: `${id}: ${valor}`, sensorId: id, demo: esDemo });
+            }
+        });
+    });
+
+    Object.entries(anteriores).forEach(([key, alerta]) => {
+        if (actuales[key]) return;
+        const sensorId = alerta?.sensorId || key.split("::")[0];
+        const metrica = key.split("::")[1] || "Lectura";
+        eventos.push({
+            titulo: "Lectura normalizada",
+            mensaje: `${sensorId}: ${metrica} volvió al rango informativo.`,
+            sensorId,
+            demo: esDemo
+        });
+    });
+
+    try {
+        localStorage.setItem(estadoKey, JSON.stringify(actuales));
+    } catch (error) {
+        console.warn("No se pudo actualizar el estado de las alertas.", error);
+    }
+
+    if (eventos.length) {
+        const existentes = leerNotificacionesUsuario();
+        const fecha = new Date().toISOString();
+        const nuevas = eventos.map((evento, index) => ({
+            ...evento,
+            id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
+            fecha,
+            leida: false
+        }));
+        guardarNotificacionesUsuario([...nuevas, ...existentes]);
+    }
+    renderizarNotificaciones();
+}
+
 function initAccountMenu() {
     document.addEventListener("click", event => {
         const wrapper = document.getElementById("account-menu-wrap");
         if (wrapper && !wrapper.contains(event.target)) cerrarAccountMenu();
+        const notifications = document.getElementById("notification-menu-wrap");
+        if (notifications && !notifications.contains(event.target)) cerrarMenuNotificaciones();
     });
     document.addEventListener("keydown", event => {
         if (event.key === "Escape") {
             cerrarAccountMenu();
+            cerrarMenuNotificaciones();
             cerrarModal("site-info-modal");
             cerrarModal("contact-modal");
             cerrarModal("modal-editar-perfil");
@@ -410,6 +621,7 @@ function toggleAccountMenu() {
     const menu = document.getElementById("account-menu");
     const trigger = document.getElementById("usuario-badge");
     const opening = menu?.classList.contains("hidden");
+    if (opening) cerrarMenuNotificaciones();
     menu?.classList.toggle("hidden", !opening);
     trigger?.setAttribute("aria-expanded", String(Boolean(opening)));
     if (opening) cargarResumenCuenta();

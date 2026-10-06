@@ -49,9 +49,19 @@
 
             <div class="flex items-center gap-2 sm:gap-3">
                 <button id="btn-mobile-nav" type="button" class="hidden md:hidden px-3 py-2 rounded-lg border border-slate-600 text-slate-200" aria-expanded="false" aria-controls="app-sidebar" aria-label="Abrir navegación" onclick="toggleMobileNav()">☰</button>
-                <button id="btn-menu-configuracion" type="button" onclick="navegarA('configuracion')" aria-label="Configuración" title="Configuración" class="hidden px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
-                    <span aria-hidden="true">⚙️</span>
-                </button>
+                <div id="notification-menu-wrap" class="hidden relative">
+                    <button id="btn-notificaciones" type="button" class="notification-trigger" aria-label="Notificaciones" title="Notificaciones" aria-haspopup="true" aria-expanded="false" aria-controls="notification-menu" onclick="toggleMenuNotificaciones()">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg>
+                        <span id="notification-unread-count" class="notification-unread-count hidden" aria-hidden="true">0</span>
+                    </button>
+                    <section id="notification-menu" class="notification-menu hidden" aria-label="Notificaciones recientes">
+                        <div class="notification-menu-heading">
+                            <div><h2>Notificaciones</h2><p>Avisos de tus sensores</p></div>
+                            <button id="notification-mark-all" type="button" onclick="marcarTodasNotificacionesLeidas()">Marcar todo leído</button>
+                        </div>
+                        <div id="notification-list" class="notification-list" role="list" aria-live="polite" aria-relevant="additions text"></div>
+                    </section>
+                </div>
                 <div id="account-menu-wrap" class="hidden relative">
                     <button id="usuario-badge" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="account-menu" onclick="toggleAccountMenu()" class="flex items-center gap-2 bg-slate-700/40 border border-slate-600/50 rounded-xl px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 transition">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true"></span>
@@ -68,6 +78,9 @@
                         <button type="button" onclick="cerrarSesion()" class="w-full text-left px-3 py-2.5 rounded-lg text-sm text-rose-300 hover:bg-rose-500/10">↪ Cerrar sesión</button>
                     </div>
                 </div>
+                <button id="btn-menu-configuracion" type="button" onclick="navegarA('configuracion')" aria-label="Configuración" title="Configuración" class="hidden px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
+                    <span aria-hidden="true">⚙️</span>
+                </button>
             </div>
 
         </div>
@@ -334,7 +347,7 @@
                     <div><p class="feature-eyebrow">CENTRO DE OPERACIONES</p><h2 id="alert-center-title">⚑ Alertas y observaciones</h2></div>
                     <span id="alert-center-count" class="feature-count">0 por revisar</span>
                 </div>
-                <p id="alert-center-note" class="feature-panel-note">Los umbrales son orientativos para la demostración; no sustituyen una evaluación ambiental.</p>
+                <p id="alert-center-note" class="feature-panel-note">Los umbrales son orientativos para la demostración; no sustituyen una evaluación ambiental. El estado de seguimiento se guarda por usuario en este navegador.</p>
                 <div id="alert-center-list" class="alert-center-list" aria-live="polite"></div>
             </section>
 
