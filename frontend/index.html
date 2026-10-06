@@ -83,8 +83,17 @@
                 <button type="button" class="sidebar-link" data-sidebar-view="dashboard" onclick="navegarA('dashboard')" aria-label="Inicio" title="Inicio">
                     <span class="sidebar-icon" aria-hidden="true">⌂</span><span class="sidebar-link-label">Inicio</span>
                 </button>
-                <button type="button" class="sidebar-link" data-sidebar-view="sensores" onclick="navegarA('sensores')" aria-label="Sensores" title="Sensores">
-                    <span class="sidebar-icon" aria-hidden="true">◉</span><span class="sidebar-link-label">Sensores</span>
+                <button type="button" class="sidebar-link" data-sidebar-view="capas" onclick="navegarA('capas')" aria-label="Mapa por capas" title="Mapa por capas">
+                    <span class="sidebar-icon" aria-hidden="true">▦</span><span class="sidebar-link-label">Mapa por capas</span>
+                </button>
+                <button type="button" class="sidebar-link" data-sidebar-view="tiempo" onclick="navegarA('tiempo')" aria-label="Viaje en el tiempo" title="Viaje en el tiempo">
+                    <span class="sidebar-icon" aria-hidden="true">◷</span><span class="sidebar-link-label">Viaje en el tiempo</span>
+                </button>
+                <button type="button" class="sidebar-link" data-sidebar-view="simulador" onclick="navegarA('simulador')" aria-label="Simulador urbano" title="Simulador urbano">
+                    <span class="sidebar-icon" aria-hidden="true">◇</span><span class="sidebar-link-label">Simulador urbano</span>
+                </button>
+                <button type="button" class="sidebar-link" data-sidebar-view="alertas" onclick="navegarA('alertas')" aria-label="Centro de alertas" title="Centro de alertas">
+                    <span class="sidebar-icon" aria-hidden="true">⚑</span><span class="sidebar-link-label">Centro de alertas</span>
                     <span id="sensor-alert-badge" class="sidebar-alert-badge hidden" aria-label="0 lecturas fuera de rango">0</span>
                 </button>
                 <button type="button" class="sidebar-link" data-sidebar-view="reportes" onclick="navegarA('reportes')" aria-label="Reportes" title="Reportes">
@@ -94,6 +103,9 @@
                     <span class="sidebar-icon" aria-hidden="true">♙</span><span class="sidebar-link-label">Gestión de usuarios</span>
                 </button>
             </nav>
+            <button type="button" class="sidebar-tour-button" onclick="iniciarRecorridoGuiado()" title="Recorrido guiado por las funciones">
+                <span aria-hidden="true">✨</span><span class="sidebar-link-label">Recorrido guiado</span>
+            </button>
         </aside>
         <button id="sidebar-backdrop" type="button" class="sidebar-backdrop hidden" aria-label="Cerrar menú" onclick="cerrarMobileNav()"></button>
 
@@ -178,13 +190,22 @@
     <div class="flex items-center justify-between mb-4">
         <div>
             <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                🏙️ Modelo 3D de la Ciudad
+                🏙️ Pulso de la ciudad
             </h3>
-            <p class="text-xs text-slate-400">Gemelo digital e infraestructura urbana IoT</p>
+            <p id="city-pulse-summary" class="text-xs text-slate-400">Explora el modelo 3D y el estado de las luminarias.</p>
         </div>
-        <span class="text-xs font-semibold px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full">
-            Interactivo 360°
-        </span>
+        <div class="flex flex-col items-end gap-2">
+            <span id="sensor-data-source" class="data-source-badge checking-source">COMPROBANDO FUENTE</span>
+            <span class="text-xs font-semibold px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full">Interactivo 360°</span>
+        </div>
+    </div>
+
+    <div id="map-layer-toolbar" class="map-layer-toolbar" role="group" aria-label="Capas del mapa">
+        <span class="map-toolbar-label">Visualizar</span>
+        <button type="button" data-map-layer="estado" aria-pressed="true" onclick="seleccionarCapaMapa('estado')">Estado</button>
+        <button type="button" data-map-layer="temperatura" aria-pressed="false" onclick="seleccionarCapaMapa('temperatura')">🌡️ Temperatura</button>
+        <button type="button" data-map-layer="humedad" aria-pressed="false" onclick="seleccionarCapaMapa('humedad')">💧 Humedad</button>
+        <button type="button" data-map-layer="calidad_aire" aria-pressed="false" onclick="seleccionarCapaMapa('calidad_aire')">🍃 Aire</button>
     </div>
 
     <!-- Componente 3D -->
@@ -207,6 +228,26 @@
         <span class="city-scene-label" aria-hidden="true">MODELO 3D · LUMINARIAS INTELIGENTES</span>
         <p id="sensor-map-empty" class="sensor-map-empty">Cargando lecturas de sensores…</p>
     </div>
+    <div class="map-layer-legend" aria-label="Leyenda de colores de sensores">
+        <span><i class="legend-dot level-good"></i>Dentro del rango orientativo</span>
+        <span><i class="legend-dot level-warn"></i>Revisión recomendada</span>
+        <span><i class="legend-dot level-high"></i>Fuera del rango orientativo</span>
+    </div>
+    <section id="timeline-panel" class="timeline-panel" aria-labelledby="timeline-title">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h4 id="timeline-title" class="text-sm font-bold text-white">⏱️ Viaje en el tiempo</h4>
+                <p id="timeline-source-note" class="text-xs text-slate-400 mt-1">Reproducción demostrativa de las últimas 24 horas.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <output id="timeline-value" class="timeline-value" for="timeline-range">Ahora</output>
+                <button id="timeline-play" type="button" class="timeline-play-button" onclick="alternarReproduccionTemporal()" aria-label="Reproducir historial">▶ Reproducir</button>
+            </div>
+        </div>
+        <label class="sr-only" for="timeline-range">Elegir hora de la reproducción</label>
+        <input id="timeline-range" class="timeline-range" type="range" min="0" max="24" step="1" value="0">
+        <div class="timeline-labels"><span>Hace 24 h</span><span>Ahora</span></div>
+    </section>
 </div>
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-800/40 p-6 rounded-3xl border border-slate-700/50">
                 <div>
@@ -240,6 +281,13 @@
                     <div class="text-xs text-slate-500 mt-2">🍃 Índice ICA Supabase</div>
                 </div>
             </div>
+
+            <section id="urban-pulse-strip" class="urban-pulse-strip" aria-label="Resumen del pulso urbano">
+                <div><span class="pulse-dot" aria-hidden="true"></span><span id="pulse-status-label">Preparando ciudad</span></div>
+                <div><strong id="pulse-sensor-count">0</strong><span> sensores en el mapa</span></div>
+                <div><strong id="pulse-alert-count">0</strong><span> lecturas para revisar</span></div>
+                <time id="pulse-updated">Esperando actualización</time>
+            </section>
 
             <!-- Lecturas de los sensores representados en las luminarias del modelo 3D -->
             <section id="sensor-map-section" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl">
@@ -281,6 +329,33 @@
                 </div>
             </section>
 
+            <section id="alert-center-panel" class="dashboard-feature-panel" aria-labelledby="alert-center-title">
+                <div class="feature-panel-heading">
+                    <div><p class="feature-eyebrow">CENTRO DE OPERACIONES</p><h2 id="alert-center-title">⚑ Alertas y observaciones</h2></div>
+                    <span id="alert-center-count" class="feature-count">0 por revisar</span>
+                </div>
+                <p id="alert-center-note" class="feature-panel-note">Los umbrales son orientativos para la demostración; no sustituyen una evaluación ambiental.</p>
+                <div id="alert-center-list" class="alert-center-list" aria-live="polite"></div>
+            </section>
+
+            <section id="simulator-panel" class="dashboard-feature-panel simulator-panel" aria-labelledby="simulator-title">
+                <div class="feature-panel-heading">
+                    <div><p class="feature-eyebrow">ESCENARIO DEMOSTRATIVO</p><h2 id="simulator-title">◇ Simulador de ahorro de luminarias</h2></div>
+                    <span class="simulation-tag">No usa datos reales de consumo</span>
+                </div>
+                <p class="feature-panel-note">Ajusta los supuestos para estimar el ahorro de energía de una estrategia de atenuación nocturna.</p>
+                <div class="simulator-controls">
+                    <label for="simulator-dimming">Atenuar potencia durante la noche <output id="simulator-dimming-value">30 %</output><input id="simulator-dimming" type="range" min="0" max="70" value="30" step="5"></label>
+                    <label for="simulator-hours">Horas nocturnas con atenuación <output id="simulator-hours-value">8 h</output><input id="simulator-hours" type="range" min="1" max="12" value="8" step="1"></label>
+                </div>
+                <div class="simulator-results">
+                    <div><span>Ahorro estimado por día</span><strong id="simulator-daily-saving">— kWh</strong></div>
+                    <div><span>Ahorro estimado por año</span><strong id="simulator-yearly-saving">— kWh</strong></div>
+                    <div><span>Luminarias consideradas</span><strong id="simulator-lamp-count">18 simuladas</strong></div>
+                </div>
+                <p class="simulator-assumptions">Supuesto editable en esta demo: 18 luminarias × 100 W cada una. Al conectar el hardware se podrán reemplazar estos valores por consumo medido.</p>
+            </section>
+
             <section id="reportes-panel" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl" aria-labelledby="reportes-title">
                 <div class="mb-5">
                     <h2 id="reportes-title" class="text-xl font-bold text-white">📄 Reportes y exportación</h2>
@@ -310,6 +385,7 @@
                     <h1>SmartCity Cloud · Reporte de sensores</h1>
                     <p id="sensor-report-range"></p>
                     <p id="sensor-report-generated"></p>
+                    <p id="sensor-report-source"></p>
                     <p id="sensor-report-summary"></p>
                     <p id="sensor-report-limitation"></p>
                     <table><thead><tr><th>Fecha y hora</th><th>Sensor</th><th>Temperatura (°C)</th><th>Humedad (%)</th><th>Calidad del aire (ICA)</th></tr></thead><tbody id="sensor-report-rows"></tbody></table>
@@ -386,6 +462,16 @@
                                 <option value="dark">Nocturno</option><option value="light">Claro</option>
                             </select>
                         </div>
+                        <fieldset class="theme-accent-picker">
+                            <legend class="block text-sm text-slate-200 mb-2">Color de acento</legend>
+                            <p class="text-xs text-slate-400 mb-3">Elige el color principal de botones y controles.</p>
+                            <div class="accent-selector" role="group" aria-label="Color de acento">
+                                <button type="button" class="color-dot blue" data-accent-option="blue" aria-label="Azul" aria-pressed="true" title="Azul"></button>
+                                <button type="button" class="color-dot green" data-accent-option="green" aria-label="Verde" aria-pressed="false" title="Verde"></button>
+                                <button type="button" class="color-dot purple" data-accent-option="purple" aria-label="Morado" aria-pressed="false" title="Morado"></button>
+                                <button type="button" class="color-dot orange" data-accent-option="orange" aria-label="Naranja" aria-pressed="false" title="Naranja"></button>
+                            </div>
+                        </fieldset>
                         <div>
                             <label for="config-text-size" class="block text-sm text-slate-200 mb-2">Tamaño del texto</label>
                             <select id="config-text-size" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100">
@@ -592,6 +678,20 @@
                 </div>
             </form>
         </div>
+    </div>
+
+    <div id="tour-overlay" class="guided-tour-overlay hidden" aria-hidden="true">
+        <section class="guided-tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-step-title" aria-describedby="tour-step-description">
+            <div class="flex items-start justify-between gap-4">
+                <div><p id="tour-step-counter" class="tour-step-counter">1 de 7</p><h2 id="tour-step-title" class="text-lg font-bold text-white">Pulso de la ciudad</h2></div>
+                <button type="button" class="tour-close" onclick="cerrarRecorridoGuiado()" aria-label="Cerrar recorrido">✕</button>
+            </div>
+            <p id="tour-step-description" class="mt-2 text-sm leading-6 text-slate-300"></p>
+            <div class="flex justify-between items-center gap-3 mt-5">
+                <button id="tour-previous" type="button" class="tour-secondary-button" onclick="avanzarRecorridoGuiado(-1)">← Anterior</button>
+                <button id="tour-next" type="button" class="tour-primary-button" onclick="avanzarRecorridoGuiado(1)">Siguiente →</button>
+            </div>
+        </section>
     </div>
 
 
