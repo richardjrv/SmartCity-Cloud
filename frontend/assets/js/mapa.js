@@ -1,8 +1,10 @@
+// Posiciones de luminarias en metros sobre el modelo ciudad.glb (escena recreada).
 const SENSOR_MAP_POSITIONS = [
-    { x: 18, y: 24 }, { x: 48, y: 20 }, { x: 80, y: 27 },
-    { x: 28, y: 48 }, { x: 70, y: 49 }, { x: 18, y: 76 },
-    { x: 51, y: 78 }, { x: 83, y: 75 }, { x: 39, y: 35 },
-    { x: 61, y: 64 }
+    { x: -15, z: -50 }, { x: -2, z: -50 }, { x: 12, z: -50 }, { x: 27, z: -50 },
+    { x: -15, z: -35 }, { x: -2, z: -35 }, { x: 12, z: -35 }, { x: 27, z: -35 },
+    { x: -15, z: -20 }, { x: -2, z: -20 }, { x: 12, z: -20 }, { x: 27, z: -20 },
+    { x: -15, z: -5 }, { x: -2, z: -5 }, { x: 12, z: -5 }, { x: 27, z: -5 },
+    { x: -15, z: 10 }, { x: -2, z: 10 }, { x: 12, z: 10 }, { x: 27, z: 10 }
 ];
 
 let sensoresEnMapa = [];
@@ -10,13 +12,13 @@ let sensorEnDetalle = null;
 let mapaSensoresEventosInstalados = false;
 
 async function cargarMapaSensores() {
-    const markerLayer = document.getElementById("sensor-map-markers");
+    const markerLayer = document.getElementById("sensor-map-model");
     const emptyState = document.getElementById("sensor-map-empty");
     if (!markerLayer || !emptyState) return;
 
     emptyState.textContent = "Cargando lecturas de sensores…";
     emptyState.classList.remove("hidden");
-    markerLayer.replaceChildren();
+    markerLayer.querySelectorAll(".city-lamp-marker").forEach(marker => marker.remove());
     instalarEventosMapaSensores();
 
     try {
@@ -62,11 +64,11 @@ function instalarEventosMapaSensores() {
 }
 
 function renderizarMarcadoresSensores(query = "") {
-    const markerLayer = document.getElementById("sensor-map-markers");
+    const markerLayer = document.getElementById("sensor-map-model");
     const emptyState = document.getElementById("sensor-map-empty");
     if (!markerLayer || !emptyState) return;
 
-    markerLayer.replaceChildren();
+    markerLayer.querySelectorAll(".city-lamp-marker").forEach(marker => marker.remove());
     const normalizedQuery = query.trim().toLocaleLowerCase("es");
     const visibles = sensoresEnMapa.map((sensor, index) => ({ ...sensor, index }))
         .filter(sensor => sensor.id.toLocaleLowerCase("es").includes(normalizedQuery));
@@ -80,18 +82,23 @@ function renderizarMarcadoresSensores(query = "") {
         const position = SENSOR_MAP_POSITIONS[sensor.index % SENSOR_MAP_POSITIONS.length];
         const marker = document.createElement("button");
         marker.type = "button";
-        marker.className = "sensor-map-marker" + (sensor.id === sensorEnDetalle ? " selected" : "");
-        marker.style.left = `${position.x}%`;
-        marker.style.top = `${position.y}%`;
-        marker.setAttribute("aria-label", `Ver lectura del sensor ${sensor.id}`);
-        marker.title = `Sensor ${sensor.id}`;
+        marker.className = "city-lamp-marker" + (sensor.id === sensorEnDetalle ? " selected" : "");
+        marker.slot = `hotspot-sensor-${sensor.index}`;
+        marker.dataset.position = `${position.x}m 0.15m ${position.z}m`;
+        marker.dataset.normal = "0m 1m 0m";
+        marker.setAttribute("aria-label", `Luminaria inteligente con sensor ${sensor.id}. Ver última lectura.`);
+        marker.title = `Luminaria · Sensor ${sensor.id}`;
 
-        const dot = document.createElement("span");
-        dot.className = "sensor-marker-dot";
+        const lamp = document.createElement("span");
+        lamp.className = "city-lamp";
+        lamp.setAttribute("aria-hidden", "true");
+        const sensorBox = document.createElement("span");
+        sensorBox.className = "city-lamp-sensor";
+        sensorBox.setAttribute("aria-hidden", "true");
         const label = document.createElement("span");
-        label.className = "sensor-marker-label";
-        label.textContent = sensor.id;
-        marker.append(dot, label);
+        label.className = "city-lamp-label";
+        label.textContent = `Sensor ${sensor.id}`;
+        marker.append(lamp, sensorBox, label);
         marker.addEventListener("click", () => mostrarDetalleSensor(sensor));
         markerLayer.appendChild(marker);
     });
@@ -110,7 +117,7 @@ function mostrarDetalleSensor(sensor) {
     element("sensor-detail-id").textContent = `Sensor ${sensor.id}`;
     element("sensor-detail-status").textContent = "Con lecturas";
     element("sensor-detail-status").classList.add("has-reading");
-    element("sensor-detail-message").textContent = "Últimos valores recibidos desde la API.";
+    element("sensor-detail-message").textContent = "Sensor instalado en una luminaria de la escena urbana simulada.";
     element("sensor-detail-content").classList.remove("hidden");
     element("sensor-detail-temperature").textContent = `${formatearValorSensor(lectura.temperatura)} °C`;
     element("sensor-detail-humidity").textContent = `${formatearValorSensor(lectura.humedad)} %`;
