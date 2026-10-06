@@ -103,6 +103,7 @@ async function comprobarSesion() {
     const token = obtenerToken();
     if (!token) {
         navegarA("auth");
+        void precalentarAPI();
         return;
     }
 
