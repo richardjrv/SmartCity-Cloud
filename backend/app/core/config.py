@@ -6,6 +6,8 @@ class Settings:
     
     # Claves de Seguridad JWT
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "clave_secreta_smartcity_cloud_2026")
+    # Stable pepper for PIN hashes.
+    PIN_PEPPER: str = os.environ.get("PIN_PEPPER", "")
     ALGORITHM: str = "HS256"
     
     # Claves de APIs Externas

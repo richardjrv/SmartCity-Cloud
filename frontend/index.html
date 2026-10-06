@@ -26,6 +26,7 @@
         }
     </script>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="pin.css">
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased flex flex-col">
 <!-- Contenedor de Notificaciones Toast Flotantes -->
@@ -164,6 +165,23 @@
                         <input type="text" id="auth-nombre" placeholder="Ej. Richard Ruiz" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
                     </div>
 
+                    <div id="campo-pin" class="hidden space-y-2">
+                        <label class="block text-xs font-semibold text-slate-300">Crea tu PIN de acceso</label>
+                        <p class="text-xs text-slate-400">Elige cuatro n&#250;meros que recordar&#225;s. Lo necesitar&#225;s despu&#233;s de tu contrase&#241;a.</p>
+                        <div class="pin-digit-group" data-pin-group="registro-pin" role="group" aria-label="Crea un PIN de cuatro cifras">
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Primer d&#237;gito del PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Segundo d&#237;gito del PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Tercer d&#237;gito del PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Cuarto d&#237;gito del PIN" required>
+                        </div>
+                        <label class="block text-xs font-semibold text-slate-300 pt-2">Confirma tu PIN</label>
+                        <div class="pin-digit-group" data-pin-group="registro-pin-confirmacion" role="group" aria-label="Confirma tu PIN de cuatro cifras">
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Primer d&#237;gito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Segundo d&#237;gito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Tercer d&#237;gito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Cuarto d&#237;gito para confirmar el PIN" required>
+                        </div>
+                    </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Correo Electrónico</label>
                         <input type="email" id="auth-email" required placeholder="correo@ejemplo.com" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
@@ -184,7 +202,33 @@
                     </button>
                 </form>
 
-                <div class="mt-6 text-center text-xs text-slate-400">
+                <form id="form-pin-step" class="hidden space-y-5" onsubmit="procesarPasoPin(event)">
+                    <div class="text-center">
+                        <div class="pin-step-icon" aria-hidden="true">&#128272;</div>
+                        <h3 id="pin-step-title" class="text-lg font-bold text-white">Verifica tu acceso</h3>
+                        <p id="pin-step-description" class="mt-2 text-sm text-slate-400">Ingresa tu PIN de cuatro cifras.</p>
+                    </div>
+                    <div class="pin-digit-group pin-digit-group--login" data-pin-group="login-pin" role="group" aria-label="Ingresa tu PIN de cuatro cifras">
+                        <input class="pin-digit" type="password" inputmode="numeric" maxlength="4" autocomplete="one-time-code" aria-label="Primer d&#237;gito del PIN" required>
+                        <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Segundo d&#237;gito del PIN" required>
+                        <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Tercer d&#237;gito del PIN" required>
+                        <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Cuarto d&#237;gito del PIN" required>
+                    </div>
+                    <div id="pin-confirmation-fields" class="hidden space-y-2">
+                        <label class="block text-xs font-semibold text-slate-300">Confirma tu PIN</label>
+                        <div class="pin-digit-group" data-pin-group="login-pin-confirmacion" role="group" aria-label="Confirma tu PIN de cuatro cifras">
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Primer d&#237;gito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Segundo d&#237;gito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Tercer d&#237;gito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Cuarto d&#237;gito para confirmar el PIN" required>
+                        </div>
+                    </div>
+                    <p id="pin-step-status" class="min-h-5 text-center text-sm text-rose-400" role="status" aria-live="polite"></p>
+                    <button type="submit" id="pin-step-submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl text-sm transition shadow-lg shadow-blue-600/30">Verificar PIN</button>
+                    <button type="button" class="w-full text-sm text-slate-400 hover:text-white" onclick="cancelarPasoPin()">Volver al inicio de sesi&#243;n</button>
+                </form>
+
+                <div id="auth-toggle-container" class="mt-6 text-center text-xs text-slate-400">
                     <span id="auth-toggle-texto">¿No tienes cuenta?</span>
                     <button id="auth-toggle-btn" onclick="toggleModoAuth()" class="text-blue-400 hover:underline font-semibold ml-1">
                         Crear una cuenta
