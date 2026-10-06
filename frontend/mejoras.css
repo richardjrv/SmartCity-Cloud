@@ -1,0 +1,542 @@
+/* Ajustes complementarios de accesibilidad y experiencia móvil.
+   Se carga después de styles.css para corregir sus reglas generales. */
+
+:root {
+    --text-muted: #8a9ab0;
+    --z-chat: 45;
+}
+
+html[data-theme="light"] {
+    --text-muted: #64748b;
+}
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+.app-layout {
+    min-height: calc(100vh - 4rem);
+    min-height: calc(100dvh - 4rem);
+}
+
+@media (min-width: 768px) {
+    .app-sidebar {
+        height: calc(100vh - 4rem);
+        height: calc(100dvh - 4rem);
+    }
+}
+
+/* El chat queda debajo del recorrido guiado (capas 80 y 90). */
+#brunito-chat-window {
+    z-index: var(--z-chat) !important;
+    max-height: 70dvh;
+}
+
+#btn-chat-launcher {
+    z-index: var(--z-chat) !important;
+}
+
+#chat-mensajes {
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+}
+
+.brunito-action-card {
+    width: min(100%, 22rem);
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border-color));
+    border-radius: 1rem;
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--bg-card) 94%, var(--accent));
+    box-shadow: 0 12px 28px rgb(2 8 23 / 18%);
+}
+
+.brunito-action-title {
+    color: var(--text-primary);
+    font-size: .95rem;
+    font-weight: 800;
+}
+
+.brunito-action-detail,
+.brunito-action-notice,
+.brunito-action-status {
+    margin-top: .55rem;
+    color: var(--text-secondary);
+    font-size: .76rem;
+    line-height: 1.5;
+}
+
+.brunito-action-notice {
+    padding: .65rem .75rem;
+    border-left: 3px solid var(--warning);
+    border-radius: .45rem;
+    background: color-mix(in srgb, var(--warning) 9%, transparent);
+}
+
+.brunito-action-status {
+    min-height: 1.2rem;
+    color: var(--text-muted);
+}
+
+.brunito-action-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .55rem;
+    margin-top: .85rem;
+}
+
+.brunito-action-controls button {
+    min-height: 2.65rem;
+    padding: .55rem .8rem;
+    border: 1px solid var(--border-color);
+    border-radius: .7rem;
+    font-size: .76rem;
+    font-weight: 750;
+    transition: background-color .18s ease, border-color .18s ease, opacity .18s ease;
+}
+
+.brunito-action-controls button:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--accent) 65%, white);
+    outline-offset: 2px;
+}
+
+.brunito-action-controls button:disabled {
+    cursor: wait;
+    opacity: .62;
+}
+
+.brunito-action-confirm {
+    color: #fff;
+    background: var(--accent);
+}
+
+.brunito-action-confirm:hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+.brunito-action-dismiss {
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--bg-input) 88%, transparent);
+}
+
+.brunito-action-dismiss:hover:not(:disabled) {
+    border-color: var(--accent);
+}
+
+body.high-contrast .brunito-action-card {
+    color: #fff;
+    background: #000;
+    border-color: #fff;
+    box-shadow: none;
+}
+
+body.high-contrast .brunito-action-card :is(h3, p) {
+    color: #fff;
+}
+
+/* Aumenta las zonas interactivas en pantallas táctiles. */
+@media (pointer: coarse) {
+    .icon-btn,
+    .brunito-mic-button,
+    #sidebar-toggle,
+    #btn-mobile-nav,
+    .notification-trigger {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Evita el zoom automático de Safari al enfocar un campo. */
+    input,
+    select,
+    textarea {
+        font-size: max(16px, 1rem) !important;
+    }
+}
+
+/* Evita que el estado hover quede aplicado después de tocar. */
+@media (hover: none) {
+    .dashboard-metric-card:hover,
+    .mission-vision-grid article:hover,
+    .dashboard-quick-action:hover,
+    .notification-trigger:hover,
+    header > div.max-w-7xl > .flex.items-center.gap-3:hover,
+    .map-layer-toolbar button:hover,
+    .timeline-play-button:hover:not(:disabled),
+    .sidebar-tour-button:hover,
+    #sensor-map-refresh:hover,
+    #sensor-report-toolbar button:hover,
+    #btn-menu-configuracion:hover {
+        transform: none;
+    }
+}
+
+/* Evita saltos y trabajo gráfico costoso en móvil. */
+@media (max-width: 767px), (hover: none) {
+    body,
+    body.login-only {
+        background-attachment: scroll;
+    }
+}
+
+@media (max-width: 767px) {
+    #city-3d-panel,
+    #sensor-map-section,
+    #reportes-panel,
+    .timeline-panel,
+    .dashboard-feature-panel,
+    .urban-pulse-strip,
+    .dashboard-quick-action {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+}
+
+/* Alto contraste: adapta superficies con fondos definidos directamente. */
+body.high-contrast :is(
+    .dashboard-overview,
+    .dashboard-metric-card,
+    .dashboard-feature-panel,
+    #city-3d-panel,
+    #sensor-map-section,
+    #reportes-panel,
+    .timeline-panel,
+    .urban-pulse-strip,
+    .app-sidebar,
+    .guided-tour-card,
+    .notification-menu,
+    .alert-item,
+    .alert-empty-state,
+    .sensor-map-details
+) {
+    color: #fff !important;
+    background: #000 !important;
+    border-color: #fff !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+body.high-contrast :is(
+    .dashboard-overview,
+    .dashboard-metric-card,
+    .dashboard-feature-panel,
+    #city-3d-panel,
+    #sensor-map-section,
+    #reportes-panel,
+    .timeline-panel,
+    .urban-pulse-strip,
+    .app-sidebar,
+    .guided-tour-card,
+    .notification-menu,
+    .alert-item,
+    .alert-empty-state,
+    .sensor-map-details
+) :is(h1, h2, h3, p, span, strong, label, time, small, li) {
+    color: #fff !important;
+}
+
+body.high-contrast :is(
+    .btn-primary,
+    .dashboard-quick-action--primary,
+    .timeline-play-button,
+    .tour-primary-button
+),
+body.high-contrast :is(
+    .btn-primary,
+    .dashboard-quick-action--primary,
+    .timeline-play-button,
+    .tour-primary-button
+) * {
+    color: #000 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #chat-mensajes {
+        scroll-behavior: auto;
+    }
+}
+
+/* Dashboard: orden visual más claro, con estados fáciles de distinguir. */
+#vista-dashboard {
+    --dashboard-panel-radius: 1.35rem;
+    --dashboard-panel-border: color-mix(in srgb, var(--accent) 18%, var(--border-color));
+}
+
+.dashboard-overview {
+    min-height: 11rem;
+    border-color: color-mix(in srgb, var(--accent) 38%, var(--border-color));
+}
+
+.dashboard-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    color: color-mix(in srgb, var(--accent) 55%, #bfdbfe);
+    font-size: .68rem;
+    letter-spacing: .14em;
+}
+
+.dashboard-overview h2 {
+    max-width: 18ch;
+    text-wrap: balance;
+}
+
+.dashboard-overview-copy > p:last-child {
+    font-size: .95rem;
+}
+
+.dashboard-quick-action {
+    min-height: 2.9rem;
+    border-radius: .75rem;
+}
+
+.dashboard-metric-card {
+    min-height: 9.5rem;
+    border-color: color-mix(in srgb, var(--metric-color, var(--accent)) 22%, var(--border-color));
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--bg-card) 92%, var(--metric-color, var(--accent)) 8%),
+        color-mix(in srgb, var(--bg-main) 86%, var(--bg-card))
+    );
+}
+
+.dashboard-metric-card::before {
+    position: absolute;
+    inset: 1.1rem auto 1.1rem 0;
+    width: 3px;
+    border-radius: 0 999px 999px 0;
+    background: var(--metric-color, var(--accent));
+    content: "";
+    opacity: .8;
+}
+
+.dashboard-metric-copy p {
+    font-size: .78rem;
+}
+
+.dashboard-metric-copy > span {
+    color: var(--text-muted);
+    font-size: .72rem;
+}
+
+#urban-pulse-strip {
+    display: grid;
+    grid-template-columns: minmax(12rem, 1.35fr) repeat(2, minmax(9rem, .75fr)) minmax(14rem, 1fr);
+    align-items: center;
+    gap: .8rem;
+    padding: .9rem 1.1rem;
+    border-color: var(--dashboard-panel-border);
+    background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+}
+
+#urban-pulse-strip > .pulse-status {
+    min-width: 0;
+    line-height: 1.35;
+}
+
+#urban-pulse-strip > .pulse-stat {
+    min-height: 2.4rem;
+    border-left-color: color-mix(in srgb, var(--border-color) 72%, transparent);
+}
+
+#urban-pulse-strip > .pulse-stat strong {
+    font-size: 1.25rem;
+}
+
+#urban-pulse-strip time {
+    color: var(--text-muted);
+    font-size: .72rem;
+    line-height: 1.45;
+    text-align: right;
+}
+
+#urban-pulse-strip[data-source="demo"] .pulse-dot {
+    background: #f59e0b;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, .12), 0 0 12px rgba(245, 158, 11, .42);
+}
+
+#urban-pulse-strip[data-source="api"] .pulse-dot {
+    background: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, .12), 0 0 12px rgba(16, 185, 129, .42);
+}
+
+#city-3d-panel,
+#sensor-map-section,
+#reportes-panel,
+.timeline-panel,
+.dashboard-feature-panel {
+    border-color: var(--dashboard-panel-border);
+    border-radius: var(--dashboard-panel-radius);
+}
+
+.dashboard-map-heading {
+    align-items: flex-end;
+}
+
+.dashboard-map-heading h3 {
+    font-size: clamp(1.2rem, 2vw, 1.45rem);
+}
+
+.data-source-badge {
+    min-height: 1.9rem;
+    padding: .4rem .7rem;
+    font-size: .68rem;
+    letter-spacing: .045em;
+}
+
+.map-interaction-badge {
+    min-height: 1.9rem;
+    padding-inline: .75rem;
+    font-size: .7rem;
+}
+
+.map-layer-legend {
+    color: var(--text-secondary);
+    font-size: .72rem;
+}
+
+.sensor-map-details {
+    border-radius: 1rem;
+}
+
+.sensor-reading-row {
+    border-color: color-mix(in srgb, var(--border-color) 75%, transparent);
+}
+
+html[data-theme="light"] .dashboard-metric-card {
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, #fff 94%, var(--metric-color, var(--accent)) 6%),
+        color-mix(in srgb, #f1f5f9 85%, var(--metric-color, var(--accent)) 15%)
+    );
+}
+
+html[data-theme="light"] #urban-pulse-strip {
+    background: color-mix(in srgb, #fff 94%, var(--accent) 6%);
+}
+
+html[data-theme="light"] #urban-pulse-strip > .pulse-stat {
+    border-left-color: #dbe3ed;
+}
+
+html[data-theme="light"] .map-layer-legend {
+    color: #475569;
+}
+
+html[data-theme="light"] .timeline-panel h4 {
+    color: #0f172a;
+}
+
+@media (max-width: 900px) {
+    #urban-pulse-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #urban-pulse-strip > .pulse-status,
+    #urban-pulse-strip time {
+        grid-column: 1 / -1;
+    }
+
+    #urban-pulse-strip > .pulse-stat {
+        border-left: 0;
+        padding-left: 0;
+    }
+
+    #urban-pulse-strip time {
+        margin: 0;
+        text-align: left;
+    }
+}
+
+@media (max-width: 540px) {
+    .dashboard-overview {
+        gap: 1.25rem;
+        padding: 1.35rem;
+        border-radius: 1.25rem;
+    }
+
+    .dashboard-overview-actions {
+        width: 100%;
+    }
+
+    .dashboard-overview-actions .dashboard-quick-action {
+        flex: 1 1 auto;
+    }
+
+    .dashboard-metric-card {
+        min-height: 8.5rem;
+        padding: 1rem;
+    }
+
+    #urban-pulse-strip {
+        gap: .55rem .75rem;
+        padding: .85rem;
+    }
+
+    #urban-pulse-strip > .pulse-stat {
+        padding-inline: .25rem;
+    }
+
+    .dashboard-map-badges {
+        width: 100%;
+    }
+}
+
+.pin-digit-group {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .65rem;
+}
+
+.pin-digit {
+    width: 100%;
+    min-width: 0;
+    min-height: 3.4rem;
+    border: 1px solid rgb(100 116 139 / 55%);
+    border-radius: .85rem;
+    color: #f8fafc;
+    background: rgb(15 23 42 / 88%);
+    font-size: 1.35rem !important;
+    font-weight: 750;
+    text-align: center;
+    transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.pin-digit:focus-visible {
+    border-color: #60a5fa;
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(59 130 246 / 25%);
+}
+
+.pin-step-icon {
+    display: grid;
+    width: 3rem;
+    height: 3rem;
+    margin: 0 auto .85rem;
+    place-items: center;
+    border: 1px solid rgb(59 130 246 / 35%);
+    border-radius: 1rem;
+    background: rgb(37 99 235 / 16%);
+    font-size: 1.4rem;
+}
+
+.pin-digit-group--login {
+    margin-block: 1.25rem;
+}
+
+body.high-contrast .pin-digit {
+    color: #fff;
+    background: #000;
+    border-color: #fff;
+}
+
+@media (max-width: 420px) {
+    .pin-digit-group {
+        gap: .45rem;
+    }
+
+    .pin-digit {
+        min-height: 3rem;
+    }
+}

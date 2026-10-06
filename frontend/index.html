@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es" class="dark">
 <head>
-    <!-- Cargar librería nativa para modelos 3D .GLB / .GLTF -->
-<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Plataforma IoT para monitorear luminarias y sensores de una ciudad inteligente.">
+    <meta name="theme-color" content="#0b0f17">
     <title>SmartCity Cloud - Monitoreo Urbano e IoT</title>
+    <!-- Cargar librería nativa para modelos 3D .GLB / .GLTF -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -27,6 +29,8 @@
     </script>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="pin.css">
+    <link rel="stylesheet" href="mejoras.css">
+    <link rel="stylesheet" href="clima.css">
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased flex flex-col">
 <!-- Contenedor de Notificaciones Toast Flotantes -->
@@ -161,34 +165,35 @@
                 <form id="form-auth" onsubmit="procesarAuth(event)" class="space-y-4">
                     <!-- Campo Nombre (Solovisible en Registro) -->
                     <div id="campo-nombre" class="hidden">
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre Completo</label>
-                        <input type="text" id="auth-nombre" placeholder="Ej. Richard Ruiz" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+                        <label for="auth-nombre" class="block text-xs font-semibold text-slate-300 mb-1">Nombre Completo</label>
+                        <input type="text" id="auth-nombre" autocomplete="name" placeholder="Ej. Richard Ruiz" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
                     </div>
 
                     <div id="campo-pin" class="hidden space-y-2">
                         <label class="block text-xs font-semibold text-slate-300">Crea tu PIN de acceso</label>
-                        <p class="text-xs text-slate-400">Elige cuatro n&#250;meros que recordar&#225;s. Lo necesitar&#225;s despu&#233;s de tu contrase&#241;a.</p>
+                        <p class="text-xs text-slate-400">Elige cuatro números que recordarás. Lo necesitarás después de tu contraseña.</p>
                         <div class="pin-digit-group" data-pin-group="registro-pin" role="group" aria-label="Crea un PIN de cuatro cifras">
-                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Primer d&#237;gito del PIN" required>
-                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Segundo d&#237;gito del PIN" required>
-                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Tercer d&#237;gito del PIN" required>
-                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Cuarto d&#237;gito del PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Primer dígito del PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Segundo dígito del PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Tercer dígito del PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Cuarto dígito del PIN" required>
                         </div>
                         <label class="block text-xs font-semibold text-slate-300 pt-2">Confirma tu PIN</label>
                         <div class="pin-digit-group" data-pin-group="registro-pin-confirmacion" role="group" aria-label="Confirma tu PIN de cuatro cifras">
-                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Primer d&#237;gito para confirmar el PIN" required>
-                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Segundo d&#237;gito para confirmar el PIN" required>
-                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Tercer d&#237;gito para confirmar el PIN" required>
-                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Cuarto d&#237;gito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Primer dígito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Segundo dígito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Tercer dígito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Cuarto dígito para confirmar el PIN" required>
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Correo Electrónico</label>
-                        <input type="email" id="auth-email" required placeholder="correo@ejemplo.com" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
+                        <label for="auth-email" class="block text-xs font-semibold text-slate-300 mb-1">Correo Electrónico</label>
+                        <input type="email" id="auth-email" autocomplete="email" required placeholder="correo@ejemplo.com" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+                    </div>
+
+                    <div>
+                        <label for="auth-password" class="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
                         <div class="relative">
                             <input type="password" id="auth-password" required autocomplete="current-password" placeholder="••••••••" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl pl-4 pr-20 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
                             <button id="toggle-password-visibility" type="button" onclick="togglePasswordVisibility()" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-semibold text-blue-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-400">
@@ -204,28 +209,28 @@
 
                 <form id="form-pin-step" class="hidden space-y-5" onsubmit="procesarPasoPin(event)">
                     <div class="text-center">
-                        <div class="pin-step-icon" aria-hidden="true">&#128272;</div>
+                        <div class="pin-step-icon" aria-hidden="true">🔐</div>
                         <h3 id="pin-step-title" class="text-lg font-bold text-white">Verifica tu acceso</h3>
                         <p id="pin-step-description" class="mt-2 text-sm text-slate-400">Ingresa tu PIN de cuatro cifras.</p>
                     </div>
                     <div class="pin-digit-group pin-digit-group--login" data-pin-group="login-pin" role="group" aria-label="Ingresa tu PIN de cuatro cifras">
-                        <input class="pin-digit" type="password" inputmode="numeric" maxlength="4" autocomplete="one-time-code" aria-label="Primer d&#237;gito del PIN" required>
-                        <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Segundo d&#237;gito del PIN" required>
-                        <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Tercer d&#237;gito del PIN" required>
-                        <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Cuarto d&#237;gito del PIN" required>
+                        <input class="pin-digit" type="password" inputmode="numeric" maxlength="4" autocomplete="one-time-code" aria-label="Primer dígito del PIN" required>
+                        <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Segundo dígito del PIN" required>
+                        <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Tercer dígito del PIN" required>
+                        <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Cuarto dígito del PIN" required>
                     </div>
                     <div id="pin-confirmation-fields" class="hidden space-y-2">
                         <label class="block text-xs font-semibold text-slate-300">Confirma tu PIN</label>
                         <div class="pin-digit-group" data-pin-group="login-pin-confirmacion" role="group" aria-label="Confirma tu PIN de cuatro cifras">
-                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Primer d&#237;gito para confirmar el PIN" required>
-                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Segundo d&#237;gito para confirmar el PIN" required>
-                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Tercer d&#237;gito para confirmar el PIN" required>
-                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Cuarto d&#237;gito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Primer dígito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Segundo dígito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Tercer dígito para confirmar el PIN" required>
+                            <input class="pin-digit" type="password" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Cuarto dígito para confirmar el PIN" required>
                         </div>
                     </div>
                     <p id="pin-step-status" class="min-h-5 text-center text-sm text-rose-400" role="status" aria-live="polite"></p>
                     <button type="submit" id="pin-step-submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl text-sm transition shadow-lg shadow-blue-600/30">Verificar PIN</button>
-                    <button type="button" class="w-full text-sm text-slate-400 hover:text-white" onclick="cancelarPasoPin()">Volver al inicio de sesi&#243;n</button>
+                    <button type="button" class="w-full text-sm text-slate-400 hover:text-white" onclick="cancelarPasoPin()">Volver al inicio de sesión</button>
                 </form>
 
                 <div id="auth-toggle-container" class="mt-6 text-center text-xs text-slate-400">
@@ -242,20 +247,112 @@
         <!-- VISTA B: DASHBOARD (PANEL PRINCIPAL)       -->
         <!-- ========================================== -->
         <section id="vista-dashboard" class="hidden space-y-6">
+            <section id="dashboard-overview" data-dashboard-panel="dashboard" class="dashboard-overview" aria-labelledby="dashboard-title">
+                <div class="dashboard-overview-copy">
+                    <p class="dashboard-eyebrow">SMARTCITY CLOUD <span aria-hidden="true">/</span> CENTRO DE MONITOREO</p>
+                    <h2 id="dashboard-title">Resumen operativo</h2>
+                    <p id="dashboard-source-summary">Métricas y estado de las lecturas disponibles.</p>
+                </div>
+                <div class="dashboard-overview-actions">
+                    <button type="button" class="dashboard-quick-action dashboard-quick-action--primary" onclick="navegarA('reportes')">
+                        <span aria-hidden="true">⇩</span> Exportar datos
+                    </button>
+                    <button type="button" class="dashboard-quick-action" onclick="navegarA('alertas')">
+                        <span aria-hidden="true">⚑</span> Ver alertas
+                    </button>
+                </div>
+            </section>
+
+            <section data-dashboard-panel="dashboard" class="dashboard-metrics" aria-label="Indicadores de sensores">
+                <article class="dashboard-metric-card dashboard-metric-card--temperature">
+                    <span class="dashboard-metric-icon" aria-hidden="true">🌡️</span>
+                    <div class="dashboard-metric-copy">
+                        <p>Temperatura promedio</p>
+                        <strong id="metric-temp">-- °C</strong>
+                        <span id="metric-temp-source">Fuente pendiente</span>
+                    </div>
+                    <span class="dashboard-metric-unit" aria-hidden="true">°C</span>
+                </article>
+                <article class="dashboard-metric-card dashboard-metric-card--humidity">
+                    <span class="dashboard-metric-icon" aria-hidden="true">💧</span>
+                    <div class="dashboard-metric-copy">
+                        <p>Humedad relativa</p>
+                        <strong id="metric-hum">-- %</strong>
+                        <span id="metric-hum-source">Fuente pendiente</span>
+                    </div>
+                    <span class="dashboard-metric-unit" aria-hidden="true">%</span>
+                </article>
+                <article class="dashboard-metric-card dashboard-metric-card--air">
+                    <span class="dashboard-metric-icon" aria-hidden="true">🍃</span>
+                    <div class="dashboard-metric-copy">
+                        <p>Calidad del aire</p>
+                        <strong id="metric-aire">-- ICA</strong>
+                        <span id="metric-aire-source">Fuente pendiente</span>
+                    </div>
+                    <span class="dashboard-metric-unit" aria-hidden="true">ICA</span>
+                </article>
+            </section>
+
+            <section id="weather-compare-panel" data-dashboard-panel="dashboard" class="dashboard-feature-panel weather-compare" aria-labelledby="weather-title">
+                <div class="feature-panel-heading">
+                    <div>
+                        <p class="feature-eyebrow">SENSORES VS. CLIMA LOCAL</p>
+                        <h2 id="weather-title">🌦️ Clima en Puerto Francisco de Orellana</h2>
+                    </div>
+                    <span id="weather-status" class="weather-status" aria-live="polite">Esperando el dashboard…</span>
+                </div>
+
+                <div class="weather-grid">
+                    <article class="weather-card">
+                        <h3>🌡️ Temperatura</h3>
+                        <div class="weather-compare-row"><span>Sensores de la ciudad</span><strong id="wx-temp-sensor">—</strong></div>
+                        <div class="weather-compare-row"><span>Clima exterior</span><strong id="wx-temp-api">—</strong></div>
+                        <span id="wx-temp-diff" class="weather-diff">Sin comparar</span>
+                    </article>
+
+                    <article class="weather-card">
+                        <h3>💧 Humedad</h3>
+                        <div class="weather-compare-row"><span>Sensores de la ciudad</span><strong id="wx-hum-sensor">—</strong></div>
+                        <div class="weather-compare-row"><span>Clima exterior</span><strong id="wx-hum-api">—</strong></div>
+                        <span id="wx-hum-diff" class="weather-diff">Sin comparar</span>
+                    </article>
+
+                    <article class="weather-card weather-card--conditions">
+                        <h3>🌤️ Condiciones actuales</h3>
+                        <p id="wx-condition" class="weather-big">—</p>
+                        <div class="weather-compare-row"><span>Lluvia</span><strong id="wx-rain">—</strong></div>
+                        <div class="weather-compare-row"><span>Índice UV</span><strong id="wx-uv">—</strong></div>
+                        <span id="wx-uv-level" class="weather-diff">—</span>
+                    </article>
+                </div>
+
+                <p class="weather-credit">
+                    Comparación orientativa: el clima exterior y un sensor urbano pueden diferir por ubicación o exposición.
+                    Datos meteorológicos de <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>.
+                    <span id="wx-updated"></span>
+                </p>
+            </section>
+
+            <section id="urban-pulse-strip" data-dashboard-panel="dashboard tiempo" class="urban-pulse-strip" aria-label="Estado de la ciudad">
+                <div class="pulse-status"><span class="pulse-dot" aria-hidden="true"></span><span id="pulse-status-label">Preparando ciudad</span></div>
+                <div class="pulse-stat"><strong id="pulse-sensor-count">0</strong><span>sensores en el mapa</span></div>
+                <div class="pulse-stat"><strong id="pulse-alert-count">0</strong><span>lecturas para revisar</span></div>
+                <time id="pulse-updated">Esperando actualización</time>
+            </section>
+
             <!-- Visor 3D Interactivo de la Ciudad -->
-<div id="city-3d-panel" data-dashboard-panel="dashboard capas tiempo" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
-    <div class="flex items-center justify-between mb-4">
-        <div>
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                🏙️ Pulso de la ciudad
-            </h3>
-            <p id="city-pulse-summary" class="text-xs text-slate-400">Explora el modelo 3D y el estado de las luminarias.</p>
-        </div>
-        <div class="flex flex-col items-end gap-2">
-            <span id="sensor-data-source" class="data-source-badge checking-source">COMPROBANDO FUENTE</span>
-            <span class="text-xs font-semibold px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full">Interactivo 360°</span>
-        </div>
-    </div>
+            <div id="city-3d-panel" data-dashboard-panel="dashboard capas tiempo" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+                <div class="dashboard-map-heading">
+                    <div>
+                        <p class="dashboard-eyebrow">VISTA URBANA <span aria-hidden="true">/</span> MODELO 3D</p>
+                        <h3>🏙️ Pulso de la ciudad</h3>
+                        <p id="city-pulse-summary">Explora el modelo 3D y el estado de las luminarias.</p>
+                    </div>
+                    <div class="dashboard-map-badges">
+                        <span id="sensor-data-source" class="data-source-badge checking-source">COMPROBANDO FUENTE</span>
+                        <span class="map-interaction-badge"><span aria-hidden="true">⤢</span> Interactivo 360°</span>
+                    </div>
+                </div>
 
     <div id="map-layer-toolbar" data-dashboard-panel="capas" class="map-layer-toolbar" role="group" aria-label="Capas del mapa">
         <span class="map-toolbar-label">Visualizar</span>
@@ -266,7 +363,7 @@
     </div>
 
     <!-- Componente 3D -->
-    <div id="sensor-map-canvas" class="sensor-map-canvas w-full h-[400px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-700/50">
+    <div id="sensor-map-canvas" class="sensor-map-canvas w-full bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-700/50">
         <model-viewer id="sensor-map-model"
             src="ciudad.glb" 
             alt="Modelo 3D de SmartCity con luminarias inteligentes seleccionables"
@@ -290,7 +387,7 @@
         <span><i class="legend-dot level-warn"></i>Revisión recomendada</span>
         <span><i class="legend-dot level-high"></i>Fuera del rango orientativo</span>
     </div>
-</div>
+            </div>
             <section id="timeline-panel" data-dashboard-panel="tiempo" class="timeline-panel" aria-labelledby="timeline-title">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -306,46 +403,6 @@
                 <input id="timeline-range" class="timeline-range" type="range" min="0" max="24" step="1" value="0">
                 <div class="timeline-labels"><span>Hace 24 h</span><span>Ahora</span></div>
             </section>
-            <div data-dashboard-panel="dashboard" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-800/40 p-6 rounded-3xl border border-slate-700/50">
-                <div>
-                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-                        🌆 Resumen de la ciudad
-                    </h2>
-                    <p id="dashboard-source-summary" class="text-sm text-slate-400 mt-1">Métricas y estado de las lecturas disponibles.</p>
-                </div>
-            </div>
-
-            <!-- Métricas de Sensores IoT -->
-            <div data-dashboard-panel="dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Temperatura -->
-                <div class="bg-slate-800/60 border border-slate-700/60 p-6 rounded-3xl relative overflow-hidden">
-                    <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Temperatura Promedio</div>
-                    <div id="metric-temp" class="text-4xl font-extrabold text-amber-400 mt-2">-- °C</div>
-                    <div id="metric-temp-source" class="text-xs text-slate-500 mt-2">Fuente pendiente</div>
-                </div>
-
-                <!-- Humedad -->
-                <div class="bg-slate-800/60 border border-slate-700/60 p-6 rounded-3xl relative overflow-hidden">
-                    <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Humedad Relativa</div>
-                    <div id="metric-hum" class="text-4xl font-extrabold text-blue-400 mt-2">-- %</div>
-                    <div id="metric-hum-source" class="text-xs text-slate-500 mt-2">Fuente pendiente</div>
-                </div>
-
-                <!-- Calidad del Aire -->
-                <div class="bg-slate-800/60 border border-slate-700/60 p-6 rounded-3xl relative overflow-hidden">
-                    <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Calidad del Aire</div>
-                    <div id="metric-aire" class="text-4xl font-extrabold text-emerald-400 mt-2">-- ICA</div>
-                    <div id="metric-aire-source" class="text-xs text-slate-500 mt-2">Fuente pendiente</div>
-                </div>
-            </div>
-
-            <section id="urban-pulse-strip" data-dashboard-panel="dashboard tiempo" class="urban-pulse-strip" aria-label="Resumen del pulso urbano">
-                <div><span class="pulse-dot" aria-hidden="true"></span><span id="pulse-status-label">Preparando ciudad</span></div>
-                <div><strong id="pulse-sensor-count">0</strong><span> sensores en el mapa</span></div>
-                <div><strong id="pulse-alert-count">0</strong><span> lecturas para revisar</span></div>
-                <time id="pulse-updated">Esperando actualización</time>
-            </section>
-
             <!-- Lecturas de los sensores representados en las luminarias del modelo 3D -->
             <section id="sensor-map-section" data-dashboard-panel="dashboard capas tiempo" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl" aria-labelledby="sensor-map-title">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
@@ -369,7 +426,7 @@
                             <span id="sensor-detail-status" class="sensor-detail-status">—</span>
                         </div>
                         <p id="sensor-detail-message" class="text-sm text-slate-400">Sus lecturas aparecerán aquí.</p>
-                        <div id="sensor-detail-content" class="hidden space-y-3 mt-5">
+                        <div id="sensor-detail-content" class="hidden mt-5">
                             <div class="sensor-reading-row"><span>🌡️ Temperatura</span><strong id="sensor-detail-temperature">—</strong></div>
                             <div class="sensor-reading-row"><span>💧 Humedad</span><strong id="sensor-detail-humidity">—</strong></div>
                             <div class="sensor-reading-row"><span>🍃 Calidad del aire</span><strong id="sensor-detail-air">—</strong></div>
@@ -698,12 +755,12 @@
             <h3 id="modal-editar-perfil-title" class="text-lg font-bold text-white mb-4">✏️ Editar información del perfil</h3>
             <form onsubmit="guardarEdicionPerfil(event)" class="space-y-4">
                 <div>
-                    <label class="block text-xs text-slate-300 mb-1">Nombre Completo</label>
-                    <input type="text" id="edit-nombre" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
+                    <label for="edit-nombre" class="block text-xs text-slate-300 mb-1">Nombre Completo</label>
+                    <input type="text" id="edit-nombre" autocomplete="name" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-300 mb-1">Nombre de Usuario (Username)</label>
-                    <input type="text" id="edit-username" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
+                    <label for="edit-username" class="block text-xs text-slate-300 mb-1">Nombre de Usuario (Username)</label>
+                    <input type="text" id="edit-username" autocomplete="username" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
                     <button type="button" onclick="cerrarModal('modal-editar-perfil')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-700 text-slate-300 hover:text-white">Cancelar</button>
@@ -719,12 +776,12 @@
             <h3 id="modal-cambiar-password-title" class="text-lg font-bold text-white mb-4">🔒 Cambiar contraseña</h3>
             <form onsubmit="guardarNuevaPassword(event)" class="space-y-4">
                 <div>
-                    <label class="block text-xs text-slate-300 mb-1">Contraseña Actual</label>
-                    <input type="password" id="pass-actual" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
+                    <label for="pass-actual" class="block text-xs text-slate-300 mb-1">Contraseña Actual</label>
+                    <input type="password" id="pass-actual" autocomplete="current-password" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-300 mb-1">Nueva Contraseña</label>
-                    <input type="password" id="pass-nueva" required minlength="6" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
+                    <label for="pass-nueva" class="block text-xs text-slate-300 mb-1">Nueva Contraseña</label>
+                    <input type="password" id="pass-nueva" autocomplete="new-password" required minlength="6" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
                     <button type="button" onclick="cerrarModal('modal-cambiar-password')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-700 text-slate-300 hover:text-white">Cancelar</button>
@@ -758,6 +815,7 @@
     <script src="assets/js/admin.js"></script>
     <script src="assets/js/brunito.js"></script>
     <script src="assets/js/mapa.js"></script>
+    <script src="assets/js/clima.js"></script>
     <script src="assets/js/main.js"></script>
 
 </body>
