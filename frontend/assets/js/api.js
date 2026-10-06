@@ -4,6 +4,26 @@
 
 const API_URL = "https://smartcity-backend-shdc.onrender.com";
 
+let apiWarmupPromise = null;
+
+// Inicia el backend mientras el usuario está en la pantalla de acceso.
+function precalentarAPI() {
+    if (apiWarmupPromise) return apiWarmupPromise;
+
+    apiWarmupPromise = fetch(`${API_URL}/`, { cache: "no-store" })
+        .then(response => {
+            if (!response.ok) throw new Error(`API respondió ${response.status}`);
+            return response.json();
+        })
+        .catch(error => {
+            apiWarmupPromise = null;
+            console.info("No se pudo precalentar la API; el inicio de sesión continuará normalmente.", error);
+            return null;
+        });
+
+    return apiWarmupPromise;
+}
+
 function obtenerToken() {
     return localStorage.getItem("token_cloud");
 }
