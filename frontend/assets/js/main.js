@@ -197,6 +197,7 @@ function navegarA(vista) {
     } else if (vista === "dashboard") {
         document.getElementById("vista-dashboard")?.classList.remove("hidden");
         cargarUltimasLecturas();
+        cargarMapaSensores();
     } else if (vista === "perfil") {
         document.getElementById("vista-perfil")?.classList.remove("hidden");
         cargarPerfilUsuario();
