@@ -6,6 +6,7 @@ let modoRegistro = false;
 
 function toggleModoAuth() {
     modoRegistro = !modoRegistro;
+    ocultarPasswordAuth();
 
     const campoNombre = document.getElementById("campo-nombre");
     const authTitulo = document.getElementById("auth-titulo");
@@ -13,6 +14,9 @@ function toggleModoAuth() {
     const authBtnSubmit = document.getElementById("auth-btn-submit");
     const authToggleTexto = document.getElementById("auth-toggle-texto");
     const authToggleBtn = document.getElementById("auth-toggle-btn");
+    const passwordInput = document.getElementById("auth-password");
+
+    if (passwordInput) passwordInput.autocomplete = modoRegistro ? "new-password" : "current-password";
 
     if (modoRegistro) {
         campoNombre?.classList.remove("hidden");
@@ -31,11 +35,39 @@ function toggleModoAuth() {
     }
 }
 
+function togglePasswordVisibility() {
+    const input = document.getElementById("auth-password");
+    const button = document.getElementById("toggle-password-visibility");
+    const label = button?.querySelector("[data-password-toggle-label]");
+    if (!input || !button) return;
+
+    const mostrar = input.type === "password";
+    input.type = mostrar ? "text" : "password";
+    const accessibleName = mostrar ? "Ocultar contraseña" : "Mostrar contraseña";
+    button.setAttribute("aria-label", accessibleName);
+    button.setAttribute("title", accessibleName);
+    button.setAttribute("aria-pressed", String(mostrar));
+    if (label) label.textContent = mostrar ? "Ocultar" : "Mostrar";
+}
+
+function ocultarPasswordAuth() {
+    const input = document.getElementById("auth-password");
+    if (input) input.type = "password";
+    const button = document.getElementById("toggle-password-visibility");
+    if (!button) return;
+    button.setAttribute("aria-label", "Mostrar contraseña");
+    button.setAttribute("title", "Mostrar contraseña");
+    button.setAttribute("aria-pressed", "false");
+    const label = button.querySelector("[data-password-toggle-label]");
+    if (label) label.textContent = "Mostrar";
+}
+
 async function procesarAuth(e) {
     e.preventDefault();
 
     const email = document.getElementById("auth-email").value.trim();
     const password = document.getElementById("auth-password").value;
+    ocultarPasswordAuth();
 
     if (modoRegistro) {
         const nombre = document.getElementById("auth-nombre").value.trim();
@@ -132,6 +164,7 @@ function cerrarSesion() {
     localStorage.removeItem("user_id_cloud");
 
     if (modoRegistro) toggleModoAuth();
+    ocultarPasswordAuth();
     document.getElementById("form-auth")?.reset();
 
     // Redirige al login y oculta todo el header

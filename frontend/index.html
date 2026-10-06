@@ -28,7 +28,8 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased flex flex-col">
-
+<!-- Contenedor de Notificaciones Toast Flotantes -->
+<div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
     <!-- ============================================================ -->
     <!-- 1. BARRA DE NAVEGACIÓN SUPERIOR (HEADER)                     -->
     <!-- ============================================================ -->
@@ -46,13 +47,15 @@
                 </div>
             </div>
 
+            <button id="btn-mobile-nav" type="button" class="hidden md:hidden px-3 py-2 rounded-lg border border-slate-600 text-slate-200" aria-expanded="false" aria-controls="menu-navegacion" aria-label="Abrir navegación" onclick="toggleMobileNav()">☰</button>
+
             <!-- Menú de Navegación Principal -->
             <nav id="menu-navegacion" class="hidden md:flex items-center gap-2">
                 <button onclick="navegarA('dashboard')" class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
                     📊 Dashboard
                 </button>
-                <button onclick="navegarA('perfil')" class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
-                    👤 Mi Perfil
+                <button id="btn-menu-configuracion" onclick="navegarA('configuracion')" class="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
+                    ⚙️ Configuración
                 </button>
                 <button id="btn-menu-admin" onclick="navegarA('admin-usuarios')" class="hidden px-3.5 py-2 rounded-xl text-sm font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition">
                     👑 Gestión Usuarios
@@ -61,14 +64,22 @@
 
             <!-- Badge Usuario y Botón Sesión -->
             <div class="flex items-center gap-3">
-                <div id="usuario-badge" class="hidden sm:flex items-center gap-2 bg-slate-700/40 border border-slate-600/50 rounded-xl px-3 py-1.5 text-xs text-slate-300">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span id="nav-usuario-nombre" class="font-semibold text-white">Usuario</span>
+                <div id="account-menu-wrap" class="hidden relative">
+                    <button id="usuario-badge" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="account-menu" onclick="toggleAccountMenu()" class="flex items-center gap-2 bg-slate-700/40 border border-slate-600/50 rounded-xl px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 transition">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true"></span>
+                        <span id="nav-usuario-nombre" class="font-semibold text-white max-w-28 truncate">Usuario</span>
+                        <span aria-hidden="true">⌄</span>
+                    </button>
+                    <div id="account-menu" class="hidden account-menu absolute right-0 mt-2 w-72 bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-2xl z-50">
+                        <div class="pb-3 border-b border-slate-700/70">
+                            <p id="account-menu-name" class="font-bold text-white">Usuario</p>
+                            <p id="account-menu-email" class="text-xs text-slate-400 mt-1">Cargando cuenta…</p>
+                            <p id="account-menu-role" class="text-xs text-blue-300 mt-2">Cuenta activa</p>
+                        </div>
+                        <button type="button" onclick="navegarA('perfil'); cerrarAccountMenu()" class="w-full text-left px-3 py-2.5 mt-2 rounded-lg text-sm text-slate-200 hover:bg-slate-700">👤 Mi cuenta y seguridad</button>
+                        <button type="button" onclick="cerrarSesion()" class="w-full text-left px-3 py-2.5 rounded-lg text-sm text-rose-300 hover:bg-rose-500/10">↪ Cerrar sesión</button>
+                    </div>
                 </div>
-
-                <button id="btn-auth-accion" onclick="cerrarSesion()" class="hidden px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition">
-                    Cerrar Sesión
-                </button>
             </div>
 
         </div>
@@ -82,8 +93,25 @@
         <!-- ========================================== -->
         <!-- VISTA A: AUTENTICACIÓN (LOGIN / REGISTRO)  -->
         <!-- ========================================== -->
-        <section id="vista-auth" class="flex items-center justify-center min-h-[75vh]">
-            <div class="w-full max-w-md bg-slate-800/90 border border-slate-700/60 p-8 rounded-3xl shadow-2xl backdrop-blur-xl">
+        <section id="vista-auth" class="auth-layout">
+            <div class="auth-mission">
+                <div class="auth-brand-mark" aria-hidden="true">🏙️</div>
+                <p class="auth-eyebrow">TECNOLOGÍA PARA CIUDADES MÁS INTELIGENTES</p>
+                <h2>SmartCity Cloud</h2>
+                <p class="auth-lead">Una ciudad conectada para comprender mejor su entorno.</p>
+                <div class="mission-vision-grid">
+                    <article>
+                        <h3>Nuestra misión</h3>
+                        <p>Facilitar el monitoreo de variables urbanas y ambientales mediante sensores IoT y una plataforma accesible que ayude a comprender el estado de la ciudad.</p>
+                    </article>
+                    <article>
+                        <h3>Nuestra visión</h3>
+                        <p>Ser una plataforma demostrativa que acerque la tecnología IoT a la gestión urbana y promueva decisiones informadas para construir entornos más sostenibles.</p>
+                    </article>
+                </div>
+                <p class="auth-demo-note">Proyecto demostrativo · Las luminarias del modelo 3D representan una simulación.</p>
+            </div>
+            <div class="auth-card w-full max-w-md bg-slate-800/90 border border-slate-700/60 p-8 rounded-3xl shadow-2xl backdrop-blur-xl">
                 <div class="text-center mb-8">
                     <div class="w-16 h-16 bg-blue-600/20 border border-blue-500/30 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4">
                         🏙️
@@ -106,7 +134,12 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
-                        <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+                        <div class="relative">
+                            <input type="password" id="auth-password" required autocomplete="current-password" placeholder="••••••••" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl pl-4 pr-20 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+                            <button id="toggle-password-visibility" type="button" onclick="togglePasswordVisibility()" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-semibold text-blue-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-400">
+                                <span aria-hidden="true">👁️</span> <span data-password-toggle-label>Mostrar</span>
+                            </button>
+                        </div>
                     </div>
 
                     <button type="submit" id="auth-btn-submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl text-sm transition shadow-lg shadow-blue-600/30 mt-2">
@@ -128,6 +161,34 @@
         <!-- VISTA B: DASHBOARD (PANEL PRINCIPAL)       -->
         <!-- ========================================== -->
         <section id="vista-dashboard" class="hidden space-y-6">
+            <div class="flex flex-wrap items-center gap-2">
+    <button onclick="exportarSensoresCSV()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition flex items-center gap-1.5">
+        📊 Exportar CSV
+    </button>
+    <label for="sensor-report-period" class="sr-only">Periodo del reporte</label>
+    <select id="sensor-report-period" class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-200">
+        <option value="1">Última hora</option>
+        <option value="10">Últimas 10 horas</option>
+        <option value="24" selected>Últimas 24 horas</option>
+        <option value="custom">Periodo personalizado</option>
+    </select>
+    <button id="sensor-report-pdf" type="button" onclick="exportarSensoresPDF()" class="px-3.5 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-xs font-medium text-blue-400 transition flex items-center gap-1.5">
+        📄 Descargar reporte PDF
+    </button>
+</div>
+<div id="sensor-report-custom-range" class="hidden flex flex-wrap items-end gap-3" aria-label="Periodo personalizado">
+    <div><label for="sensor-report-start" class="block text-xs text-slate-400 mb-1">Desde</label><input id="sensor-report-start" type="datetime-local" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-100"></div>
+    <div><label for="sensor-report-end" class="block text-xs text-slate-400 mb-1">Hasta</label><input id="sensor-report-end" type="datetime-local" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-100"></div>
+</div>
+<p id="sensor-report-status" class="text-xs text-slate-400" aria-live="polite"></p>
+<section id="sensor-report-print" class="sensor-report-print" aria-label="Reporte de lecturas de sensores">
+    <h1>SmartCity Cloud · Reporte de sensores</h1>
+    <p id="sensor-report-range"></p>
+    <p id="sensor-report-generated"></p>
+    <p id="sensor-report-summary"></p>
+    <p id="sensor-report-limitation"></p>
+    <table><thead><tr><th>Fecha y hora</th><th>Sensor</th><th>Temperatura (°C)</th><th>Humedad (%)</th><th>Calidad del aire (ICA)</th></tr></thead><tbody id="sensor-report-rows"></tbody></table>
+</section>
             <!-- Visor 3D Interactivo de la Ciudad -->
 <div class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
     <div class="flex items-center justify-between mb-4">
@@ -195,6 +256,7 @@
                     <div class="text-xs text-slate-500 mt-2">🍃 Índice ICA Supabase</div>
                 </div>
             </div>
+
             <!-- Lecturas de los sensores representados en las luminarias del modelo 3D -->
             <section id="sensor-map-section" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
@@ -208,6 +270,7 @@
                         <button id="sensor-map-refresh" type="button" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition">↻ Actualizar</button>
                     </div>
                 </div>
+
                 <aside class="sensor-map-details bg-slate-900/70 border border-slate-700/60 rounded-2xl p-5" aria-live="polite">
                         <div class="flex items-start justify-between gap-3 mb-4">
                             <div>
@@ -227,13 +290,13 @@
                             </div>
                         </div>
                 </aside>
+
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-4 text-xs text-slate-400">
-                    <p>Las luminarias y sus ubicaciones en el modelo son simuladas.</p>
+                    <p>Escena 3D recreada · Las posiciones de las luminarias son simuladas.</p>
                     <p id="sensor-map-updated" aria-live="polite">Aún no actualizado</p>
                 </div>
             </section>
-
-</section>
+        </section>
 
 
         <!-- ========================================== -->
@@ -281,12 +344,70 @@
                         🔒 Cambiar Contraseña
                     </button>
                 </div>
+                <button onclick="cerrarSesion()" class="w-full mt-4 py-3 rounded-xl text-sm font-semibold text-rose-300 border border-rose-500/20 hover:bg-rose-500/10 transition">↪ Cerrar sesión</button>
+            </div>
+        </section>
+
+        <!-- VISTA D: CONFIGURACIÓN DE PREFERENCIAS -->
+        <section id="vista-configuracion" class="hidden max-w-4xl mx-auto space-y-6">
+            <div>
+                <p class="text-xs uppercase tracking-[0.18em] text-blue-400 font-bold">Preferencias personales</p>
+                <h2 class="text-3xl font-bold text-white mt-2">⚙️ Configuración</h2>
+                <p class="text-sm text-slate-400 mt-2">Ajusta SmartCity Cloud para que el panel se adapte a ti. Tus preferencias se guardan en este navegador.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <section class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-6">
+                    <h3 class="font-bold text-white">Apariencia y accesibilidad</h3>
+                    <p class="text-xs text-slate-400 mt-1">Estas preferencias también se pueden cambiar rápidamente desde los controles de la barra superior.</p>
+                    <div class="mt-5 space-y-4">
+                        <div>
+                            <label for="config-theme" class="block text-sm text-slate-200 mb-2">Tema visual</label>
+                            <select id="config-theme" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100">
+                                <option value="dark">Nocturno</option><option value="light">Claro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="config-text-size" class="block text-sm text-slate-200 mb-2">Tamaño del texto</label>
+                            <select id="config-text-size" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100">
+                                <option value="0.875">Pequeño</option><option value="1">Normal</option><option value="1.125">Grande</option><option value="1.25">Muy grande</option>
+                            </select>
+                        </div>
+                        <label class="flex items-center justify-between gap-4 text-sm text-slate-200">
+                            <span><strong class="block">Reducir animaciones</strong><span class="text-xs text-slate-400">Desactiva movimientos decorativos.</span></span>
+                            <input id="config-reduce-motion" type="checkbox" class="h-5 w-5 accent-blue-600">
+                        </label>
+                    </div>
+                </section>
+
+                <section class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-6">
+                    <h3 class="font-bold text-white">Panel y reportes</h3>
+                    <p class="text-xs text-slate-400 mt-1">Elige cómo se actualizan los datos y el periodo inicial de los reportes.</p>
+                    <div class="mt-5 space-y-4">
+                        <div>
+                            <label for="config-refresh-interval" class="block text-sm text-slate-200 mb-2">Actualizar lecturas automáticamente</label>
+                            <select id="config-refresh-interval" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100">
+                                <option value="0">Desactivado</option><option value="30">Cada 30 segundos</option><option value="60">Cada minuto</option><option value="300">Cada 5 minutos</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="config-default-period" class="block text-sm text-slate-200 mb-2">Periodo inicial del reporte</label>
+                            <select id="config-default-period" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100">
+                                <option value="1">Última hora</option><option value="10">Últimas 10 horas</option><option value="24">Últimas 24 horas</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <button id="config-reset" type="button" class="px-4 py-2.5 rounded-xl border border-slate-600 text-slate-200 hover:bg-slate-700 text-sm font-semibold">Restablecer preferencias</button>
+                <span id="config-status" class="text-sm text-emerald-400" aria-live="polite"></span>
             </div>
         </section>
 
 
         <!-- ========================================== -->
-        <!-- VISTA D: GESTIÓN DE USUARIOS (ADMIN FASE 3)-->
+        <!-- VISTA E: GESTIÓN DE USUARIOS (ADMIN FASE 3)-->
         <!-- ========================================== -->
         <section id="vista-admin-usuarios" class="hidden space-y-6">
             <div class="bg-slate-800/90 border border-slate-700/60 rounded-3xl p-6 sm:p-8 shadow-2xl">
@@ -330,6 +451,40 @@
 
     </main>
 
+    <footer id="site-footer" class="border-t border-slate-700/60 bg-slate-900/60">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+            <p>© <span id="footer-year"></span> SmartCity Cloud · Proyecto demostrativo de ciudad inteligente.</p>
+            <nav aria-label="Información del sitio" class="flex flex-wrap justify-center gap-x-5 gap-y-2">
+                <button type="button" onclick="abrirInfoSitio('acerca')" class="hover:text-blue-300">Acerca del proyecto</button>
+                <button type="button" onclick="abrirModalContacto()" class="hover:text-blue-300">Contáctanos</button>
+                <button type="button" onclick="abrirInfoSitio('privacidad')" class="hover:text-blue-300">Privacidad</button>
+            </nav>
+        </div>
+    </footer>
+
+    <div id="site-info-modal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[70] items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="site-info-title">
+        <section class="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <h2 id="site-info-title" class="text-xl font-bold text-white"></h2>
+            <div id="site-info-content" class="mt-4 space-y-3 text-sm leading-6 text-slate-300"></div>
+            <button type="button" onclick="cerrarModal('site-info-modal')" class="mt-6 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500">Cerrar</button>
+        </section>
+    </div>
+
+    <div id="contact-modal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[70] items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="contact-title">
+        <section class="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-3xl p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h2 id="contact-title" class="text-xl font-bold text-white">Contáctanos</h2>
+            <p class="mt-2 text-sm text-slate-400">Escríbenos a <a class="text-blue-300 underline" href="mailto:richard.ruizvuni@gmail.com">richard.ruizvuni@gmail.com</a>. Al preparar el mensaje se abrirá tu aplicación de correo para que lo revises y lo envíes.</p>
+            <form id="contact-form" onsubmit="enviarConsultaContacto(event)" class="mt-5 space-y-4">
+                <div><label for="contact-name" class="block text-xs text-slate-300 mb-1">Tu nombre</label><input id="contact-name" required maxlength="100" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white"></div>
+                <div><label for="contact-email" class="block text-xs text-slate-300 mb-1">Tu correo</label><input id="contact-email" type="email" required maxlength="160" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white"></div>
+                <div><label for="contact-reason" class="block text-xs text-slate-300 mb-1">Motivo</label><select id="contact-reason" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white"><option>Soporte</option><option>Problema con sensores</option><option>Sugerencia</option><option>Otro</option></select></div>
+                <div><label for="contact-message" class="block text-xs text-slate-300 mb-1">Mensaje</label><textarea id="contact-message" required maxlength="2000" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white resize-y"></textarea></div>
+                <p id="contact-status" class="text-xs text-slate-400" aria-live="polite"></p>
+                <div class="flex justify-end gap-3"><button type="button" onclick="cerrarModal('contact-modal')" class="px-4 py-2 rounded-xl text-sm text-slate-300 hover:bg-slate-700">Cancelar</button><button type="submit" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500">Preparar correo</button></div>
+            </form>
+        </section>
+    </div>
+
 
 <!-- ============================================================ -->
     <!-- 3. CHATBOT FLOTANTE (BRUNITO AI) - POSICIONAMIENTO FIJO      -->
@@ -368,7 +523,7 @@
     </div>
 
     <!-- Botón Flotante (Fijo abajo a la derecha) -->
-    <button onclick="toggleChatBrunito()" class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition hover:scale-105 active:scale-95">
+    <button id="btn-chat-launcher" onclick="toggleChatBrunito()" class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition hover:scale-105 active:scale-95">
         🤖
     </button>
 

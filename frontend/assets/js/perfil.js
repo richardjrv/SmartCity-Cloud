@@ -36,6 +36,12 @@ async function cargarPerfilUsuario() {
         if (perfUser) perfUser.innerText = `@${data.username || "-"}`;
         if (perfEmail) perfEmail.innerText = data.email || "-";
         if (perfRol) perfRol.innerText = data.rol || "👤 Usuario";
+        const accountName = document.getElementById("account-menu-name");
+        const accountEmail = document.getElementById("account-menu-email");
+        const accountRole = document.getElementById("account-menu-role");
+        if (accountName) accountName.textContent = data.nombre || "Usuario";
+        if (accountEmail) accountEmail.textContent = data.email || "";
+        if (accountRole) accountRole.textContent = data.rol || "Cuenta activa";
 
         if (perfEstado) {
             if (data.estado === "activo") {
@@ -133,6 +139,8 @@ async function guardarEdicionPerfil(e) {
             // Actualizar nombre en la barra de navegación
             const navNombre = document.getElementById("nav-usuario-nombre");
             if (navNombre) navNombre.innerText = nombre;
+            const accountName = document.getElementById("account-menu-name");
+            if (accountName) accountName.textContent = nombre;
         } else {
             alert("❌ " + (data.detail || "Error actualizando perfil."));
         }
