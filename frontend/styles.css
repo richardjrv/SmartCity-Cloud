@@ -61,6 +61,8 @@ body {
     transition: background-color var(--transition-speed), color var(--transition-speed);
 }
 
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
 .top-controls {
     display: flex;
     justify-content: space-between;
@@ -91,8 +93,14 @@ body {
 .color-dot.orange { background: #ea580c; }
 .theme-accent-picker { min-width: 0; }
 .theme-accent-picker .accent-selector { width: fit-content; gap: .7rem; padding: .55rem .8rem; }
-.theme-accent-picker .color-dot { width: 1.15rem; height: 1.15rem; }
-.theme-accent-picker .color-dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.theme-accent-picker .color-dot { display: grid; width: 2.75rem; height: 2.75rem; flex: 0 0 2.75rem; place-items: center; background: transparent; }
+.theme-accent-picker .color-dot::before { content: ""; width: 1.15rem; height: 1.15rem; border: 2px solid rgba(255,255,255,.35); border-radius: 50%; background: var(--swatch); }
+.theme-accent-picker .color-dot.blue { --swatch: #2563eb; }
+.theme-accent-picker .color-dot.green { --swatch: #059669; }
+.theme-accent-picker .color-dot.purple { --swatch: #7c3aed; }
+.theme-accent-picker .color-dot.orange { --swatch: #ea580c; }
+.theme-accent-picker .color-dot.active { outline: 2px solid var(--accent); outline-offset: 0; }
+.theme-accent-picker .color-dot:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
 html[data-accent]:not([data-accent="blue"]) [class*="bg-blue-600"] { background-color: var(--accent) !important; }
 html[data-accent]:not([data-accent="blue"]) [class*="hover:bg-blue-500"]:hover,
 html[data-accent]:not([data-accent="blue"]) [class*="hover:bg-blue-600"]:hover { background-color: var(--accent-hover) !important; }
@@ -353,7 +361,7 @@ body.login-only #vista-auth {
 }
 
 body.login-only {
-    background-image: linear-gradient(90deg, rgba(4, 12, 25, .88) 0%, rgba(4, 12, 25, .58) 48%, rgba(4, 12, 25, .78) 100%), url("assets/ciudad-login.png") !important;
+    background-image: linear-gradient(90deg, rgba(4, 12, 25, .88) 0%, rgba(4, 12, 25, .58) 48%, rgba(4, 12, 25, .78) 100%), url("assets/ciudad-login.webp") !important;
     background-position: center;
     background-size: cover;
     background-attachment: fixed;
@@ -387,7 +395,7 @@ html[data-theme="light"] .auth-mission h2,
 html[data-theme="light"] .mission-vision-grid h3 { color: #0f172a; }
 html[data-theme="light"] .auth-lead { color: #334155; }
 html[data-theme="light"] body.login-only {
-    background-image: linear-gradient(90deg, rgba(248, 250, 252, .88) 0%, rgba(248, 250, 252, .58) 48%, rgba(248, 250, 252, .84) 100%), url("assets/ciudad-login.png") !important;
+    background-image: linear-gradient(90deg, rgba(248, 250, 252, .88) 0%, rgba(248, 250, 252, .58) 48%, rgba(248, 250, 252, .84) 100%), url("assets/ciudad-login.webp") !important;
 }
 html[data-theme="light"] .mission-vision-grid article { background: rgba(255, 255, 255, .78); border-color: #cbd5e1; }
 html[data-theme="light"] .mission-vision-grid p { color: #475569; }
@@ -524,34 +532,6 @@ html[data-theme="light"] .sensor-map-empty { color: #334155; }
     .city-lamp-label { font-size: 0.58rem; }
 }
 
-/* El reporte existe en pantalla para lectores de pantalla y se muestra al imprimir. */
-.sensor-report-print { display: none; }
-
-@media print {
-    @page { size: A4 portrait; margin: 14mm; }
-    body.printing-sensor-report * { visibility: hidden !important; }
-    body.printing-sensor-report #sensor-report-print,
-    body.printing-sensor-report #sensor-report-print * { visibility: visible !important; }
-    body.printing-sensor-report #sensor-report-print.ready {
-        display: block !important;
-        position: absolute;
-        inset: 0 auto auto 0;
-        width: 100%;
-        padding: 0;
-        color: #111827 !important;
-        background: #fff !important;
-        font: 10pt/1.4 Arial, sans-serif;
-    }
-    #sensor-report-print h1 { margin: 0 0 12pt; font-size: 18pt; }
-    #sensor-report-print p { margin: 4pt 0; }
-    #sensor-report-limitation:not(:empty) { margin-top: 10pt; padding: 7pt; border: 1px solid #f59e0b; color: #92400e; background: #fffbeb !important; }
-    #sensor-report-print table { width: 100%; margin-top: 16pt; border-collapse: collapse; font-size: 8pt; }
-    #sensor-report-print th, #sensor-report-print td { padding: 5pt 4pt; border: 1px solid #cbd5e1; text-align: left; overflow-wrap: anywhere; }
-    #sensor-report-print th { color: #0f172a; background: #e2e8f0 !important; }
-    #sensor-report-print thead { display: table-header-group; }
-    #sensor-report-print tr { break-inside: avoid; }
-}
-
 /* Navegación lateral para las vistas autenticadas. */
 .app-layout { display: flex; flex: 1; min-height: calc(100vh - 4rem); }
 .app-sidebar {
@@ -585,6 +565,7 @@ html[data-theme="light"] .sensor-map-empty { color: #334155; }
 .main-content { width: 100%; max-width: none; margin: 0; }
 .main-content > #vista-dashboard { scroll-margin-top: 5rem; }
 #city-3d-panel, #sensor-map-section, #reportes-panel { scroll-margin-top: 5rem; }
+[data-dashboard-panel].hidden { display: none !important; }
 .sidebar-backdrop { display: none; }
 body.sidebar-collapsed .app-sidebar { flex-basis: 76px; width: 76px; padding-right: .55rem; padding-left: .55rem; }
 body.sidebar-collapsed .sidebar-topline { justify-content: center; padding-right: 0; padding-left: 0; }

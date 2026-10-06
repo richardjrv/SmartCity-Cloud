@@ -8,10 +8,16 @@ function toggleChatBrunito() {
     const windowChat = document.getElementById("brunito-chat-window");
     if (!windowChat) return;
 
-    windowChat.classList.toggle("hidden");
+    const opening = windowChat.classList.contains("hidden");
+    windowChat.classList.toggle("hidden", !opening);
+    const launcher = document.getElementById("btn-chat-launcher");
+    launcher?.setAttribute("aria-expanded", String(opening));
+    launcher?.setAttribute("aria-label", opening ? "Cerrar chat con Brunito" : "Abrir chat con Brunito");
 
-    if (!windowChat.classList.contains("hidden")) {
+    if (opening) {
         document.getElementById("chat-input")?.focus();
+    } else {
+        launcher?.focus({ preventScroll: true });
     }
 }
 

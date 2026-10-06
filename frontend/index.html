@@ -186,7 +186,7 @@
         <!-- ========================================== -->
         <section id="vista-dashboard" class="hidden space-y-6">
             <!-- Visor 3D Interactivo de la Ciudad -->
-<div id="city-3d-panel" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+<div id="city-3d-panel" data-dashboard-panel="dashboard capas tiempo" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
     <div class="flex items-center justify-between mb-4">
         <div>
             <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -200,7 +200,7 @@
         </div>
     </div>
 
-    <div id="map-layer-toolbar" class="map-layer-toolbar" role="group" aria-label="Capas del mapa">
+    <div id="map-layer-toolbar" data-dashboard-panel="capas" class="map-layer-toolbar" role="group" aria-label="Capas del mapa">
         <span class="map-toolbar-label">Visualizar</span>
         <button type="button" data-map-layer="estado" aria-pressed="true" onclick="seleccionarCapaMapa('estado')">Estado</button>
         <button type="button" data-map-layer="temperatura" aria-pressed="false" onclick="seleccionarCapaMapa('temperatura')">🌡️ Temperatura</button>
@@ -228,61 +228,61 @@
         <span class="city-scene-label" aria-hidden="true">MODELO 3D · LUMINARIAS INTELIGENTES</span>
         <p id="sensor-map-empty" class="sensor-map-empty">Cargando lecturas de sensores…</p>
     </div>
-    <div class="map-layer-legend" aria-label="Leyenda de colores de sensores">
+    <div class="map-layer-legend" data-dashboard-panel="capas tiempo" aria-label="Leyenda de colores de sensores">
         <span><i class="legend-dot level-good"></i>Dentro del rango orientativo</span>
         <span><i class="legend-dot level-warn"></i>Revisión recomendada</span>
         <span><i class="legend-dot level-high"></i>Fuera del rango orientativo</span>
     </div>
-    <section id="timeline-panel" class="timeline-panel" aria-labelledby="timeline-title">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h4 id="timeline-title" class="text-sm font-bold text-white">⏱️ Viaje en el tiempo</h4>
-                <p id="timeline-source-note" class="text-xs text-slate-400 mt-1">Reproducción demostrativa de las últimas 24 horas.</p>
-            </div>
-            <div class="flex items-center gap-2">
-                <output id="timeline-value" class="timeline-value" for="timeline-range">Ahora</output>
-                <button id="timeline-play" type="button" class="timeline-play-button" onclick="alternarReproduccionTemporal()" aria-label="Reproducir historial">▶ Reproducir</button>
-            </div>
-        </div>
-        <label class="sr-only" for="timeline-range">Elegir hora de la reproducción</label>
-        <input id="timeline-range" class="timeline-range" type="range" min="0" max="24" step="1" value="0">
-        <div class="timeline-labels"><span>Hace 24 h</span><span>Ahora</span></div>
-    </section>
 </div>
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-800/40 p-6 rounded-3xl border border-slate-700/50">
+            <section id="timeline-panel" data-dashboard-panel="tiempo" class="timeline-panel" aria-labelledby="timeline-title">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h4 id="timeline-title" class="text-sm font-bold text-white">⏱️ Viaje en el tiempo</h4>
+                        <p id="timeline-source-note" class="text-xs text-slate-400 mt-1">Reproducción demostrativa de las últimas 24 horas.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <output id="timeline-value" class="timeline-value" for="timeline-range">Ahora</output>
+                        <button id="timeline-play" type="button" class="timeline-play-button" onclick="alternarReproduccionTemporal()" aria-label="Reproducir historial">▶ Reproducir</button>
+                    </div>
+                </div>
+                <label class="sr-only" for="timeline-range">Elegir hora de la reproducción</label>
+                <input id="timeline-range" class="timeline-range" type="range" min="0" max="24" step="1" value="0">
+                <div class="timeline-labels"><span>Hace 24 h</span><span>Ahora</span></div>
+            </section>
+            <div data-dashboard-panel="dashboard" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-800/40 p-6 rounded-3xl border border-slate-700/50">
                 <div>
                     <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-                        🌆 Panel de Control Urbano
+                        🌆 Resumen de la ciudad
                     </h2>
-                    <p class="text-sm text-slate-400 mt-1">Estado en tiempo real de la red de sensores IoT y calidad ambiental</p>
+                    <p id="dashboard-source-summary" class="text-sm text-slate-400 mt-1">Métricas y estado de las lecturas disponibles.</p>
                 </div>
             </div>
 
             <!-- Métricas de Sensores IoT -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div data-dashboard-panel="dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Temperatura -->
                 <div class="bg-slate-800/60 border border-slate-700/60 p-6 rounded-3xl relative overflow-hidden">
                     <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Temperatura Promedio</div>
                     <div id="metric-temp" class="text-4xl font-extrabold text-amber-400 mt-2">-- °C</div>
-                    <div class="text-xs text-slate-500 mt-2">📡 Sensor Telemetría ESP32</div>
+                    <div id="metric-temp-source" class="text-xs text-slate-500 mt-2">Fuente pendiente</div>
                 </div>
 
                 <!-- Humedad -->
                 <div class="bg-slate-800/60 border border-slate-700/60 p-6 rounded-3xl relative overflow-hidden">
                     <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Humedad Relativa</div>
                     <div id="metric-hum" class="text-4xl font-extrabold text-blue-400 mt-2">-- %</div>
-                    <div class="text-xs text-slate-500 mt-2">💧 Monitoreo Ambiental</div>
+                    <div id="metric-hum-source" class="text-xs text-slate-500 mt-2">Fuente pendiente</div>
                 </div>
 
                 <!-- Calidad del Aire -->
                 <div class="bg-slate-800/60 border border-slate-700/60 p-6 rounded-3xl relative overflow-hidden">
                     <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Calidad del Aire</div>
                     <div id="metric-aire" class="text-4xl font-extrabold text-emerald-400 mt-2">-- ICA</div>
-                    <div class="text-xs text-slate-500 mt-2">🍃 Índice ICA Supabase</div>
+                    <div id="metric-aire-source" class="text-xs text-slate-500 mt-2">Fuente pendiente</div>
                 </div>
             </div>
 
-            <section id="urban-pulse-strip" class="urban-pulse-strip" aria-label="Resumen del pulso urbano">
+            <section id="urban-pulse-strip" data-dashboard-panel="dashboard tiempo" class="urban-pulse-strip" aria-label="Resumen del pulso urbano">
                 <div><span class="pulse-dot" aria-hidden="true"></span><span id="pulse-status-label">Preparando ciudad</span></div>
                 <div><strong id="pulse-sensor-count">0</strong><span> sensores en el mapa</span></div>
                 <div><strong id="pulse-alert-count">0</strong><span> lecturas para revisar</span></div>
@@ -290,10 +290,10 @@
             </section>
 
             <!-- Lecturas de los sensores representados en las luminarias del modelo 3D -->
-            <section id="sensor-map-section" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl">
+            <section id="sensor-map-section" data-dashboard-panel="dashboard capas tiempo" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl" aria-labelledby="sensor-map-title">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                     <div>
-                        <h2 class="text-xl font-bold text-white">💡 Sensores en luminarias</h2>
+                        <h2 id="sensor-map-title" class="text-xl font-bold text-white">💡 Sensores en luminarias</h2>
                         <p class="text-sm text-slate-400 mt-1">Selecciona una luminaria en el modelo 3D para ver su última lectura.</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
@@ -329,7 +329,7 @@
                 </div>
             </section>
 
-            <section id="alert-center-panel" class="dashboard-feature-panel" aria-labelledby="alert-center-title">
+            <section id="alert-center-panel" data-dashboard-panel="alertas" class="dashboard-feature-panel" aria-labelledby="alert-center-title">
                 <div class="feature-panel-heading">
                     <div><p class="feature-eyebrow">CENTRO DE OPERACIONES</p><h2 id="alert-center-title">⚑ Alertas y observaciones</h2></div>
                     <span id="alert-center-count" class="feature-count">0 por revisar</span>
@@ -338,7 +338,7 @@
                 <div id="alert-center-list" class="alert-center-list" aria-live="polite"></div>
             </section>
 
-            <section id="simulator-panel" class="dashboard-feature-panel simulator-panel" aria-labelledby="simulator-title">
+            <section id="simulator-panel" data-dashboard-panel="simulador" class="dashboard-feature-panel simulator-panel" aria-labelledby="simulator-title">
                 <div class="feature-panel-heading">
                     <div><p class="feature-eyebrow">ESCENARIO DEMOSTRATIVO</p><h2 id="simulator-title">◇ Simulador de ahorro de luminarias</h2></div>
                     <span class="simulation-tag">No usa datos reales de consumo</span>
@@ -356,10 +356,10 @@
                 <p class="simulator-assumptions">Supuesto editable en esta demo: 18 luminarias × 100 W cada una. Al conectar el hardware se podrán reemplazar estos valores por consumo medido.</p>
             </section>
 
-            <section id="reportes-panel" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl" aria-labelledby="reportes-title">
+            <section id="reportes-panel" data-dashboard-panel="reportes" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl" aria-labelledby="reportes-title">
                 <div class="mb-5">
                     <h2 id="reportes-title" class="text-xl font-bold text-white">📄 Reportes y exportación</h2>
-                    <p class="text-sm text-slate-400 mt-1">Descarga las lecturas de sensores en CSV o genera un reporte PDF para el periodo que elijas.</p>
+                    <p class="text-sm text-slate-400 mt-1">Descarga directamente un CSV o PDF del periodo que elijas.</p>
                 </div>
                 <div id="sensor-report-toolbar" class="flex flex-wrap items-center gap-2">
                     <button type="button" onclick="exportarSensoresCSV()" class="px-3.5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 border border-slate-600 text-sm font-medium text-slate-100 transition flex items-center gap-1.5">
@@ -381,15 +381,6 @@
                     <div><label for="sensor-report-end" class="block text-xs text-slate-400 mb-1">Hasta</label><input id="sensor-report-end" type="datetime-local" class="rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100"></div>
                 </div>
                 <p id="sensor-report-status" class="text-xs text-slate-400 mt-3" aria-live="polite"></p>
-                <section id="sensor-report-print" class="sensor-report-print" aria-label="Reporte de lecturas de sensores">
-                    <h1>SmartCity Cloud · Reporte de sensores</h1>
-                    <p id="sensor-report-range"></p>
-                    <p id="sensor-report-generated"></p>
-                    <p id="sensor-report-source"></p>
-                    <p id="sensor-report-summary"></p>
-                    <p id="sensor-report-limitation"></p>
-                    <table><thead><tr><th>Fecha y hora</th><th>Sensor</th><th>Temperatura (°C)</th><th>Humedad (%)</th><th>Calidad del aire (ICA)</th></tr></thead><tbody id="sensor-report-rows"></tbody></table>
-                </section>
             </section>
         </section>
 
@@ -597,7 +588,7 @@
     <!-- ============================================================ -->
     
     <!-- Ventana del Chat (Independiente y fija arriba del botón) -->
-    <div id="brunito-chat-window" class="hidden fixed bottom-24 right-6 z-50 w-80 sm:w-96 bg-slate-800/95 border border-slate-700 rounded-3xl shadow-2xl flex flex-col h-[420px] max-h-[70vh] overflow-hidden backdrop-blur-xl">
+    <div id="brunito-chat-window" class="hidden fixed bottom-24 right-6 z-50 w-80 sm:w-96 bg-slate-800/95 border border-slate-700 rounded-3xl shadow-2xl flex flex-col h-[420px] max-h-[70vh] overflow-hidden backdrop-blur-xl" role="dialog" aria-label="Chat con Brunito">
         <!-- Header Chat -->
         <div class="bg-slate-900/90 p-4 border-b border-slate-700/60 flex items-center justify-between shrink-0">
             <div class="flex items-center gap-3">
@@ -609,11 +600,11 @@
                     </p>
                 </div>
             </div>
-            <button onclick="toggleChatBrunito()" class="text-slate-400 hover:text-white text-lg font-bold p-1">✕</button>
+            <button type="button" onclick="toggleChatBrunito()" aria-label="Cerrar chat" class="text-slate-400 hover:text-white text-lg font-bold p-1">✕</button>
         </div>
 
         <!-- Cuerpo Mensajes -->
-        <div id="chat-mensajes" class="flex-1 p-4 overflow-y-auto space-y-3">
+        <div id="chat-mensajes" class="flex-1 p-4 overflow-y-auto space-y-3" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Conversación con Brunito">
             <div class="bg-slate-700/60 p-3 rounded-2xl border border-slate-600/50 max-w-[85%] text-slate-200 text-xs">
                 ¡Hola! 👋 Soy Brunito AI. ¿En qué te puedo ayudar sobre los sensores de SmartCity Cloud hoy?
             </div>
@@ -621,7 +612,7 @@
 
         <!-- Formulario Entrada -->
         <form onsubmit="enviarMensajeBrunito(event)" class="p-3 bg-slate-900/90 border-t border-slate-700/60 flex gap-2 shrink-0">
-            <input type="text" id="chat-input" placeholder="Escribe tu consulta..." class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="chat-input" aria-label="Escribe tu consulta a Brunito" placeholder="Escribe tu consulta..." autocomplete="off" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
             <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-xl font-semibold transition">
                 Enviar
             </button>
@@ -629,7 +620,7 @@
     </div>
 
     <!-- Botón Flotante (Fijo abajo a la derecha) -->
-    <button id="btn-chat-launcher" onclick="toggleChatBrunito()" class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition hover:scale-105 active:scale-95">
+    <button id="btn-chat-launcher" type="button" onclick="toggleChatBrunito()" aria-expanded="false" aria-controls="brunito-chat-window" aria-label="Abrir chat con Brunito" class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl shadow-2xl flex items-center justify-center text-2xl transition hover:scale-105 active:scale-95">
         🤖
     </button>
 
@@ -639,9 +630,9 @@
     <!-- ============================================================ -->
     
     <!-- Modal 1: Editar Perfil -->
-    <div id="modal-editar-perfil" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modal-editar-perfil" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-editar-perfil-title">
         <div class="bg-slate-800 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl">
-            <h3 class="text-lg font-bold text-white mb-4">✏️️ Editar Información de Perfil</h3>
+            <h3 id="modal-editar-perfil-title" class="text-lg font-bold text-white mb-4">✏️ Editar información del perfil</h3>
             <form onsubmit="guardarEdicionPerfil(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs text-slate-300 mb-1">Nombre Completo</label>
@@ -660,9 +651,9 @@
     </div>
 
     <!-- Modal 2: Cambiar Contraseña -->
-    <div id="modal-cambiar-password" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modal-cambiar-password" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-cambiar-password-title">
         <div class="bg-slate-800 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl">
-            <h3 class="text-lg font-bold text-white mb-4">🔒 Cambiar Contraseña</h3>
+            <h3 id="modal-cambiar-password-title" class="text-lg font-bold text-white mb-4">🔒 Cambiar contraseña</h3>
             <form onsubmit="guardarNuevaPassword(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs text-slate-300 mb-1">Contraseña Actual</label>

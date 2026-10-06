@@ -98,6 +98,7 @@ function abrirModalEditarPerfil() {
     if (inputUser) inputUser.value = username;
 
     document.getElementById("modal-editar-perfil")?.classList.remove("hidden");
+    inputNombre?.focus();
 }
 
 function abrirModalCambiarPassword() {
@@ -108,6 +109,7 @@ function abrirModalCambiarPassword() {
     if (inputNue) inputNue.value = "";
 
     document.getElementById("modal-cambiar-password")?.classList.remove("hidden");
+    inputAct?.focus();
 }
 
 function cerrarModal(idModal) {

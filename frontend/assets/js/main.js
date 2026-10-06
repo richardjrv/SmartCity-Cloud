@@ -43,6 +43,7 @@ const THEME_STORAGE_KEY = "smartcity_theme";
 const ACCENT_STORAGE_KEY = "accent_cloud";
 const ACCENT_OPTIONS = ["blue", "green", "purple", "orange"];
 const SIDEBAR_STORAGE_KEY = "smartcity_sidebar_collapsed";
+let dashboardSensorDataRequested = false;
 
 function initTextSizeControls() {
     let savedScale = 1;
@@ -153,14 +154,14 @@ function navegarA(vista) {
     } else if (["dashboard", "capas", "tiempo", "simulador", "alertas", "sensores", "reportes"].includes(vista)) {
         document.getElementById("app-sidebar")?.classList.remove("hidden");
         document.getElementById("vista-dashboard")?.classList.remove("hidden");
-        cargarMapaSensores();
-        const destinos = {
-            dashboard: "city-3d-panel", capas: "city-3d-panel", tiempo: "timeline-panel",
-            simulador: "simulator-panel", alertas: "alert-center-panel", sensores: "sensor-map-section", reportes: "reportes-panel"
-        };
-        if (vista === "capas") seleccionarCapaMapa(capaMapaActual || "estado");
-        const destino = destinos[vista] || "city-3d-panel";
-        requestAnimationFrame(() => document.getElementById(destino)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+        const vistaDashboard = vista === "sensores" ? "tiempo" : vista;
+        aplicarVistaDashboard(vistaDashboard);
+        if (!dashboardSensorDataRequested) {
+            dashboardSensorDataRequested = true;
+            cargarMapaSensores();
+        }
+        if (vistaDashboard === "capas") seleccionarCapaMapa(capaMapaActual || "estado");
+        requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
     } else if (vista === "perfil") {
         document.getElementById("vista-perfil")?.classList.remove("hidden");
         cargarPerfilUsuario();
@@ -177,6 +178,17 @@ function navegarA(vista) {
         document.getElementById("vista-admin-usuarios")?.classList.remove("hidden");
         cargarUsuariosAdmin();
     }
+}
+
+function aplicarVistaDashboard(vista) {
+    const dashboard = document.getElementById("vista-dashboard");
+    const vistasDisponibles = ["dashboard", "capas", "tiempo", "simulador", "alertas", "reportes"];
+    const vistaActiva = vistasDisponibles.includes(vista) ? vista : "dashboard";
+    dashboard?.setAttribute("data-current-view", vistaActiva);
+    document.querySelectorAll("[data-dashboard-panel]").forEach(panel => {
+        const vistas = panel.dataset.dashboardPanel.split(/\s+/);
+        panel.classList.toggle("hidden", !vistas.includes(vistaActiva));
+    });
 }
 
 function mostrarDashboard(nombre, idRol) {
@@ -294,13 +306,13 @@ function actualizarSimuladorUrbano() {
 }
 
 const PASOS_RECORRIDO = [
-    { destino: "city-3d-panel", titulo: "Pulso de la ciudad", texto: "El modelo 3D es la vista central. Si el ESP32 aún no está conectado, la pantalla lo indicará y usará lecturas simuladas." },
-    { destino: "map-layer-toolbar", titulo: "Explora las capas", texto: "Cambia entre temperatura, humedad, calidad del aire y estado general. Los colores orientan la lectura del mapa." },
-    { destino: "timeline-panel", titulo: "Viaja por el historial", texto: "Mueve el control de tiempo o reproduce el recorrido. La demo genera muestras simuladas y el historial conectado usa lecturas guardadas." },
-    { destino: "urban-pulse-strip", titulo: "Revisa el pulso urbano", texto: "Aquí ves cuántos sensores aparecen, cuántas lecturas requieren revisión y de dónde vienen los datos." },
-    { destino: "simulator-panel", titulo: "Prueba un escenario", texto: "El simulador estima ahorro con supuestos editables. No mide consumo real ni controla luminarias físicas." },
-    { destino: "alert-center-panel", titulo: "Revisa observaciones", texto: "Los rangos son orientativos para la demostración y ayudan a ubicar lecturas que merecen revisión." },
-    { destino: "reportes-panel", titulo: "Descarga tus reportes", texto: "Exporta un CSV o genera un PDF para el periodo seleccionado. Los datos demo quedan etiquetados como simulados." }
+    { vista: "dashboard", destino: "city-3d-panel", titulo: "Pulso de la ciudad", texto: "El modelo 3D es la vista central. Si el ESP32 aún no está conectado, la pantalla lo indicará y usará lecturas simuladas." },
+    { vista: "capas", destino: "map-layer-toolbar", titulo: "Explora las capas", texto: "Cambia entre temperatura, humedad, calidad del aire y estado general. Los colores orientan la lectura del mapa." },
+    { vista: "tiempo", destino: "timeline-panel", titulo: "Viaja en el tiempo", texto: "Mueve el control o reproduce las últimas 24 horas. La demo usa muestras simuladas y el modo conectado usa el historial guardado." },
+    { vista: "dashboard", destino: "urban-pulse-strip", titulo: "Revisa el pulso urbano", texto: "Aquí ves cuántos sensores aparecen, cuántas lecturas requieren revisión y de dónde vienen los datos." },
+    { vista: "simulador", destino: "simulator-panel", titulo: "Prueba un escenario", texto: "El simulador estima ahorro con supuestos editables. No mide consumo real ni controla luminarias físicas." },
+    { vista: "alertas", destino: "alert-center-panel", titulo: "Revisa observaciones", texto: "Los rangos son orientativos para la demostración y ayudan a ubicar lecturas que merecen revisión." },
+    { vista: "reportes", destino: "reportes-panel", titulo: "Descarga tus reportes", texto: "Descarga directamente un CSV o un PDF del periodo elegido. Los datos demo quedan etiquetados como simulados." }
 ];
 let pasoRecorridoActual = 0;
 
@@ -318,6 +330,7 @@ function iniciarRecorridoGuiado() {
 
 function mostrarPasoRecorrido() {
     const paso = PASOS_RECORRIDO[pasoRecorridoActual];
+    aplicarVistaDashboard(paso.vista);
     document.querySelectorAll(".tour-highlight").forEach(element => element.classList.remove("tour-highlight"));
     const target = document.getElementById(paso.destino);
     target?.classList.add("tour-highlight");
@@ -366,7 +379,6 @@ document.addEventListener("DOMContentLoaded", () => {
         customRange?.classList.toggle("hidden", reportPeriod.value !== "custom");
         if (reportPeriod.value === "custom") inicializarPeriodoPersonalizado();
     });
-    window.addEventListener("afterprint", limpiarVistaReporte);
     comprobarSesion();
 });
 
@@ -376,6 +388,7 @@ const SETTINGS_KEYS = {
     reducedMotion: "smartcity_reduce_motion"
 };
 let dashboardRefreshTimer = null;
+let jsPDFLoadPromise = null;
 
 function initAccountMenu() {
     document.addEventListener("click", event => {
@@ -387,6 +400,8 @@ function initAccountMenu() {
             cerrarAccountMenu();
             cerrarModal("site-info-modal");
             cerrarModal("contact-modal");
+            cerrarModal("modal-editar-perfil");
+            cerrarModal("modal-cambiar-password");
         }
     });
 }
@@ -606,15 +621,120 @@ function inicializarPeriodoPersonalizado() {
     if (campoFin && !campoFin.value) campoFin.value = fechaParaInputLocal(ahora);
 }
 
-function limpiarVistaReporte() {
-    document.body.classList.remove("printing-sensor-report");
-    document.getElementById("sensor-report-print")?.classList.remove("ready");
+function cargarJsPDF() {
+    if (window.jspdf?.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+    if (jsPDFLoadPromise) return jsPDFLoadPromise;
+
+    jsPDFLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "assets/vendor/jspdf.umd.min.js";
+        script.async = true;
+        script.onload = () => window.jspdf?.jsPDF
+            ? resolve(window.jspdf.jsPDF)
+            : reject(new Error("La biblioteca PDF no se pudo inicializar."));
+        script.onerror = () => reject(new Error("No se pudo cargar la biblioteca para generar el PDF."));
+        document.head.appendChild(script);
+    });
+    return jsPDFLoadPromise;
 }
 
-function agregarCelda(fila, valor) {
-    const celda = document.createElement("td");
-    celda.textContent = String(valor ?? "—");
-    fila.appendChild(celda);
+function generarPdfLecturas(jsPDF, { data, desde, hasta, generado, demo, limitation }) {
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 12;
+    const widths = [68, 52, 47, 47, 50];
+    const headings = ["Fecha y hora", "Sensor", "Temperatura °C", "Humedad %", "Calidad del aire"];
+    const number = new Intl.NumberFormat("es-EC", { maximumFractionDigits: 2 });
+    const average = field => data.reduce((sum, reading) => sum + Number(reading[field] || 0), 0) / data.length;
+    const dateFormat = date => date.toLocaleString("es-EC", { dateStyle: "medium", timeStyle: "short" });
+    let y = 0;
+
+    const drawHeader = page => {
+        pdf.setFillColor(15, 23, 42);
+        pdf.rect(0, 0, pageWidth, 37, "F");
+        pdf.setTextColor(248, 250, 252);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(18);
+        pdf.text("SmartCity Cloud · Reporte de sensores", margin, 15);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9);
+        pdf.setTextColor(203, 213, 225);
+        pdf.text(`Periodo: ${dateFormat(desde)} — ${dateFormat(hasta)}`, margin, 23);
+        pdf.text(`Generado: ${dateFormat(generado)} · ${data.length} lecturas`, margin, 29);
+        if (demo) {
+            pdf.setTextColor(253, 230, 138);
+            pdf.setFont("helvetica", "bold");
+            pdf.text("DATOS SIMULADOS PARA DEMOSTRACIÓN · No son mediciones reales de un ESP32", margin, 35);
+        }
+
+        y = demo ? 48 : 43;
+        pdf.setTextColor(71, 85, 105);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9);
+        pdf.text(`Promedios: ${number.format(average("temperatura"))} °C · ${number.format(average("humedad"))} % humedad · ${number.format(average("calidad_aire"))} ICA`, margin, y);
+        y += 9;
+        pdf.setFillColor(37, 99, 235);
+        pdf.roundedRect(margin, y, pageWidth - margin * 2, 9, 1.5, 1.5, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8);
+        let x = margin + 3;
+        headings.forEach((heading, index) => {
+            pdf.text(heading, x, y + 5.8);
+            x += widths[index];
+        });
+        y += 9;
+        if (limitation) {
+            pdf.setTextColor(146, 64, 14);
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(7.5);
+            const lines = pdf.splitTextToSize(limitation, pageWidth - margin * 2);
+            pdf.text(lines, margin, y + 3);
+            y += lines.length * 3.5 + 4;
+        }
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+    };
+
+    drawHeader();
+    data.forEach((reading, index) => {
+        const values = [
+            dateFormat(new Date(reading.fecha_hora)),
+            String(reading.sensor_id ?? "—"),
+            number.format(Number(reading.temperatura)),
+            number.format(Number(reading.humedad)),
+            number.format(Number(reading.calidad_aire))
+        ];
+        if (y + 8 > pageHeight - 13) {
+            pdf.addPage();
+            drawHeader();
+        }
+        if (index % 2 === 0) {
+            pdf.setFillColor(241, 245, 249);
+            pdf.rect(margin, y, pageWidth - margin * 2, 8, "F");
+        }
+        pdf.setTextColor(30, 41, 59);
+        let x = margin + 3;
+        values.forEach((value, column) => {
+            pdf.text(pdf.splitTextToSize(value, widths[column] - 6)[0], x, y + 5.2);
+            x += widths[column];
+        });
+        y += 8;
+    });
+
+    const pages = pdf.internal.getNumberOfPages();
+    for (let page = 1; page <= pages; page += 1) {
+        pdf.setPage(page);
+        pdf.setDrawColor(226, 232, 240);
+        pdf.line(margin, pageHeight - 9, pageWidth - margin, pageHeight - 9);
+        pdf.setTextColor(100, 116, 139);
+        pdf.setFontSize(8);
+        pdf.text(`SmartCity Cloud · Página ${page} de ${pages}`, pageWidth - margin, pageHeight - 4, { align: "right" });
+    }
+
+    const suffix = generado.toISOString().slice(0, 10);
+    pdf.save(`SmartCity_${demo ? "DEMO_SIMULADA_" : ""}Reporte_${suffix}.pdf`);
 }
 
 async function exportarSensoresPDF() {
@@ -643,17 +763,17 @@ async function exportarSensoresPDF() {
     if (boton) boton.disabled = true;
     if (estado) estado.textContent = "Consultando las lecturas del periodo…";
     try {
-        const demo = typeof obtenerModoDemoSensores === "function" && obtenerModoDemoSensores();
+        const demoActivo = typeof obtenerModoDemoSensores === "function" && obtenerModoDemoSensores();
         const query = new URLSearchParams({ desde: desde.toISOString(), hasta: hasta.toISOString() });
         let respuestaHistorial = {};
         try {
             respuestaHistorial = await apiFetch(`/sensores/historial?${query.toString()}`);
         } catch (error) {
-            if (!demo) throw error;
+            if (!demoActivo) throw error;
         }
         let { ok, data, status } = respuestaHistorial;
         let limitation = "";
-        if (!demo && !ok && status === 404) {
+        if (!demoActivo && !ok && status === 404) {
             // Compatibilidad temporal con el backend publicado antes de añadir /historial.
             const respaldo = await apiFetch("/sensores/ultimas");
             if (respaldo.ok && Array.isArray(respaldo.data)) {
@@ -665,9 +785,11 @@ async function exportarSensoresPDF() {
                 limitation = "Aviso: el servidor aún no tiene activa la consulta histórica. Este PDF usa únicamente las últimas 10 lecturas disponibles; actualiza el backend para incluir todo el intervalo.";
             }
         }
-        if (demo && (!ok || !Array.isArray(data) || data.length === 0)) {
+        let demo = false;
+        if (demoActivo && (!ok || !Array.isArray(data) || data.length === 0)) {
             data = obtenerHistorialDemostrativo(desde, hasta);
             ok = true;
+            demo = true;
             limitation = "DATOS SIMULADOS PARA DEMOSTRACIÓN. No provienen de sensores ESP32 ni representan mediciones reales.";
         }
         if (!ok) {
@@ -682,35 +804,15 @@ async function exportarSensoresPDF() {
             return;
         }
 
-        const filas = document.getElementById("sensor-report-rows");
-        filas.replaceChildren();
-        const numero = new Intl.NumberFormat("es-EC", { maximumFractionDigits: 2 });
         data.sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
-        data.forEach(lectura => {
-            const fila = document.createElement("tr");
-            agregarCelda(fila, new Date(lectura.fecha_hora).toLocaleString("es-EC"));
-            agregarCelda(fila, lectura.sensor_id);
-            agregarCelda(fila, numero.format(lectura.temperatura));
-            agregarCelda(fila, numero.format(lectura.humedad));
-            agregarCelda(fila, numero.format(lectura.calidad_aire));
-            filas.appendChild(fila);
-        });
-
-        const promedio = campo => data.reduce((suma, lectura) => suma + Number(lectura[campo] || 0), 0) / data.length;
-        document.getElementById("sensor-report-range").textContent = `Periodo: ${desde.toLocaleString("es-EC")} — ${hasta.toLocaleString("es-EC")}`;
-        document.getElementById("sensor-report-generated").textContent = `Generado: ${ahora.toLocaleString("es-EC")}`;
-        document.getElementById("sensor-report-summary").textContent = `${data.length} lecturas · Promedios: ${numero.format(promedio("temperatura"))} °C, ${numero.format(promedio("humedad"))} % humedad, ${numero.format(promedio("calidad_aire"))} ICA.`;
-        document.getElementById("sensor-report-limitation").textContent = limitation;
-        document.getElementById("sensor-report-source").textContent = demo ? "Fuente: escenario demostrativo (datos simulados; ESP32 aún no conectado)." : "Fuente: lecturas recibidas desde la API.";
-
-        document.getElementById("sensor-report-print")?.classList.add("ready");
-        document.body.classList.add("printing-sensor-report");
+        const jsPDF = await cargarJsPDF();
+        generarPdfLecturas(jsPDF, { data, desde, hasta, generado: ahora, demo, limitation });
         if (estado) estado.textContent = demo
-            ? "Reporte demo listo. Los datos simulados están identificados en el PDF; selecciona «Guardar como PDF» en el diálogo."
+            ? "PDF demostrativo descargado. El archivo identifica claramente las lecturas simuladas."
             : limitation
-            ? "Reporte listo con las últimas 10 lecturas disponibles. Actualiza el backend para obtener el historial completo."
-            : "Reporte listo. En el diálogo de impresión elige «Guardar como PDF».";
-        setTimeout(() => window.print(), 150);
+            ? "PDF descargado con las últimas 10 lecturas disponibles; el servidor aún no ofrece el historial completo."
+            : "PDF descargado correctamente.";
+        mostrarNotificacion(demo ? "PDF demostrativo descargado; sus datos están marcados como simulados." : "Reporte PDF descargado correctamente.", "exito");
     } catch (error) {
         console.error("Error al preparar el reporte PDF:", error);
         if (estado) estado.textContent = "No se pudo conectar con el servicio de lecturas.";

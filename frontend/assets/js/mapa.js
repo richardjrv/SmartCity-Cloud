@@ -340,6 +340,15 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
     if (label) label.textContent = modoDemoSensores ? "Escenario urbano simulado" : "Datos recibidos por la API";
     const summary = document.getElementById("city-pulse-summary");
     const strip = document.getElementById("urban-pulse-strip");
+    const dashboardSource = document.getElementById("dashboard-source-summary");
+    const fuenteMetrica = modoDemoSensores ? "Dato simulado · demo, ESP32 no conectado" : "Lectura recibida desde la API";
+    if (dashboardSource) dashboardSource.textContent = modoDemoSensores
+        ? "Escenario de demostración; no son mediciones físicas de sensores."
+        : "Lecturas recibidas desde el servicio de sensores.";
+    ["metric-temp-source", "metric-hum-source", "metric-aire-source"].forEach(id => {
+        const source = document.getElementById(id);
+        if (source) source.textContent = fuenteMetrica;
+    });
     if (summary) summary.textContent = `${sensoresEnMapa.length} puntos en el mapa · ${modoDemoSensores ? "modelo de demostración, sin ESP32 conectado" : "lecturas recibidas desde el servicio de sensores"}.`;
     if (strip) strip.dataset.source = modoDemoSensores ? "demo" : "api";
     if (count) count.textContent = String(sensoresEnMapa.length);
@@ -374,7 +383,7 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
         button.className = "alert-view-button";
         button.textContent = "Ver en mapa";
         button.addEventListener("click", () => {
-            document.getElementById("sensor-map-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            if (typeof navegarA === "function") navegarA("tiempo");
             mostrarDetalleSensor(sensor);
         });
         item.append(texto, button);
