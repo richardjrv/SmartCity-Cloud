@@ -173,36 +173,8 @@
         <!-- VISTA B: DASHBOARD (PANEL PRINCIPAL)       -->
         <!-- ========================================== -->
         <section id="vista-dashboard" class="hidden space-y-6">
-<div id="sensor-report-toolbar" class="flex flex-wrap items-center gap-2">
-    <button onclick="exportarSensoresCSV()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition flex items-center gap-1.5">
-        📊 Exportar CSV
-    </button>
-    <label for="sensor-report-period" class="sr-only">Periodo del reporte</label>
-    <select id="sensor-report-period" class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-200">
-        <option value="1">Última hora</option>
-        <option value="10">Últimas 10 horas</option>
-        <option value="24" selected>Últimas 24 horas</option>
-        <option value="custom">Periodo personalizado</option>
-    </select>
-    <button id="sensor-report-pdf" type="button" onclick="exportarSensoresPDF()" class="px-3.5 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-xs font-medium text-blue-400 transition flex items-center gap-1.5">
-        📄 Descargar reporte PDF
-    </button>
-</div>
-<div id="sensor-report-custom-range" class="hidden flex flex-wrap items-end gap-3" aria-label="Periodo personalizado">
-    <div><label for="sensor-report-start" class="block text-xs text-slate-400 mb-1">Desde</label><input id="sensor-report-start" type="datetime-local" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-100"></div>
-    <div><label for="sensor-report-end" class="block text-xs text-slate-400 mb-1">Hasta</label><input id="sensor-report-end" type="datetime-local" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-100"></div>
-</div>
-<p id="sensor-report-status" class="text-xs text-slate-400" aria-live="polite"></p>
-<section id="sensor-report-print" class="sensor-report-print" aria-label="Reporte de lecturas de sensores">
-    <h1>SmartCity Cloud · Reporte de sensores</h1>
-    <p id="sensor-report-range"></p>
-    <p id="sensor-report-generated"></p>
-    <p id="sensor-report-summary"></p>
-    <p id="sensor-report-limitation"></p>
-    <table><thead><tr><th>Fecha y hora</th><th>Sensor</th><th>Temperatura (°C)</th><th>Humedad (%)</th><th>Calidad del aire (ICA)</th></tr></thead><tbody id="sensor-report-rows"></tbody></table>
-</section>
             <!-- Visor 3D Interactivo de la Ciudad -->
-<div class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+<div id="city-3d-panel" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
     <div class="flex items-center justify-between mb-4">
         <div>
             <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -307,6 +279,41 @@
                     <p>Escena 3D recreada · Las posiciones de las luminarias son simuladas.</p>
                     <p id="sensor-map-updated" aria-live="polite">Aún no actualizado</p>
                 </div>
+            </section>
+
+            <section id="reportes-panel" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl" aria-labelledby="reportes-title">
+                <div class="mb-5">
+                    <h2 id="reportes-title" class="text-xl font-bold text-white">📄 Reportes y exportación</h2>
+                    <p class="text-sm text-slate-400 mt-1">Descarga las lecturas de sensores en CSV o genera un reporte PDF para el periodo que elijas.</p>
+                </div>
+                <div id="sensor-report-toolbar" class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="exportarSensoresCSV()" class="px-3.5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 border border-slate-600 text-sm font-medium text-slate-100 transition flex items-center gap-1.5">
+                        📊 Exportar CSV
+                    </button>
+                    <label for="sensor-report-period" class="sr-only">Periodo del reporte</label>
+                    <select id="sensor-report-period" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200">
+                        <option value="1">Última hora</option>
+                        <option value="10">Últimas 10 horas</option>
+                        <option value="24" selected>Últimas 24 horas</option>
+                        <option value="custom">Periodo personalizado</option>
+                    </select>
+                    <button id="sensor-report-pdf" type="button" onclick="exportarSensoresPDF()" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 border border-blue-500 text-sm font-semibold text-white transition flex items-center gap-1.5">
+                        📄 Descargar reporte PDF
+                    </button>
+                </div>
+                <div id="sensor-report-custom-range" class="hidden flex flex-wrap items-end gap-3 mt-4" aria-label="Periodo personalizado">
+                    <div><label for="sensor-report-start" class="block text-xs text-slate-400 mb-1">Desde</label><input id="sensor-report-start" type="datetime-local" class="rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100"></div>
+                    <div><label for="sensor-report-end" class="block text-xs text-slate-400 mb-1">Hasta</label><input id="sensor-report-end" type="datetime-local" class="rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100"></div>
+                </div>
+                <p id="sensor-report-status" class="text-xs text-slate-400 mt-3" aria-live="polite"></p>
+                <section id="sensor-report-print" class="sensor-report-print" aria-label="Reporte de lecturas de sensores">
+                    <h1>SmartCity Cloud · Reporte de sensores</h1>
+                    <p id="sensor-report-range"></p>
+                    <p id="sensor-report-generated"></p>
+                    <p id="sensor-report-summary"></p>
+                    <p id="sensor-report-limitation"></p>
+                    <table><thead><tr><th>Fecha y hora</th><th>Sensor</th><th>Temperatura (°C)</th><th>Humedad (%)</th><th>Calidad del aire (ICA)</th></tr></thead><tbody id="sensor-report-rows"></tbody></table>
+                </section>
             </section>
         </section>
 

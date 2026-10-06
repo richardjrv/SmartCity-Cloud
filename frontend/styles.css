@@ -575,7 +575,7 @@ html[data-theme="light"] .sensor-map-empty { color: #334155; }
 .sidebar-alert-badge { margin-left: auto; min-width: 1.3rem; padding: .12rem .35rem; border-radius: 999px; color: #fff; background: #e11d48; text-align: center; font-size: .68rem; font-weight: 800; }
 .main-content { width: 100%; max-width: none; margin: 0; }
 .main-content > #vista-dashboard { scroll-margin-top: 5rem; }
-#sensor-map-section, #sensor-report-toolbar { scroll-margin-top: 5rem; }
+#city-3d-panel, #sensor-map-section, #reportes-panel { scroll-margin-top: 5rem; }
 .sidebar-backdrop { display: none; }
 body.sidebar-collapsed .app-sidebar { flex-basis: 76px; width: 76px; padding-right: .55rem; padding-left: .55rem; }
 body.sidebar-collapsed .sidebar-topline { justify-content: center; padding-right: 0; padding-left: 0; }

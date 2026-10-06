@@ -126,7 +126,7 @@ function navegarA(vista) {
         document.getElementById("vista-dashboard")?.classList.remove("hidden");
         cargarUltimasLecturas();
         cargarMapaSensores();
-        const destino = vista === "reportes" ? "sensor-report-toolbar" : "sensor-map-section";
+        const destino = vista === "reportes" ? "reportes-panel" : vista === "sensores" ? "sensor-map-section" : "city-3d-panel";
         requestAnimationFrame(() => document.getElementById(destino)?.scrollIntoView({ behavior: "smooth", block: "start" }));
     } else if (vista === "perfil") {
         document.getElementById("vista-perfil")?.classList.remove("hidden");
