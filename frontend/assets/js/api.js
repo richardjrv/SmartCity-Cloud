@@ -50,7 +50,10 @@ async function apiFetch(endpoint, options = {}) {
         const response = await fetch(`${API_URL}${endpoint}`, config);
 
         // Si la sesión expiró o el token es inválido
-        if (response.status === 401 && endpoint !== "/login") {
+        const esFlujoAutenticacion = endpoint === "/login"
+            || endpoint.startsWith("/login/")
+            || endpoint === "/registro";
+        if (response.status === 401 && !esFlujoAutenticacion) {
             console.warn("🔒 Sesión expirada. Redirigiendo a inicio...");
             cerrarSesion();
             throw new Error("Sesión expirada");

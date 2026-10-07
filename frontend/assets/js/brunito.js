@@ -159,6 +159,15 @@ async function enviarMensajeBrunito(e) {
         if (ok && data.respuesta) {
             agregarMensajeBrunito("model", data.respuesta);
 
+            if (data.accion_pendiente) {
+                const esAdmin = Number(localStorage.getItem("user_role_cloud")) === 1;
+                if (esAdmin) {
+                    agregarConfirmacionActuadorBrunito(data.accion_pendiente);
+                } else {
+                    agregarMensajeBrunito("model", "La sesión actual no tiene permisos de administrador para confirmar esta orden.");
+                }
+            }
+
             // Guardar historial para mantener el hilo de la conversación
             brunitoHistory.push({ role: "user", content: texto });
             brunitoHistory.push({ role: "assistant", content: data.respuesta });
@@ -186,5 +195,95 @@ function agregarMensajeBrunito(role, content) {
 
     msgDiv.innerText = content;
     container.appendChild(msgDiv);
+    container.scrollTop = container.scrollHeight;
+}
+
+function agregarConfirmacionActuadorBrunito(accion) {
+    const container = document.getElementById("chat-mensajes");
+    if (!container || !accion?.confirmation_token) return;
+
+    const accionSolicitada = accion.accion || (accion.estado_deseado ? "encender" : "apagar");
+    const verbo = {
+        encender: "Encender",
+        apagar: "Apagar",
+        automatico: "Poner en modo automático"
+    }[accionSolicitada] || "Cambiar";
+    const tarjeta = document.createElement("section");
+    tarjeta.className = "brunito-action-card";
+    tarjeta.setAttribute("aria-label", "Confirmar orden de actuador");
+
+    const titulo = document.createElement("h3");
+    titulo.className = "brunito-action-title";
+    titulo.textContent = `¿${verbo} ${accion.nombre || "esta luminaria"}?`;
+
+    const detalle = document.createElement("p");
+    detalle.className = "brunito-action-detail";
+    detalle.textContent = `${accion.sensor_id || "Actuador"} · La orden quedará pendiente hasta conectar el ESP32.`;
+
+    const aviso = document.createElement("p");
+    aviso.className = "brunito-action-notice";
+    aviso.textContent = "Confirmar guardará la orden y la registrará en auditoría. No cambia físicamente la luminaria todavía.";
+
+    const estado = document.createElement("p");
+    estado.className = "brunito-action-status";
+    estado.setAttribute("role", "status");
+    estado.setAttribute("aria-live", "polite");
+    let segundosRestantes = Math.max(1, Math.floor(Number(accion.expira_en_segundos) || 180));
+    estado.textContent = `La propuesta vence en ${segundosRestantes} segundos.`;
+
+    const controles = document.createElement("div");
+    controles.className = "brunito-action-controls";
+
+    const confirmar = document.createElement("button");
+    confirmar.type = "button";
+    confirmar.className = "brunito-action-confirm";
+    confirmar.textContent = `Confirmar ${verbo.toLowerCase()}`;
+
+    const descartar = document.createElement("button");
+    descartar.type = "button";
+    descartar.className = "brunito-action-dismiss";
+    descartar.textContent = "Descartar";
+
+    const temporizador = window.setInterval(() => {
+        segundosRestantes -= 1;
+        if (segundosRestantes <= 0) {
+            window.clearInterval(temporizador);
+            confirmar.disabled = true;
+            estado.textContent = "La propuesta venció. Vuelve a pedirle a Brunito que prepare la orden.";
+            return;
+        }
+        estado.textContent = `La propuesta vence en ${segundosRestantes} segundos.`;
+    }, 1000);
+
+    confirmar.addEventListener("click", async () => {
+        if (segundosRestantes <= 0) return;
+        confirmar.disabled = true;
+        descartar.disabled = true;
+        estado.textContent = "Guardando orden…";
+        try {
+            const { ok, data } = await apiFetch("/api/actuadores/confirmar", {
+                method: "POST",
+                body: JSON.stringify({ confirmation_token: accion.confirmation_token })
+            });
+            if (!ok) throw new Error(data.detail || "No se pudo guardar la orden.");
+            estado.textContent = data.mensaje || "Orden registrada como pendiente del ESP32.";
+            window.clearInterval(temporizador);
+            confirmar.remove();
+            descartar.textContent = "Cerrar";
+            descartar.disabled = false;
+        } catch (error) {
+            estado.textContent = error.message || "No se pudo confirmar la orden.";
+            confirmar.disabled = segundosRestantes <= 0;
+            descartar.disabled = false;
+        }
+    });
+
+    descartar.addEventListener("click", () => {
+        window.clearInterval(temporizador);
+        tarjeta.remove();
+    });
+    controles.append(confirmar, descartar);
+    tarjeta.append(titulo, detalle, aviso, estado, controles);
+    container.appendChild(tarjeta);
     container.scrollTop = container.scrollHeight;
 }

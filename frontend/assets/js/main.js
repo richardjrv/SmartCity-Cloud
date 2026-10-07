@@ -7,18 +7,25 @@ function mostrarNotificacion(mensaje, tipo = "info") {
 
     const toast = document.createElement("div");
     toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-xs font-semibold text-white backdrop-blur-xl border transition-all duration-300 transform translate-x-10 opacity-0`;
+    toast.setAttribute("role", tipo === "error" ? "alert" : "status");
+    toast.setAttribute("aria-live", tipo === "error" ? "assertive" : "polite");
+    const icon = document.createElement("span");
+    const text = document.createElement("span");
+    text.textContent = String(mensaje ?? "");
 
     // Estilos según el tipo
     if (tipo === "exito") {
         toast.classList.add("bg-emerald-900/90", "border-emerald-500/50");
-        toast.innerHTML = `<span>✅</span> <span>${mensaje}</span>`;
+        icon.textContent = "✅";
     } else if (tipo === "error") {
         toast.classList.add("bg-rose-900/90", "border-rose-500/50");
-        toast.innerHTML = `<span>⚠️</span> <span>${mensaje}</span>`;
+        icon.textContent = "⚠️";
     } else {
         toast.classList.add("bg-blue-900/90", "border-blue-500/50");
-        toast.innerHTML = `<span>ℹ️️</span> <span>${mensaje}</span>`;
+        icon.textContent = "ℹ️";
     }
+    icon.setAttribute("aria-hidden", "true");
+    toast.append(icon, text);
 
     container.appendChild(toast);
 
@@ -163,7 +170,8 @@ function navegarA(vista) {
             cargarMapaSensores();
         }
         if (vistaDashboard === "capas") seleccionarCapaMapa(capaMapaActual || "estado");
-        requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+        const behavior = document.body.classList.contains("reduce-motion") ? "auto" : "smooth";
+        requestAnimationFrame(() => window.scrollTo({ top: 0, behavior }));
     } else if (vista === "perfil") {
         document.getElementById("vista-perfil")?.classList.remove("hidden");
         cargarPerfilUsuario();
@@ -338,7 +346,10 @@ function mostrarPasoRecorrido() {
     document.querySelectorAll(".tour-highlight").forEach(element => element.classList.remove("tour-highlight"));
     const target = document.getElementById(paso.destino);
     target?.classList.add("tour-highlight");
-    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+    target?.scrollIntoView({
+        behavior: document.body.classList.contains("reduce-motion") ? "auto" : "smooth",
+        block: "center"
+    });
     const title = document.getElementById("tour-step-title");
     const description = document.getElementById("tour-step-description");
     const counter = document.getElementById("tour-step-counter");
@@ -953,6 +964,7 @@ async function exportarSensoresPDF() {
     const selector = document.getElementById("sensor-report-period");
     const estado = document.getElementById("sensor-report-status");
     const boton = document.getElementById("sensor-report-pdf");
+    const botonHtmlOriginal = boton?.innerHTML;
     const desdeInput = document.getElementById("sensor-report-start");
     const hastaInput = document.getElementById("sensor-report-end");
     const ahora = new Date();
@@ -972,7 +984,11 @@ async function exportarSensoresPDF() {
         desde = new Date(ahora.getTime() - horas * 60 * 60 * 1000);
     }
 
-    if (boton) boton.disabled = true;
+    if (boton) {
+        boton.disabled = true;
+        boton.setAttribute("aria-busy", "true");
+        boton.textContent = "Preparando PDF…";
+    }
     if (estado) estado.textContent = "Consultando las lecturas del periodo…";
     try {
         const demoActivo = typeof obtenerModoDemoSensores === "function" && obtenerModoDemoSensores();
@@ -1030,6 +1046,10 @@ async function exportarSensoresPDF() {
         if (estado) estado.textContent = "No se pudo conectar con el servicio de lecturas.";
         mostrarNotificacion("No se pudo cargar el historial para el PDF.", "error");
     } finally {
-        if (boton) boton.disabled = false;
+        if (boton) {
+            boton.disabled = false;
+            boton.removeAttribute("aria-busy");
+            boton.innerHTML = botonHtmlOriginal;
+        }
     }
 }
