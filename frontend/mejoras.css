@@ -493,31 +493,32 @@ html[data-theme="light"] .timeline-panel h4 {
     width: 100%;
     min-width: 0;
     min-height: 3.4rem;
-    border: 1px solid rgb(100 116 139 / 55%);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border-color));
     border-radius: .85rem;
-    color: #f8fafc;
-    background: rgb(15 23 42 / 88%);
+    color: var(--text-primary);
+    background: var(--bg-input);
     font-size: 1.35rem !important;
     font-weight: 750;
     text-align: center;
-    transition: border-color .18s ease, box-shadow .18s ease;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
 .pin-digit:focus-visible {
-    border-color: #60a5fa;
+    border-color: var(--accent);
     outline: none;
-    box-shadow: 0 0 0 3px rgb(59 130 246 / 25%);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+    transform: translateY(-1px);
 }
 
 .pin-step-icon {
     display: grid;
-    width: 3rem;
+    width: 3.5rem;
     height: 3rem;
     margin: 0 auto .85rem;
     place-items: center;
-    border: 1px solid rgb(59 130 246 / 35%);
+    border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--border-color));
     border-radius: 1rem;
-    background: rgb(37 99 235 / 16%);
+    background: color-mix(in srgb, var(--accent) 14%, var(--bg-card));
     font-size: 1.4rem;
 }
 
@@ -529,6 +530,10 @@ body.high-contrast .pin-digit {
     color: #fff;
     background: #000;
     border-color: #fff;
+}
+
+html[data-theme="light"] .pin-digit {
+    color: #0f172a;
 }
 
 @media (max-width: 420px) {

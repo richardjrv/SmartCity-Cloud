@@ -19,12 +19,19 @@ comment on column public.usuarios.pin_bloqueado_hasta is
 create table if not exists public.auth_pin_challenges (
     id text primary key,
     user_id integer not null references public.usuarios(id) on delete cascade,
-    purpose text not null check (purpose in ('login', 'setup')),
+    purpose text not null check (purpose in ('login', 'setup', 'reset')),
     expires_at timestamptz not null,
     failed_attempts smallint not null default 0 check (failed_attempts >= 0),
     consumed_at timestamptz,
     created_at timestamptz not null default now()
 );
+
+-- Ajusta la restricción aunque la tabla se hubiera creado antes sin flujo de recuperación.
+alter table public.auth_pin_challenges
+    drop constraint if exists auth_pin_challenges_purpose_check;
+alter table public.auth_pin_challenges
+    add constraint auth_pin_challenges_purpose_check
+    check (purpose in ('login', 'setup', 'reset'));
 
 create index if not exists idx_auth_pin_challenges_user_created
     on public.auth_pin_challenges (user_id, created_at desc);
