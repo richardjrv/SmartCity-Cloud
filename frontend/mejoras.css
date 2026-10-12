@@ -162,7 +162,6 @@ body.high-contrast .brunito-action-card :is(h3, p) {
     .notification-trigger:hover,
     header > div.max-w-7xl > .flex.items-center.gap-3:hover,
     .map-layer-toolbar button:hover,
-    .timeline-play-button:hover:not(:disabled),
     .sidebar-tour-button:hover,
     #sensor-map-refresh:hover,
     #sensor-report-toolbar button:hover,
@@ -183,7 +182,6 @@ body.high-contrast .brunito-action-card :is(h3, p) {
     #city-3d-panel,
     #sensor-map-section,
     #reportes-panel,
-    .timeline-panel,
     .dashboard-feature-panel,
     .urban-pulse-strip,
     .dashboard-quick-action {
@@ -200,7 +198,6 @@ body.high-contrast :is(
     #city-3d-panel,
     #sensor-map-section,
     #reportes-panel,
-    .timeline-panel,
     .urban-pulse-strip,
     .app-sidebar,
     .guided-tour-card,
@@ -224,7 +221,6 @@ body.high-contrast :is(
     #city-3d-panel,
     #sensor-map-section,
     #reportes-panel,
-    .timeline-panel,
     .urban-pulse-strip,
     .app-sidebar,
     .guided-tour-card,
@@ -239,13 +235,11 @@ body.high-contrast :is(
 body.high-contrast :is(
     .btn-primary,
     .dashboard-quick-action--primary,
-    .timeline-play-button,
     .tour-primary-button
 ),
 body.high-contrast :is(
     .btn-primary,
     .dashboard-quick-action--primary,
-    .timeline-play-button,
     .tour-primary-button
 ) * {
     color: #000 !important;
@@ -320,6 +314,44 @@ body.high-contrast :is(
     font-size: .72rem;
 }
 
+.dashboard-metric-group {
+    display: grid;
+    gap: .8rem;
+}
+
+.dashboard-metric-group-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.dashboard-metric-group-heading h2 {
+    color: var(--text-primary);
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.dashboard-metric-group-note {
+    color: var(--text-muted);
+    font-size: .76rem;
+}
+
+.dashboard-metric-copy > span[data-source="demo"] { color: #b45309; }
+.dashboard-metric-copy > span[data-source="api"] { color: #047857; }
+.dashboard-metric-copy > span[data-source="missing"] { color: var(--text-muted); }
+
+html[data-theme="dark"] .dashboard-metric-copy > span[data-source="demo"] { color: #fbbf24; }
+html[data-theme="dark"] .dashboard-metric-copy > span[data-source="api"] { color: #6ee7b7; }
+
+@media (max-width: 640px) {
+    .dashboard-metric-group-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: .25rem;
+    }
+}
+
 #urban-pulse-strip {
     display: grid;
     grid-template-columns: minmax(12rem, 1.35fr) repeat(2, minmax(9rem, .75fr)) minmax(14rem, 1fr);
@@ -364,7 +396,6 @@ body.high-contrast :is(
 #city-3d-panel,
 #sensor-map-section,
 #reportes-panel,
-.timeline-panel,
 .dashboard-feature-panel {
     border-color: var(--dashboard-panel-border);
     border-radius: var(--dashboard-panel-radius);
@@ -422,10 +453,6 @@ html[data-theme="light"] #urban-pulse-strip > .pulse-stat {
 
 html[data-theme="light"] .map-layer-legend {
     color: #475569;
-}
-
-html[data-theme="light"] .timeline-panel h4 {
-    color: #0f172a;
 }
 
 @media (max-width: 900px) {

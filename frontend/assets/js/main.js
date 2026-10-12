@@ -160,10 +160,10 @@ function navegarA(vista) {
         document.getElementById("btn-menu-configuracion")?.classList.add("hidden");
 
         document.getElementById("vista-auth")?.classList.remove("hidden");
-    } else if (["dashboard", "capas", "tiempo", "simulador", "alertas", "sensores", "reportes"].includes(vista)) {
+    } else if (["dashboard", "capas", "alertas", "sensores", "reportes"].includes(vista)) {
         document.getElementById("app-sidebar")?.classList.remove("hidden");
         document.getElementById("vista-dashboard")?.classList.remove("hidden");
-        const vistaDashboard = vista === "sensores" ? "tiempo" : vista;
+        const vistaDashboard = vista === "sensores" ? "dashboard" : vista;
         aplicarVistaDashboard(vistaDashboard);
         if (!dashboardSensorDataRequested) {
             dashboardSensorDataRequested = true;
@@ -192,7 +192,7 @@ function navegarA(vista) {
 
 function aplicarVistaDashboard(vista) {
     const dashboard = document.getElementById("vista-dashboard");
-    const vistasDisponibles = ["dashboard", "capas", "tiempo", "simulador", "alertas", "reportes"];
+    const vistasDisponibles = ["dashboard", "capas", "alertas", "reportes"];
     const vistaActiva = vistasDisponibles.includes(vista) ? vista : "dashboard";
     dashboard?.setAttribute("data-current-view", vistaActiva);
     document.querySelectorAll("[data-dashboard-panel]").forEach(panel => {
@@ -265,7 +265,7 @@ function toggleSidebar() {
 }
 
 function actualizarNavegacionLateral(vista) {
-    const vistas = ["dashboard", "capas", "tiempo", "simulador", "alertas", "reportes", "admin-usuarios"];
+    const vistas = ["dashboard", "capas", "alertas", "reportes", "admin-usuarios"];
     const activa = vistas.includes(vista) ? vista : null;
     document.querySelectorAll("[data-sidebar-view]").forEach(button => {
         if (button.dataset.sidebarView === activa) {
@@ -298,31 +298,10 @@ function inicializarBarraLateral() {
     });
 }
 
-function actualizarSimuladorUrbano() {
-    const atenuacion = Number(document.getElementById("simulator-dimming")?.value || 0);
-    const horas = Number(document.getElementById("simulator-hours")?.value || 0);
-    const luminarias = 18;
-    const potenciaPorLuminariaKw = 0.1;
-    const ahorroDiario = luminarias * potenciaPorLuminariaKw * horas * (atenuacion / 100);
-    const formato = value => new Intl.NumberFormat("es-EC", { maximumFractionDigits: 1 }).format(value);
-    const porcentaje = document.getElementById("simulator-dimming-value");
-    const duracion = document.getElementById("simulator-hours-value");
-    const diario = document.getElementById("simulator-daily-saving");
-    const anual = document.getElementById("simulator-yearly-saving");
-    const conteo = document.getElementById("simulator-lamp-count");
-    if (porcentaje) porcentaje.textContent = `${atenuacion} %`;
-    if (duracion) duracion.textContent = `${horas} h`;
-    if (diario) diario.textContent = `${formato(ahorroDiario)} kWh`;
-    if (anual) anual.textContent = `${formato(ahorroDiario * 365)} kWh`;
-    if (conteo) conteo.textContent = `${luminarias} simuladas`;
-}
-
 const PASOS_RECORRIDO = [
     { vista: "dashboard", destino: "city-3d-panel", titulo: "Pulso de la ciudad", texto: "El modelo 3D es la vista central. Si el ESP32 aún no está conectado, la pantalla lo indicará y usará lecturas simuladas." },
     { vista: "capas", destino: "map-layer-toolbar", titulo: "Explora las capas", texto: "Cambia entre temperatura, humedad, calidad del aire y estado general. Los colores orientan la lectura del mapa." },
-    { vista: "tiempo", destino: "timeline-panel", titulo: "Viaja en el tiempo", texto: "Mueve el control o reproduce las últimas 24 horas. La demo usa muestras simuladas y el modo conectado usa el historial guardado." },
     { vista: "dashboard", destino: "urban-pulse-strip", titulo: "Revisa el pulso urbano", texto: "Aquí ves cuántos sensores aparecen, cuántas lecturas requieren revisión y de dónde vienen los datos." },
-    { vista: "simulador", destino: "simulator-panel", titulo: "Prueba un escenario", texto: "El simulador estima ahorro con supuestos editables. No mide consumo real ni controla luminarias físicas." },
     { vista: "alertas", destino: "alert-center-panel", titulo: "Revisa observaciones", texto: "Los rangos son orientativos para la demostración y ayudan a ubicar lecturas que merecen revisión." },
     { vista: "reportes", destino: "reportes-panel", titulo: "Descarga tus reportes", texto: "Descarga directamente un CSV o un PDF del periodo elegido. Los datos demo quedan etiquetados como simulados." }
 ];
@@ -385,9 +364,6 @@ document.addEventListener("DOMContentLoaded", () => {
     initAccountMenu();
     initSiteInformation();
     initDashboardSettings();
-    document.getElementById("simulator-dimming")?.addEventListener("input", actualizarSimuladorUrbano);
-    document.getElementById("simulator-hours")?.addEventListener("input", actualizarSimuladorUrbano);
-    actualizarSimuladorUrbano();
     const reportPeriod = document.getElementById("sensor-report-period");
     const customRange = document.getElementById("sensor-report-custom-range");
     reportPeriod?.addEventListener("change", () => {
@@ -545,7 +521,7 @@ function abrirNotificacion(id) {
     renderizarNotificaciones();
     cerrarMenuNotificaciones();
     if (seleccionada.sensorId) {
-        navegarA("tiempo");
+        navegarA("dashboard");
         const sensor = typeof sensoresEnMapa !== "undefined"
             ? sensoresEnMapa.find(item => item.id === seleccionada.sensorId)
             : null;
@@ -804,12 +780,22 @@ async function exportarSensoresCSV() {
             return;
         }
         const escapar = valor => `"${String(valor ?? "").replaceAll('"', '""')}"`;
-        const filas = [["Sensor", "Temperatura (°C)", "Humedad (%)", "Calidad del aire (ICA)", "Fecha", "Fuente"]];
+        const filas = [[
+            "Sensor", "Temperatura (°C)", "Humedad (%)", "Calidad del aire (ICA)",
+            "Distancia HC-SR04 (cm)", "Lluvia detectada", "Lectura LDR", "Nivel de agua",
+            "Reflectancia TCRT5000", "TCRT5000 detectado", "Fecha", "Fuente"
+        ]];
         sensores.forEach(({ id, lectura }) => filas.push([
             id ?? lectura.sensor_id ?? lectura.id,
             lectura.temperatura,
             lectura.humedad,
             lectura.calidad_aire,
+            lectura.distancia_cm,
+            lectura.lluvia_detectada == null ? "" : lectura.lluvia_detectada ? "Sí" : "No",
+            lectura.luminosidad,
+            lectura.nivel_agua,
+            lectura.reflectancia_tcrt5000,
+            lectura.tcrt5000_detectado == null ? "" : lectura.tcrt5000_detectado ? "Sí" : "No",
             lectura.fecha_hora,
             demo ? "SIMULADO - DEMO" : "API"
         ]));
@@ -866,10 +852,18 @@ function generarPdfLecturas(jsPDF, { data, desde, hasta, generado, demo, limitat
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 12;
-    const widths = [68, 52, 47, 47, 50];
-    const headings = ["Fecha y hora", "Sensor", "Temperatura °C", "Humedad %", "Calidad del aire"];
+    const widths = [42, 34, 25, 23, 23, 22, 20, 22, 22, 33];
+    const headings = ["Fecha y hora", "Sensor", "Temp. °C", "Humedad %", "Aire ICA", "Dist. cm", "Lluvia", "LDR", "Nivel agua", "TCRT5000"];
     const number = new Intl.NumberFormat("es-EC", { maximumFractionDigits: 2 });
-    const average = field => data.reduce((sum, reading) => sum + Number(reading[field] || 0), 0) / data.length;
+    const average = field => {
+        const values = data.map(reading => reading[field]).filter(value => value !== null && value !== undefined && value !== "").map(Number).filter(Number.isFinite);
+        return values.length ? number.format(values.reduce((sum, value) => sum + value, 0) / values.length) : "sin datos";
+    };
+    const formatNumber = value => {
+        if (value === null || value === undefined || value === "") return "—";
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? number.format(parsed) : "—";
+    };
     const dateFormat = date => date.toLocaleString("es-EC", { dateStyle: "medium", timeStyle: "short" });
     let y = 0;
 
@@ -895,8 +889,9 @@ function generarPdfLecturas(jsPDF, { data, desde, hasta, generado, demo, limitat
         pdf.setTextColor(71, 85, 105);
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(9);
-        pdf.text(`Promedios: ${number.format(average("temperatura"))} °C · ${number.format(average("humedad"))} % humedad · ${number.format(average("calidad_aire"))} ICA`, margin, y);
-        y += 9;
+        pdf.text(`Promedios: ${average("temperatura")} °C · ${average("humedad")} % humedad · ${average("calidad_aire")} ICA`, margin, y);
+        pdf.text(`Lecturas adicionales promedio: distancia ${average("distancia_cm")} cm · LDR ${average("luminosidad")} · nivel de agua ${average("nivel_agua")}`, margin, y + 5);
+        y += 13;
         pdf.setFillColor(37, 99, 235);
         pdf.roundedRect(margin, y, pageWidth - margin * 2, 9, 1.5, 1.5, "F");
         pdf.setTextColor(255, 255, 255);
@@ -925,9 +920,15 @@ function generarPdfLecturas(jsPDF, { data, desde, hasta, generado, demo, limitat
         const values = [
             dateFormat(new Date(reading.fecha_hora)),
             String(reading.sensor_id ?? "—"),
-            number.format(Number(reading.temperatura)),
-            number.format(Number(reading.humedad)),
-            number.format(Number(reading.calidad_aire))
+            formatNumber(reading.temperatura),
+            formatNumber(reading.humedad),
+            formatNumber(reading.calidad_aire),
+            formatNumber(reading.distancia_cm),
+            reading.lluvia_detectada == null ? "—" : reading.lluvia_detectada ? "Sí" : "No",
+            formatNumber(reading.luminosidad),
+            formatNumber(reading.nivel_agua),
+            formatNumber(reading.reflectancia_tcrt5000),
+            reading.tcrt5000_detectado == null ? "—" : reading.tcrt5000_detectado ? "Sí" : "No"
         ];
         if (y + 8 > pageHeight - 13) {
             pdf.addPage();

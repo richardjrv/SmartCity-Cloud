@@ -104,12 +104,6 @@
                 <button type="button" class="sidebar-link" data-sidebar-view="capas" onclick="navegarA('capas')" aria-label="Mapa por capas" title="Mapa por capas">
                     <span class="sidebar-icon" aria-hidden="true">▦</span><span class="sidebar-link-label">Mapa por capas</span>
                 </button>
-                <button type="button" class="sidebar-link" data-sidebar-view="tiempo" onclick="navegarA('tiempo')" aria-label="Viaje en el tiempo" title="Viaje en el tiempo">
-                    <span class="sidebar-icon" aria-hidden="true">◷</span><span class="sidebar-link-label">Viaje en el tiempo</span>
-                </button>
-                <button type="button" class="sidebar-link" data-sidebar-view="simulador" onclick="navegarA('simulador')" aria-label="Simulador urbano" title="Simulador urbano">
-                    <span class="sidebar-icon" aria-hidden="true">◇</span><span class="sidebar-link-label">Simulador urbano</span>
-                </button>
                 <button type="button" class="sidebar-link" data-sidebar-view="alertas" onclick="navegarA('alertas')" aria-label="Centro de alertas" title="Centro de alertas">
                     <span class="sidebar-icon" aria-hidden="true">⚑</span><span class="sidebar-link-label">Centro de alertas</span>
                     <span id="sensor-alert-badge" class="sidebar-alert-badge hidden" aria-label="0 lecturas fuera de rango">0</span>
@@ -278,11 +272,16 @@
                 </div>
             </section>
 
-            <section data-dashboard-panel="dashboard" class="dashboard-metrics" aria-label="Indicadores de sensores">
+            <section data-dashboard-panel="dashboard" class="dashboard-metric-group" aria-labelledby="environment-metrics-title">
+                <div class="dashboard-metric-group-heading">
+                    <div><p class="feature-eyebrow">DHT22 Y CALIDAD AMBIENTAL</p><h2 id="environment-metrics-title">Sensores ambientales</h2></div>
+                    <span id="esp32-connection-state" class="data-source-badge checking-source" role="status">Comprobando ESP32</span>
+                </div>
+                <div class="dashboard-metrics" aria-label="Indicadores ambientales">
                 <article class="dashboard-metric-card dashboard-metric-card--temperature">
                     <span class="dashboard-metric-icon" aria-hidden="true">🌡️</span>
                     <div class="dashboard-metric-copy">
-                        <p>Temperatura promedio</p>
+                        <p>Temperatura actual</p>
                         <strong id="metric-temp">-- °C</strong>
                         <span id="metric-temp-source">Fuente pendiente</span>
                     </div>
@@ -291,7 +290,7 @@
                 <article class="dashboard-metric-card dashboard-metric-card--humidity">
                     <span class="dashboard-metric-icon" aria-hidden="true">💧</span>
                     <div class="dashboard-metric-copy">
-                        <p>Humedad relativa</p>
+                        <p>Humedad relativa actual</p>
                         <strong id="metric-hum">-- %</strong>
                         <span id="metric-hum-source">Fuente pendiente</span>
                     </div>
@@ -306,6 +305,41 @@
                     </div>
                     <span class="dashboard-metric-unit" aria-hidden="true">ICA</span>
                 </article>
+                </div>
+            </section>
+
+            <section data-dashboard-panel="dashboard" class="dashboard-metric-group" aria-labelledby="urban-sensors-title">
+                <div class="dashboard-metric-group-heading">
+                    <div><p class="feature-eyebrow">UN SOLO CONTROLADOR EN LA MAQUETA</p><h2 id="urban-sensors-title">Sensores urbanos del ESP32</h2></div>
+                    <span class="dashboard-metric-group-note">HC-SR04 · lluvia · LDR · nivel de agua · TCRT5000</span>
+                </div>
+                <div class="dashboard-metrics" aria-label="Lecturas urbanas enviadas por el ESP32">
+                <article class="dashboard-metric-card dashboard-metric-card--distance">
+                    <span class="dashboard-metric-icon" aria-hidden="true">📏</span>
+                    <div class="dashboard-metric-copy"><p>Proximidad HC-SR04</p><strong id="metric-distance">— cm</strong><span>Distancia en centímetros</span><span id="metric-distance-source">Sin lectura recibida</span></div>
+                    <span class="dashboard-metric-unit" aria-hidden="true">CM</span>
+                </article>
+                <article class="dashboard-metric-card dashboard-metric-card--rain">
+                    <span class="dashboard-metric-icon" aria-hidden="true">🌧️</span>
+                    <div class="dashboard-metric-copy"><p>Sensor de lluvia</p><strong id="metric-rain">Sin lectura</strong><span>Detecta presencia; no mide milímetros</span><span id="metric-rain-source">Sin lectura recibida</span></div>
+                    <span class="dashboard-metric-unit" aria-hidden="true">ESTADO</span>
+                </article>
+                <article class="dashboard-metric-card dashboard-metric-card--light">
+                    <span class="dashboard-metric-icon" aria-hidden="true">☀️</span>
+                    <div class="dashboard-metric-copy"><p>Luminosidad LDR</p><strong id="metric-light">—</strong><span>Lectura cruda · calibrar para expresar en lux</span><span id="metric-light-source">Sin lectura recibida</span></div>
+                    <span class="dashboard-metric-unit" aria-hidden="true">LECTURA</span>
+                </article>
+                <article class="dashboard-metric-card dashboard-metric-card--water">
+                    <span class="dashboard-metric-icon" aria-hidden="true">🌊</span>
+                    <div class="dashboard-metric-copy"><p>Nivel de agua</p><strong id="metric-water-level">—</strong><span>Lectura cruda · calibrar para mostrar porcentaje</span><span id="metric-water-source">Sin lectura recibida</span></div>
+                    <span class="dashboard-metric-unit" aria-hidden="true">LECTURA</span>
+                </article>
+                <article class="dashboard-metric-card dashboard-metric-card--tcrt">
+                    <span class="dashboard-metric-icon" aria-hidden="true">🚗</span>
+                    <div class="dashboard-metric-copy"><p>Detección TCRT5000</p><strong id="metric-tcrt5000">Sin lectura</strong><span>Detección digital o reflectancia infrarroja</span><span id="metric-tcrt-source">Sin lectura recibida</span></div>
+                    <span class="dashboard-metric-unit" aria-hidden="true">ESTADO</span>
+                </article>
+                </div>
             </section>
 
             <section id="weather-compare-panel" data-dashboard-panel="dashboard" class="dashboard-feature-panel weather-compare" aria-labelledby="weather-title">
@@ -348,20 +382,20 @@
                 </p>
             </section>
 
-            <section id="urban-pulse-strip" data-dashboard-panel="dashboard tiempo" class="urban-pulse-strip" aria-label="Estado de la ciudad">
+            <section id="urban-pulse-strip" data-dashboard-panel="dashboard" class="urban-pulse-strip" aria-label="Estado de la ciudad">
                 <div class="pulse-status"><span class="pulse-dot" aria-hidden="true"></span><span id="pulse-status-label">Preparando ciudad</span></div>
-                <div class="pulse-stat"><strong id="pulse-sensor-count">0</strong><span>sensores en el mapa</span></div>
+                <div class="pulse-stat"><strong id="pulse-sensor-count">0</strong><span>ESP32 en la maqueta</span></div>
                 <div class="pulse-stat"><strong id="pulse-alert-count">0</strong><span>lecturas para revisar</span></div>
                 <time id="pulse-updated">Esperando actualización</time>
             </section>
 
             <!-- Visor 3D Interactivo de la Ciudad -->
-            <div id="city-3d-panel" data-dashboard-panel="dashboard capas tiempo" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+            <div id="city-3d-panel" data-dashboard-panel="dashboard capas" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
                 <div class="dashboard-map-heading">
                     <div>
                         <p class="dashboard-eyebrow">VISTA URBANA <span aria-hidden="true">/</span> MODELO 3D</p>
                         <h3>🏙️ Pulso de la ciudad</h3>
-                        <p id="city-pulse-summary">Explora el modelo 3D y el estado de las luminarias.</p>
+                        <p id="city-pulse-summary">Un ESP32 recopila las lecturas de los sensores distribuidos en la maqueta.</p>
                     </div>
                     <div class="dashboard-map-badges">
                         <span id="sensor-data-source" class="data-source-badge checking-source">COMPROBANDO FUENTE</span>
@@ -397,45 +431,28 @@
         <span class="city-scene-label" aria-hidden="true">MODELO 3D · LUMINARIAS INTELIGENTES</span>
         <p id="sensor-map-empty" class="sensor-map-empty">Cargando lecturas de sensores…</p>
     </div>
-    <div class="map-layer-legend" data-dashboard-panel="capas tiempo" aria-label="Leyenda de colores de sensores">
+    <div class="map-layer-legend" data-dashboard-panel="capas" aria-label="Leyenda de colores de sensores">
         <span><i class="legend-dot level-good"></i>Dentro del rango orientativo</span>
         <span><i class="legend-dot level-warn"></i>Revisión recomendada</span>
         <span><i class="legend-dot level-high"></i>Fuera del rango orientativo</span>
     </div>
             </div>
-            <section id="timeline-panel" data-dashboard-panel="tiempo" class="timeline-panel" aria-labelledby="timeline-title">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h4 id="timeline-title" class="text-sm font-bold text-white">⏱️ Viaje en el tiempo</h4>
-                        <p id="timeline-source-note" class="text-xs text-slate-400 mt-1">Reproducción demostrativa de las últimas 24 horas.</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <output id="timeline-value" class="timeline-value" for="timeline-range">Ahora</output>
-                        <button id="timeline-play" type="button" class="timeline-play-button" onclick="alternarReproduccionTemporal()" aria-label="Reproducir historial">▶ Reproducir</button>
-                    </div>
-                </div>
-                <label class="sr-only" for="timeline-range">Elegir hora de la reproducción</label>
-                <input id="timeline-range" class="timeline-range" type="range" min="0" max="24" step="1" value="0">
-                <div class="timeline-labels"><span>Hace 24 h</span><span>Ahora</span></div>
-            </section>
             <!-- Lecturas de los sensores representados en las luminarias del modelo 3D -->
-            <section id="sensor-map-section" data-dashboard-panel="dashboard capas tiempo" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl" aria-labelledby="sensor-map-title">
+            <section id="sensor-map-section" data-dashboard-panel="dashboard capas" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl" aria-labelledby="sensor-map-title">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                     <div>
-                        <h2 id="sensor-map-title" class="text-xl font-bold text-white">💡 Sensores en luminarias</h2>
-                        <p class="text-sm text-slate-400 mt-1">Selecciona una luminaria en el modelo 3D para ver su última lectura.</p>
+                        <h2 id="sensor-map-title" class="text-xl font-bold text-white">📡 ESP32 de la maqueta</h2>
+                        <p class="text-sm text-slate-400 mt-1">Selecciona el punto del controlador para revisar las lecturas de todos sus sensores.</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
-                        <label class="sr-only" for="sensor-map-search">Buscar sensor</label>
-                        <input id="sensor-map-search" type="search" placeholder="Buscar sensor…" class="w-full sm:w-40 bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-                        <button id="sensor-map-refresh" type="button" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition">↻ Actualizar</button>
+                        <button id="sensor-map-refresh" type="button" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition" aria-label="Actualizar lectura del ESP32">↻ Actualizar lectura</button>
                     </div>
                 </div>
 
                 <aside class="sensor-map-details bg-slate-900/70 border border-slate-700/60 rounded-2xl p-5" aria-live="polite">
                         <div class="flex items-start justify-between gap-3 mb-4">
                             <div>
-                                <p class="text-xs uppercase tracking-wider text-slate-400">Sensor seleccionado</p>
+                                <p class="text-xs uppercase tracking-wider text-slate-400">Controlador seleccionado</p>
                                 <h3 id="sensor-detail-id" class="text-lg font-bold text-white mt-1">Elige un marcador</h3>
                             </div>
                             <span id="sensor-detail-status" class="sensor-detail-status">—</span>
@@ -445,6 +462,12 @@
                             <div class="sensor-reading-row"><span>🌡️ Temperatura</span><strong id="sensor-detail-temperature">—</strong></div>
                             <div class="sensor-reading-row"><span>💧 Humedad</span><strong id="sensor-detail-humidity">—</strong></div>
                             <div class="sensor-reading-row"><span>🍃 Calidad del aire</span><strong id="sensor-detail-air">—</strong></div>
+                            <div class="sensor-reading-row"><span>📏 Distancia HC-SR04</span><strong id="sensor-detail-distance">—</strong></div>
+                            <div class="sensor-reading-row"><span>🌧️ Presencia de lluvia</span><strong id="sensor-detail-rain">—</strong></div>
+                            <div class="sensor-reading-row"><span>☀️ Lectura LDR</span><strong id="sensor-detail-light">—</strong></div>
+                            <div class="sensor-reading-row"><span>🌊 Nivel de agua</span><strong id="sensor-detail-water-level">—</strong></div>
+                            <div class="sensor-reading-row"><span>🚗 Detección TCRT5000</span><strong id="sensor-detail-tcrt-detected">—</strong></div>
+                            <div class="sensor-reading-row"><span>Reflectancia TCRT5000</span><strong id="sensor-detail-tcrt-reflectance">—</strong></div>
                             <div class="pt-3 border-t border-slate-700/60">
                                 <span class="block text-xs text-slate-400">Última lectura</span>
                                 <time id="sensor-detail-time" class="block text-sm text-slate-200 mt-1">—</time>
@@ -453,7 +476,7 @@
                 </aside>
 
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-4 text-xs text-slate-400">
-                    <p>Escena 3D recreada · Las posiciones de las luminarias son simuladas.</p>
+                    <p>Escena 3D recreada · La posición del ESP32 es referencial.</p>
                     <p id="sensor-map-updated" aria-live="polite">Aún no actualizado</p>
                 </div>
             </section>
@@ -465,24 +488,6 @@
                 </div>
                 <p id="alert-center-note" class="feature-panel-note">Los umbrales son orientativos para la demostración; no sustituyen una evaluación ambiental. El estado de seguimiento se guarda por usuario en este navegador.</p>
                 <div id="alert-center-list" class="alert-center-list" aria-live="polite"></div>
-            </section>
-
-            <section id="simulator-panel" data-dashboard-panel="simulador" class="dashboard-feature-panel simulator-panel" aria-labelledby="simulator-title">
-                <div class="feature-panel-heading">
-                    <div><p class="feature-eyebrow">ESCENARIO DEMOSTRATIVO</p><h2 id="simulator-title">◇ Simulador de ahorro de luminarias</h2></div>
-                    <span class="simulation-tag">No usa datos reales de consumo</span>
-                </div>
-                <p class="feature-panel-note">Ajusta los supuestos para estimar el ahorro de energía de una estrategia de atenuación nocturna.</p>
-                <div class="simulator-controls">
-                    <label for="simulator-dimming">Atenuar potencia durante la noche <output id="simulator-dimming-value">30 %</output><input id="simulator-dimming" type="range" min="0" max="70" value="30" step="5"></label>
-                    <label for="simulator-hours">Horas nocturnas con atenuación <output id="simulator-hours-value">8 h</output><input id="simulator-hours" type="range" min="1" max="12" value="8" step="1"></label>
-                </div>
-                <div class="simulator-results">
-                    <div><span>Ahorro estimado por día</span><strong id="simulator-daily-saving">— kWh</strong></div>
-                    <div><span>Ahorro estimado por año</span><strong id="simulator-yearly-saving">— kWh</strong></div>
-                    <div><span>Luminarias consideradas</span><strong id="simulator-lamp-count">18 simuladas</strong></div>
-                </div>
-                <p class="simulator-assumptions">Supuesto editable en esta demo: 18 luminarias × 100 W cada una. Al conectar el hardware se podrán reemplazar estos valores por consumo medido.</p>
             </section>
 
             <section id="reportes-panel" data-dashboard-panel="reportes" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl" aria-labelledby="reportes-title">
