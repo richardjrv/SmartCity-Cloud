@@ -676,3 +676,38 @@ html[data-theme="light"] .pin-digit {
         min-height: 3rem;
     }
 }
+.dashboard-header-context {
+    display: grid;
+    min-width: 0;
+    max-width: 19rem;
+    gap: .1rem .6rem;
+    justify-items: end;
+    color: var(--text-secondary);
+    text-align: right;
+    line-height: 1.25;
+}
+.dashboard-header-context.hidden { display: none; }
+
+.dashboard-header-location {
+    max-width: 19rem;
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: .7rem;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dashboard-header-time { font-size: .82rem; font-variant-numeric: tabular-nums; font-weight: 800; }
+.dashboard-header-date { font-size: .64rem; text-transform: capitalize; }
+
+@media (max-width: 760px) {
+    .dashboard-header-context { max-width: 10rem; }
+    .dashboard-header-location { max-width: 10rem; font-size: .62rem; }
+    .dashboard-header-date { display: none; }
+}
+
+@media (max-width: 520px) {
+    .dashboard-header-context { max-width: 6.75rem; }
+    .dashboard-header-location { max-width: 6.75rem; }
+}
