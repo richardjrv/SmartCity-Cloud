@@ -1,4 +1,4 @@
-// Condiciones meteorológicas locales servidas por el backend para proteger la clave.
+// Condiciones meteorológicas locales de Open-Meteo, sin clave API.
 (() => {
     const API_URL = "https://smartcity-backend-shdc.onrender.com/api/clima/current";
     const INTERVALO_MS = 10 * 60 * 1000;
@@ -22,15 +22,7 @@
 
         if (iconoNode) {
             const iconUrl = condicion.icon;
-            if (typeof iconUrl === "string" && /^\/\/cdn\.weatherapi\.com\/weather\/[\w/.-]+\.png$/.test(iconUrl)) {
-                const image = document.createElement("img");
-                image.src = `https:${iconUrl}`;
-                image.alt = "";
-                image.className = "weather-provider-icon";
-                iconoNode.replaceChildren(image);
-            } else {
-                iconoNode.textContent = "🌤️";
-            }
+            iconoNode.textContent = typeof iconUrl === "string" ? iconUrl : "🌤️";
         }
         if (condicionNode) condicionNode.textContent = condicion.text || "Condición no disponible";
         if (temperaturaNode) {
@@ -55,7 +47,7 @@
         }
         const actualizado = porId("wx-updated");
         if (actualizado) {
-            const fecha = clima.last_updated ? new Date(clima.last_updated.replace(" ", "T")) : null;
+            const fecha = clima.last_updated ? new Date(clima.last_updated) : null;
             actualizado.textContent = fecha && !Number.isNaN(fecha.getTime())
                 ? ` · Actualizado ${new Intl.DateTimeFormat("es-EC", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guayaquil" }).format(fecha)}`
                 : "";

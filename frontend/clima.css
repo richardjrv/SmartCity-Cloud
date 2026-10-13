@@ -44,12 +44,6 @@
     filter: drop-shadow(0 7px 16px color-mix(in srgb, var(--accent) 28%, transparent));
 }
 
-.weather-provider-icon {
-    display: block;
-    width: clamp(4rem, 8vw, 5.5rem);
-    height: clamp(4rem, 8vw, 5.5rem);
-}
-
 .weather-temperature {
     color: var(--text-primary);
     font-size: clamp(3rem, 6vw, 4.4rem);
