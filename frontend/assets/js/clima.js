@@ -6,7 +6,7 @@
     const parametros = new URLSearchParams({
         latitude: String(LATITUD),
         longitude: String(LONGITUD),
-        current: "temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m",
+        current: "temperature_2m,relative_humidity_2m,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,uv_index",
         temperature_unit: "celsius",
         wind_speed_unit: "kmh",
         precipitation_unit: "mm",
@@ -56,11 +56,19 @@
         }
 
         const precip = numeroValido(clima.precipitation);
+        const probabilidad = numeroValido(clima.precipitation_probability);
         const viento = numeroValido(clima.wind_speed_10m);
+        const rafagas = numeroValido(clima.wind_gusts_10m);
         const humedad = numeroValido(clima.relative_humidity_2m);
+        const sensacion = numeroValido(clima.apparent_temperature);
+        const uv = numeroValido(clima.uv_index);
         if (porId("wx-rain")) porId("wx-rain").textContent = Number.isFinite(precip) ? precip.toFixed(1) : "—";
+        if (porId("wx-rain-probability")) porId("wx-rain-probability").textContent = Number.isFinite(probabilidad) ? `${Math.round(probabilidad)}` : "—";
         if (porId("wx-wind")) porId("wx-wind").textContent = Number.isFinite(viento) ? viento.toFixed(1) : "—";
+        if (porId("wx-wind-gusts")) porId("wx-wind-gusts").textContent = Number.isFinite(rafagas) ? rafagas.toFixed(1) : "—";
         if (porId("wx-humidity")) porId("wx-humidity").textContent = Number.isFinite(humedad) ? String(Math.round(humedad)) : "—";
+        if (porId("wx-apparent-temperature")) porId("wx-apparent-temperature").textContent = Number.isFinite(sensacion) ? sensacion.toFixed(1) : "—";
+        if (porId("wx-uv-index")) porId("wx-uv-index").textContent = Number.isFinite(uv) ? uv.toFixed(1) : "—";
 
         const actualizado = porId("wx-updated");
         if (actualizado) {
