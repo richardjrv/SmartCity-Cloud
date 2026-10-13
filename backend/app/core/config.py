@@ -15,5 +15,6 @@ class Settings:
     
     # Claves de APIs Externas
     GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
+    WEATHERAPI_KEY: str = os.environ.get("WEATHERAPI_KEY", "")
 
 settings = Settings()

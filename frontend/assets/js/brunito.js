@@ -5,6 +5,241 @@
 let brunitoHistory = [];
 let brunitoRecognition = null;
 let brunitoListening = false;
+let brunitoWakeRecognition = null;
+let brunitoWakeEnabled = false;
+let brunitoWakeStarting = false;
+let brunitoWakeRestartTimer = null;
+let brunitoWakeRestartDelay = 700;
+let brunitoWakeCommandTimer = null;
+let brunitoWakeWaitingForCommand = false;
+let brunitoWakeGestureHandler = null;
+let brunitoWakePhraseBuffer = [];
+let brunitoWakeLocaleIndex = 0;
+const BRUNITO_WAKE_LOCALES = ["es-EC", "es-MX", "es-ES"];
+
+function tipoReconocimientoVozBrunito() {
+    return window.SpeechRecognition || window.webkitSpeechRecognition;
+}
+
+function actualizarBotonWakeBrunito(activo) {
+    const launcher = document.getElementById("btn-chat-launcher");
+    if (launcher) {
+        launcher.classList.toggle("is-wake-listening", activo);
+        launcher.setAttribute("aria-label", activo
+            ? "Abrir chat con Brunito. Activación por voz disponible."
+            : "Abrir chat con Brunito");
+        launcher.title = activo
+            ? "Brunito está escuchando «Oye Bruno», «Hey Bruno» o «Brunito»."
+            : "Abre el chat con Brunito";
+    }
+}
+
+function limpiarEsperaComandoWakeBrunito() {
+    brunitoWakeWaitingForCommand = false;
+    if (brunitoWakeCommandTimer) window.clearTimeout(brunitoWakeCommandTimer);
+    brunitoWakeCommandTimer = null;
+}
+
+function programarReinicioWakeBrunito() {
+    if (!brunitoWakeEnabled || brunitoWakeRestartTimer) return;
+    brunitoWakeRestartTimer = window.setTimeout(() => {
+        brunitoWakeRestartTimer = null;
+        crearReconocimientoWakeBrunito();
+    }, brunitoWakeRestartDelay);
+    brunitoWakeRestartDelay = Math.min(brunitoWakeRestartDelay * 2, 5600);
+}
+
+function extraerComandoWakeBrunito(transcripcion) {
+    const texto = String(transcripcion || "").trim();
+    const llamada = /\b(?:oye|ey|hey)[\s,]+bruno\b|\bbrunito\b/i.exec(texto);
+    if (!llamada) return null;
+    return texto.slice(llamada.index + llamada[0].length).replace(/^[\s,.:;!?¿¡-]+/u, "").trim();
+}
+
+function activarChatPorWakeBrunito() {
+    const ventana = document.getElementById("brunito-chat-window");
+    if (ventana?.classList.contains("hidden")) toggleChatBrunito();
+}
+
+function procesarResultadoWakeBrunito(transcripcion) {
+    const texto = String(transcripcion || "").trim();
+    if (!texto) return;
+
+    if (brunitoWakeWaitingForCommand) {
+        limpiarEsperaComandoWakeBrunito();
+        activarChatPorWakeBrunito();
+        actualizarEstadoVozBrunito("Consulta recibida por voz.");
+        void procesarMensajeBrunito(texto);
+        return;
+    }
+
+    brunitoWakePhraseBuffer.push(texto);
+    brunitoWakePhraseBuffer = brunitoWakePhraseBuffer.slice(-4);
+    const textoAcumulado = brunitoWakePhraseBuffer.join(" ");
+    const comando = extraerComandoWakeBrunito(textoAcumulado);
+    if (comando === null) return;
+    brunitoWakePhraseBuffer = [];
+
+    activarChatPorWakeBrunito();
+    if (comando) {
+        actualizarEstadoVozBrunito("Llamada detectada. Consultando a Brunito…");
+        void procesarMensajeBrunito(comando);
+        return;
+    }
+
+    brunitoWakeWaitingForCommand = true;
+    actualizarEstadoVozBrunito("Aquí estoy. Dime tu consulta ahora.");
+    if (brunitoWakeCommandTimer) window.clearTimeout(brunitoWakeCommandTimer);
+    brunitoWakeCommandTimer = window.setTimeout(() => {
+        limpiarEsperaComandoWakeBrunito();
+        if (brunitoWakeEnabled) actualizarEstadoVozBrunito("Sigo escuchando. Di «Oye Bruno» cuando quieras llamarme.");
+    }, 9000);
+}
+
+function crearReconocimientoWakeBrunito() {
+    const SpeechRecognition = tipoReconocimientoVozBrunito();
+    if (!SpeechRecognition || !brunitoWakeEnabled || brunitoWakeRecognition || brunitoWakeStarting) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = BRUNITO_WAKE_LOCALES[brunitoWakeLocaleIndex] || "es-EC";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    brunitoWakeRecognition = recognition;
+
+    recognition.onstart = () => {
+        brunitoWakeStarting = false;
+        brunitoWakeRestartDelay = 700;
+        actualizarBotonWakeBrunito(true);
+        actualizarEstadoVozBrunito("Escucha activa. Di «Oye Bruno» para llamarme.");
+    };
+
+    recognition.onresult = event => {
+        for (let indice = event.resultIndex; indice < event.results.length; indice += 1) {
+            const resultado = event.results[indice];
+            if (resultado.isFinal) procesarResultadoWakeBrunito(resultado[0]?.transcript);
+        }
+    };
+
+    recognition.onerror = event => {
+        const mensajes = {
+            "not-allowed": "No se permitió el micrófono. Revisa sus permisos en el navegador.",
+            "service-not-allowed": "El navegador bloqueó el reconocimiento de voz.",
+            "audio-capture": "No se encontró un micrófono disponible."
+        };
+        if (mensajes[event.error]) {
+            desactivarEscuchaWakeBrunito(mensajes[event.error]);
+        } else if (event.error === "language-not-supported") {
+            brunitoWakeLocaleIndex += 1;
+            if (brunitoWakeLocaleIndex >= BRUNITO_WAKE_LOCALES.length) {
+                desactivarEscuchaWakeBrunito("El navegador no admite los idiomas de voz configurados. Prueba Safari actualizado y Español en el teclado del iPhone.");
+            } else {
+                actualizarEstadoVozBrunito(`Probando reconocimiento en ${BRUNITO_WAKE_LOCALES[brunitoWakeLocaleIndex]}…`);
+                brunitoWakeRestartDelay = 700;
+            }
+        } else if (event.error !== "no-speech" && event.error !== "aborted") {
+            actualizarEstadoVozBrunito("La escucha tuvo una interrupción; Brunito intentará reconectarse.");
+            brunitoWakeRestartDelay = Math.min(brunitoWakeRestartDelay * 2, 5600);
+        }
+    };
+
+    recognition.onend = () => {
+        if (brunitoWakeRecognition !== recognition) return;
+        brunitoWakeRecognition = null;
+        brunitoWakeStarting = false;
+        if (brunitoWakeEnabled) {
+            programarReinicioWakeBrunito();
+        } else {
+            actualizarBotonWakeBrunito(false);
+        }
+    };
+
+    brunitoWakeStarting = true;
+    try {
+        recognition.start();
+    } catch (error) {
+        if (brunitoWakeRecognition === recognition) brunitoWakeRecognition = null;
+        brunitoWakeStarting = false;
+        if (error?.name === "NotAllowedError" || error?.name === "SecurityError") {
+            desactivarEscuchaWakeBrunito("No se permitió el micrófono. Revisa sus permisos en el navegador.");
+        } else if (brunitoWakeEnabled) {
+            actualizarEstadoVozBrunito("Restableciendo la escucha de Brunito…");
+            programarReinicioWakeBrunito();
+        }
+    }
+}
+
+function desactivarEscuchaWakeBrunito(mensaje = "Escucha por voz desactivada.") {
+    brunitoWakeEnabled = false;
+    brunitoWakeStarting = false;
+    if (brunitoWakeRestartTimer) window.clearTimeout(brunitoWakeRestartTimer);
+    brunitoWakeRestartTimer = null;
+    limpiarEsperaComandoWakeBrunito();
+    const recognition = brunitoWakeRecognition;
+    brunitoWakeRecognition = null;
+    if (recognition) {
+        recognition.onend = null;
+        try { recognition.stop(); } catch (error) { /* El motor ya estaba detenido. */ }
+    }
+    actualizarBotonWakeBrunito(false);
+    actualizarEstadoVozBrunito(mensaje);
+}
+
+function detenerEscuchaWakeBrunito() {
+    quitarActivadoresWakeBrunito();
+    if (brunitoWakeEnabled || brunitoWakeRecognition) {
+        desactivarEscuchaWakeBrunito("Escucha por voz detenida.");
+    } else {
+        actualizarBotonWakeBrunito(false);
+    }
+}
+
+function activarEscuchaWakeBrunito() {
+    if (brunitoWakeEnabled) return;
+    const SpeechRecognition = tipoReconocimientoVozBrunito();
+    if (!SpeechRecognition) {
+        actualizarEstadoVozBrunito("Este navegador no admite activación por frase. Puedes abrir el chat y usar el dictado manual.");
+        mostrarNotificacion("Este navegador no admite la activación por voz de Brunito.", "info");
+        return;
+    }
+    if (!window.isSecureContext) {
+        actualizarEstadoVozBrunito("Para usar la escucha, abre el sitio en HTTPS o en localhost.");
+        mostrarNotificacion("La activación por voz de Brunito requiere HTTPS o localhost.", "info");
+        return;
+    }
+    const dictadoActivo = brunitoListening && brunitoRecognition;
+    if (dictadoActivo) brunitoRecognition.stop();
+    brunitoWakeEnabled = true;
+    actualizarBotonWakeBrunito(true);
+    actualizarEstadoVozBrunito(dictadoActivo
+        ? "Cambiando del dictado a la escucha por frase…"
+        : "Solicitando permiso del micrófono…");
+    if (!dictadoActivo) crearReconocimientoWakeBrunito();
+}
+
+function quitarActivadoresWakeBrunito() {
+    if (!brunitoWakeGestureHandler) return;
+    document.removeEventListener("pointerdown", brunitoWakeGestureHandler, true);
+    document.removeEventListener("keydown", brunitoWakeGestureHandler, true);
+    brunitoWakeGestureHandler = null;
+}
+
+function prepararActivacionWakeBrunito() {
+    if (brunitoWakeEnabled || brunitoWakeGestureHandler || !obtenerToken()) return;
+    const launcher = document.getElementById("btn-chat-launcher");
+    if (launcher) {
+        launcher.title = "Toca o presiona una tecla en el sitio para activar la escucha de Brunito; el navegador pedirá permiso.";
+        launcher.setAttribute("aria-label", "Abrir chat con Brunito. La activación por voz se preparará al interactuar con el sitio.");
+    }
+    brunitoWakeGestureHandler = evento => {
+        if (!evento.isTrusted || !obtenerToken() || document.body.classList.contains("login-only")) return;
+        quitarActivadoresWakeBrunito();
+        activarEscuchaWakeBrunito();
+    };
+    document.addEventListener("pointerdown", brunitoWakeGestureHandler, true);
+    document.addEventListener("keydown", brunitoWakeGestureHandler, true);
+    mostrarNotificacion("Toca una vez el sitio y permite el micrófono. Después podrás llamar a Brunito diciendo «Oye Bruno», «Hey Bruno» o «Brunito».", "info");
+}
 
 function actualizarEstadoVozBrunito(mensaje) {
     const estado = document.getElementById("chat-voice-status");
@@ -12,7 +247,7 @@ function actualizarEstadoVozBrunito(mensaje) {
 }
 
 function alternarDictadoBrunito() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = tipoReconocimientoVozBrunito();
     const input = document.getElementById("chat-input");
     const boton = document.getElementById("chat-mic-button");
 
@@ -31,6 +266,12 @@ function alternarDictadoBrunito() {
     if (brunitoListening && brunitoRecognition) {
         actualizarEstadoVozBrunito("Finalizando dictado…");
         brunitoRecognition.stop();
+        return;
+    }
+
+    if (brunitoWakeEnabled) {
+        desactivarEscuchaWakeBrunito("Escucha por frase desactivada para usar el dictado manual.");
+        window.setTimeout(alternarDictadoBrunito, 350);
         return;
     }
 
@@ -94,6 +335,7 @@ function alternarDictadoBrunito() {
         if (!huboError && document.getElementById("chat-voice-status")?.textContent === "Te escucho… Habla ahora.") {
             actualizarEstadoVozBrunito("No detecté voz. Puedes intentarlo de nuevo o escribir tu consulta.");
         }
+        if (brunitoWakeEnabled) crearReconocimientoWakeBrunito();
     };
 
     brunitoRecognition = recognition;
@@ -115,7 +357,14 @@ function toggleChatBrunito() {
     windowChat.classList.toggle("hidden", !opening);
     const launcher = document.getElementById("btn-chat-launcher");
     launcher?.setAttribute("aria-expanded", String(opening));
-    launcher?.setAttribute("aria-label", opening ? "Cerrar chat con Brunito" : "Abrir chat con Brunito");
+    launcher?.setAttribute("aria-label", opening
+        ? "Cerrar chat con Brunito"
+        : brunitoWakeEnabled ? "Abrir chat con Brunito. Activación por voz disponible." : "Abrir chat con Brunito");
+
+    // Cerrar la ventana del chat no debe detener el reconocimiento de la frase de llamada.
+    if (!opening && brunitoWakeEnabled && !brunitoWakeRecognition && !brunitoWakeStarting) {
+        programarReinicioWakeBrunito();
+    }
 
     if (opening) {
         document.getElementById("chat-input")?.focus();
@@ -124,18 +373,24 @@ function toggleChatBrunito() {
     }
 }
 
+window.addEventListener("pagehide", detenerEscuchaWakeBrunito);
+
 async function enviarMensajeBrunito(e) {
     if (e) e.preventDefault();
 
     const input = document.getElementById("chat-input");
-    const container = document.getElementById("chat-mensajes");
     const texto = input?.value.trim();
+    if (!texto) return;
+    if (input) input.value = "";
+    return procesarMensajeBrunito(texto);
+}
 
+async function procesarMensajeBrunito(texto) {
+    const container = document.getElementById("chat-mensajes");
     if (!texto || !container) return;
 
     // 1. Mostrar mensaje del usuario
     agregarMensajeBrunito("user", texto);
-    if (input) input.value = "";
 
     // 2. Elemento indicador de carga
     const typing = document.createElement("div");

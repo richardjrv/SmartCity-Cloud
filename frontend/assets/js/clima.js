@@ -1,125 +1,63 @@
-// Clima exterior de Puerto Francisco de Orellana comparado con las métricas
-// agregadas que ya presenta el dashboard. Las lecturas de demo siguen rotuladas.
+// Condiciones meteorológicas locales servidas por el backend para proteger la clave.
 (() => {
-    const LATITUD = -0.4667;
-    const LONGITUD = -76.9872;
+    const API_URL = "https://smartcity-backend-shdc.onrender.com/api/clima/current";
     const INTERVALO_MS = 10 * 60 * 1000;
-    const UMBRAL_TEMPERATURA = 2;
-    const UMBRAL_HUMEDAD = 10;
-
-    const parametros = new URLSearchParams({
-        latitude: String(LATITUD),
-        longitude: String(LONGITUD),
-        current: "temperature_2m,relative_humidity_2m,precipitation,weather_code,uv_index",
-        temperature_unit: "celsius",
-        timezone: "America/Guayaquil"
-    });
-    const URL_CLIMA = `https://api.open-meteo.com/v1/forecast?${parametros}`;
     const porId = id => document.getElementById(id);
-    const panel = porId("weather-compare-panel");
+    const panel = porId("weather-local-panel");
     if (!panel) return;
 
     let climaActual = null;
     let ultimaCarga = 0;
     let cargando = false;
+    const numeroValido = valor => valor === null || valor === undefined || valor === "" ? null : Number(valor);
 
-    function leerNumeroSensor(id) {
-        const texto = porId(id)?.textContent ?? "";
-        const resultado = texto.match(/-?\d+(?:[.,]\d+)?/);
-        if (!resultado) return null;
-        const numero = Number.parseFloat(resultado[0].replace(",", "."));
-        return Number.isFinite(numero) ? numero : null;
-    }
+    function pintarClimaActual(datos) {
+        const clima = datos.current || {};
+        const ubicacion = datos.location || {};
+        const condicion = clima.condition || {};
+        const temperatura = numeroValido(clima.temp_c);
+        const iconoNode = porId("wx-icon");
+        const temperaturaNode = porId("wx-temperature");
+        const condicionNode = porId("wx-condition");
 
-    function describirClima(codigo) {
-        if (codigo === 0) return ["☀️", "Despejado"];
-        if (codigo === 1) return ["🌤️", "Mayormente despejado"];
-        if (codigo === 2) return ["⛅", "Parcialmente nublado"];
-        if (codigo === 3) return ["☁️", "Nublado"];
-        if (codigo === 45 || codigo === 48) return ["🌫️", "Niebla"];
-        if (codigo >= 51 && codigo <= 57) return ["🌦️", "Llovizna"];
-        if (codigo >= 61 && codigo <= 67) return ["🌧️", "Lluvia"];
-        if (codigo >= 71 && codigo <= 77) return ["🌨️", "Nieve"];
-        if (codigo >= 80 && codigo <= 82) return ["🌧️", "Chubascos"];
-        if (codigo === 85 || codigo === 86) return ["🌨️", "Chubascos de nieve"];
-        if (codigo >= 95 && codigo <= 99) return ["⛈️", "Tormenta"];
-        return ["🌡️", "Condición variable"];
-    }
-
-    function clasificarUv(valor) {
-        if (valor < 3) return ["Bajo", "good"];
-        if (valor < 6) return ["Moderado", "good"];
-        if (valor < 8) return ["Alto", "warn"];
-        if (valor < 11) return ["Muy alto", "warn"];
-        return ["Extremo", "high"];
-    }
-
-    function pintarComparacion(metrica, sensor, clima, unidad, umbral) {
-        const sensorNode = porId(`wx-${metrica}-sensor`);
-        const climaNode = porId(`wx-${metrica}-api`);
-        const diferenciaNode = porId(`wx-${metrica}-diff`);
-        if (!sensorNode || !climaNode || !diferenciaNode) return;
-
-        sensorNode.textContent = sensor == null ? "Sin lectura" : `${sensor.toFixed(1)} ${unidad}`;
-        climaNode.textContent = clima == null ? "Sin dato" : `${clima.toFixed(1)} ${unidad}`;
-
-        if (sensor == null || clima == null) {
-            diferenciaNode.textContent = "Aún no se puede comparar";
-            diferenciaNode.dataset.level = "";
-            return;
+        if (iconoNode) {
+            const iconUrl = condicion.icon;
+            if (typeof iconUrl === "string" && /^\/\/cdn\.weatherapi\.com\/weather\/[\w/.-]+\.png$/.test(iconUrl)) {
+                const image = document.createElement("img");
+                image.src = `https:${iconUrl}`;
+                image.alt = "";
+                image.className = "weather-provider-icon";
+                iconoNode.replaceChildren(image);
+            } else {
+                iconoNode.textContent = "🌤️";
+            }
+        }
+        if (condicionNode) condicionNode.textContent = condicion.text || "Condición no disponible";
+        if (temperaturaNode) {
+            temperaturaNode.textContent = Number.isFinite(temperatura)
+                ? `${new Intl.NumberFormat("es-EC", { maximumFractionDigits: 0 }).format(temperatura)}°`
+                : "—°";
+            temperaturaNode.setAttribute("aria-label", Number.isFinite(temperatura)
+                ? `${temperatura.toFixed(1)} grados Celsius`
+                : "Temperatura no disponible");
         }
 
-        const diferencia = sensor - clima;
-        const magnitud = Math.abs(diferencia);
-        const signo = diferencia > 0 ? "+" : "";
-        diferenciaNode.textContent = magnitud <= umbral
-            ? `Cercanos · ${signo}${diferencia.toFixed(1)} ${unidad}`
-            : `Diferencia · ${signo}${diferencia.toFixed(1)} ${unidad}`;
-        diferenciaNode.dataset.level = magnitud <= umbral
-            ? "good"
-            : magnitud >= umbral * 2 ? "high" : "warn";
-    }
+        const precip = numeroValido(clima.precip_mm);
+        const viento = numeroValido(clima.wind_kph);
+        const humedad = numeroValido(clima.humidity);
+        if (porId("wx-rain")) porId("wx-rain").textContent = Number.isFinite(precip) ? precip.toFixed(1) : "—";
+        if (porId("wx-wind")) porId("wx-wind").textContent = Number.isFinite(viento) ? viento.toFixed(1) : "—";
+        if (porId("wx-humidity")) porId("wx-humidity").textContent = Number.isFinite(humedad) ? String(Math.round(humedad)) : "—";
 
-    function pintarComparaciones() {
-        pintarComparacion(
-            "temp",
-            leerNumeroSensor("metric-temp"),
-            climaActual?.temperature_2m ?? null,
-            "°C",
-            UMBRAL_TEMPERATURA
-        );
-        pintarComparacion(
-            "hum",
-            leerNumeroSensor("metric-hum"),
-            climaActual?.relative_humidity_2m ?? null,
-            "%",
-            UMBRAL_HUMEDAD
-        );
-    }
-
-    function pintarClimaActual(clima) {
-        const codigo = Number(clima.weather_code);
-        const [icono, condicion] = describirClima(codigo);
-        porId("wx-condition").textContent = `${icono} ${condicion}`;
-
-        const lluvia = Number(clima.precipitation);
-        porId("wx-rain").textContent = Number.isFinite(lluvia) ? `${lluvia.toFixed(1)} mm` : "Sin dato";
-
-        const uv = Number(clima.uv_index);
-        const uvNode = porId("wx-uv");
-        const nivelNode = porId("wx-uv-level");
-        if (Number.isFinite(uv) && uvNode && nivelNode) {
-            const [etiqueta, nivel] = clasificarUv(uv);
-            uvNode.textContent = uv.toFixed(1);
-            nivelNode.textContent = `Nivel ${etiqueta.toLowerCase()}`;
-            nivelNode.dataset.level = nivel;
+        const lugar = [ubicacion.name, ubicacion.region, ubicacion.country].filter(Boolean).join(", ");
+        if (porId("header-weather-location") && lugar) {
+            porId("header-weather-location").textContent = `📍 ${lugar}`;
         }
-
         const actualizado = porId("wx-updated");
         if (actualizado) {
-            const fecha = clima.time ? new Date(clima.time) : null;
+            const fecha = clima.last_updated ? new Date(clima.last_updated.replace(" ", "T")) : null;
             actualizado.textContent = fecha && !Number.isNaN(fecha.getTime())
-                ? `Consulta ${new Intl.DateTimeFormat("es-EC", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guayaquil" }).format(fecha)}.`
+                ? ` · Actualizado ${new Intl.DateTimeFormat("es-EC", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guayaquil" }).format(fecha)}`
                 : "";
         }
     }
@@ -130,33 +68,30 @@
         panel.classList.add("is-loading");
         const estado = porId("weather-status");
         const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), 8000);
-
+        const timeout = window.setTimeout(() => controller.abort(), 10000);
         if (estado && !climaActual) estado.textContent = "Consultando clima local…";
-        try {
-            const respuesta = await fetch(URL_CLIMA, {
-                signal: controller.signal,
-                headers: { Accept: "application/json" }
-            });
-            if (!respuesta.ok) throw new Error(`Open-Meteo respondió ${respuesta.status}`);
 
+        try {
+            const respuesta = await fetch(API_URL, {
+                signal: controller.signal,
+                headers: { Accept: "application/json" },
+                cache: "no-store"
+            });
             const datos = await respuesta.json();
+            if (!respuesta.ok) throw new Error(datos.detail || `El backend respondió ${respuesta.status}`);
             if (!datos.current) throw new Error("La respuesta no contiene condiciones actuales.");
 
-            climaActual = datos.current;
+            climaActual = datos;
             ultimaCarga = Date.now();
-            pintarClimaActual(climaActual);
-            pintarComparaciones();
-            panel.classList.remove("is-loading");
+            pintarClimaActual(datos);
             panel.classList.add("is-updated");
             window.setTimeout(() => panel.classList.remove("is-updated"), 1100);
             if (estado) estado.textContent = "Clima actualizado";
         } catch (error) {
-            console.warn("No se pudo actualizar el clima exterior:", error);
+            console.warn("No se pudo actualizar el clima local:", error);
             if (estado) estado.textContent = climaActual
                 ? "Sin conexión · se conserva la última consulta"
-                : "No se pudo consultar el clima";
-            pintarComparaciones();
+                : "Clima temporalmente no disponible";
         } finally {
             window.clearTimeout(timeout);
             panel.classList.remove("is-loading");
@@ -167,9 +102,7 @@
     if ("IntersectionObserver" in window) {
         new IntersectionObserver(entradas => {
             if (entradas.some(entrada => entrada.isIntersecting)
-                && Date.now() - ultimaCarga >= INTERVALO_MS) {
-                void cargarClima();
-            }
+                && Date.now() - ultimaCarga >= INTERVALO_MS) void cargarClima();
         }, { rootMargin: "120px" }).observe(panel);
     } else {
         void cargarClima();
@@ -177,19 +110,6 @@
 
     window.setInterval(() => {
         if (!document.hidden && panel.getClientRects().length
-            && Date.now() - ultimaCarga >= INTERVALO_MS) {
-            void cargarClima();
-        }
+            && Date.now() - ultimaCarga >= INTERVALO_MS) void cargarClima();
     }, 60 * 1000);
-
-    ["metric-temp", "metric-hum"].forEach(id => {
-        const nodo = porId(id);
-        if (nodo && "MutationObserver" in window) {
-            new MutationObserver(pintarComparaciones).observe(nodo, {
-                childList: true,
-                characterData: true,
-                subtree: true
-            });
-        }
-    });
 })();

@@ -157,6 +157,7 @@ function navegarA(vista) {
         document.getElementById("btn-mobile-nav")?.classList.add("hidden");
         document.getElementById("account-menu-wrap")?.classList.add("hidden");
         document.getElementById("notification-menu-wrap")?.classList.add("hidden");
+        document.getElementById("dashboard-header-context")?.classList.add("hidden");
         document.getElementById("btn-menu-configuracion")?.classList.add("hidden");
 
         document.getElementById("vista-auth")?.classList.remove("hidden");
@@ -210,6 +211,7 @@ function mostrarDashboard(nombre, idRol) {
     document.getElementById("btn-mobile-nav")?.classList.remove("hidden");
     document.getElementById("account-menu-wrap")?.classList.remove("hidden");
     document.getElementById("notification-menu-wrap")?.classList.remove("hidden");
+    document.getElementById("dashboard-header-context")?.classList.remove("hidden");
     document.getElementById("btn-menu-configuracion")?.classList.remove("hidden");
     renderizarNotificaciones();
     if (typeof cargarAlertasCompartidas === "function") void cargarAlertasCompartidas({ silencioso: true });
@@ -229,6 +231,7 @@ function mostrarDashboard(nombre, idRol) {
     }
 
     navegarA("dashboard");
+    if (typeof prepararActivacionWakeBrunito === "function") prepararActivacionWakeBrunito();
 }
 
 function toggleMobileNav() {
