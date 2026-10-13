@@ -1,7 +1,18 @@
-// Condiciones meteorológicas locales servidas por el backend para proteger la clave.
+// Condiciones meteorológicas locales consultadas directamente a Open-Meteo (sin clave).
 (() => {
-    const API_URL = "https://smartcity-backend-shdc.onrender.com/api/clima/current";
+    const LATITUD = -0.4667;
+    const LONGITUD = -76.9872;
     const INTERVALO_MS = 10 * 60 * 1000;
+    const parametros = new URLSearchParams({
+        latitude: String(LATITUD),
+        longitude: String(LONGITUD),
+        current: "temperature_2m,relative_humidity_2m,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,uv_index",
+        temperature_unit: "celsius",
+        wind_speed_unit: "kmh",
+        precipitation_unit: "mm",
+        timezone: "America/Guayaquil"
+    });
+    const URL_CLIMA = `https://api.open-meteo.com/v1/forecast?${parametros}`;
     const porId = id => document.getElementById(id);
     const panel = porId("weather-local-panel");
     if (!panel) return;
@@ -11,28 +22,30 @@
     let cargando = false;
     const numeroValido = valor => valor === null || valor === undefined || valor === "" ? null : Number(valor);
 
+    function describirClima(codigo) {
+        if (codigo === 0) return ["Despejado", "☀️"];
+        if (codigo === 1) return ["Mayormente despejado", "🌤️"];
+        if (codigo === 2) return ["Parcialmente nublado", "⛅"];
+        if (codigo === 3) return ["Nublado", "☁️"];
+        if (codigo === 45 || codigo === 48) return ["Niebla", "🌫️"];
+        if (codigo >= 51 && codigo <= 57) return ["Llovizna", "🌦️"];
+        if (codigo >= 61 && codigo <= 67) return ["Lluvia", "🌧️"];
+        if (codigo >= 71 && codigo <= 77) return ["Nieve", "🌨️"];
+        if (codigo >= 80 && codigo <= 82) return ["Chubascos", "🌧️"];
+        if (codigo === 85 || codigo === 86) return ["Chubascos de nieve", "🌨️"];
+        if (codigo >= 95 && codigo <= 99) return ["Tormenta", "⛈️"];
+        return ["Condición variable", "🌡️"];
+    }
+
     function pintarClimaActual(datos) {
         const clima = datos.current || {};
-        const ubicacion = datos.location || {};
-        const condicion = clima.condition || {};
-        const temperatura = numeroValido(clima.temp_c);
+        const [condicion, icono] = describirClima(Number(clima.weather_code));
+        const temperatura = numeroValido(clima.temperature_2m);
         const iconoNode = porId("wx-icon");
         const temperaturaNode = porId("wx-temperature");
         const condicionNode = porId("wx-condition");
-
-        if (iconoNode) {
-            const iconUrl = condicion.icon;
-            if (typeof iconUrl === "string" && /^\/\/cdn\.weatherapi\.com\/weather\/[\w/.-]+\.png$/.test(iconUrl)) {
-                const image = document.createElement("img");
-                image.src = `https:${iconUrl}`;
-                image.alt = "";
-                image.className = "weather-provider-icon";
-                iconoNode.replaceChildren(image);
-            } else {
-                iconoNode.textContent = "🌤️";
-            }
-        }
-        if (condicionNode) condicionNode.textContent = condicion.text || "Condición no disponible";
+        if (iconoNode) iconoNode.textContent = icono;
+        if (condicionNode) condicionNode.textContent = condicion;
         if (temperaturaNode) {
             temperaturaNode.textContent = Number.isFinite(temperatura)
                 ? `${new Intl.NumberFormat("es-EC", { maximumFractionDigits: 0 }).format(temperatura)}°`
@@ -42,20 +55,24 @@
                 : "Temperatura no disponible");
         }
 
-        const precip = numeroValido(clima.precip_mm);
-        const viento = numeroValido(clima.wind_kph);
-        const humedad = numeroValido(clima.humidity);
+        const precip = numeroValido(clima.precipitation);
+        const probabilidad = numeroValido(clima.precipitation_probability);
+        const viento = numeroValido(clima.wind_speed_10m);
+        const rafagas = numeroValido(clima.wind_gusts_10m);
+        const humedad = numeroValido(clima.relative_humidity_2m);
+        const sensacion = numeroValido(clima.apparent_temperature);
+        const uv = numeroValido(clima.uv_index);
         if (porId("wx-rain")) porId("wx-rain").textContent = Number.isFinite(precip) ? precip.toFixed(1) : "—";
+        if (porId("wx-rain-probability")) porId("wx-rain-probability").textContent = Number.isFinite(probabilidad) ? `${Math.round(probabilidad)}` : "—";
         if (porId("wx-wind")) porId("wx-wind").textContent = Number.isFinite(viento) ? viento.toFixed(1) : "—";
+        if (porId("wx-wind-gusts")) porId("wx-wind-gusts").textContent = Number.isFinite(rafagas) ? rafagas.toFixed(1) : "—";
         if (porId("wx-humidity")) porId("wx-humidity").textContent = Number.isFinite(humedad) ? String(Math.round(humedad)) : "—";
+        if (porId("wx-apparent-temperature")) porId("wx-apparent-temperature").textContent = Number.isFinite(sensacion) ? sensacion.toFixed(1) : "—";
+        if (porId("wx-uv-index")) porId("wx-uv-index").textContent = Number.isFinite(uv) ? uv.toFixed(1) : "—";
 
-        const lugar = [ubicacion.name, ubicacion.region, ubicacion.country].filter(Boolean).join(", ");
-        if (porId("header-weather-location") && lugar) {
-            porId("header-weather-location").textContent = `📍 ${lugar}`;
-        }
         const actualizado = porId("wx-updated");
         if (actualizado) {
-            const fecha = clima.last_updated ? new Date(clima.last_updated.replace(" ", "T")) : null;
+            const fecha = clima.time ? new Date(`${clima.time}:00-05:00`) : null;
             actualizado.textContent = fecha && !Number.isNaN(fecha.getTime())
                 ? ` · Actualizado ${new Intl.DateTimeFormat("es-EC", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guayaquil" }).format(fecha)}`
                 : "";
@@ -72,16 +89,16 @@
         if (estado && !climaActual) estado.textContent = "Consultando clima local…";
 
         try {
-            const respuesta = await fetch(API_URL, {
+            const respuesta = await fetch(URL_CLIMA, {
                 signal: controller.signal,
                 headers: { Accept: "application/json" },
                 cache: "no-store"
             });
             const datos = await respuesta.json();
-            if (!respuesta.ok) throw new Error(datos.detail || `El backend respondió ${respuesta.status}`);
+            if (!respuesta.ok) throw new Error(`Open-Meteo respondió ${respuesta.status}`);
             if (!datos.current) throw new Error("La respuesta no contiene condiciones actuales.");
 
-            climaActual = datos;
+            climaActual = datos.current;
             ultimaCarga = Date.now();
             pintarClimaActual(datos);
             panel.classList.add("is-updated");

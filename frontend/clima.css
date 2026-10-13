@@ -44,12 +44,6 @@
     filter: drop-shadow(0 7px 16px color-mix(in srgb, var(--accent) 28%, transparent));
 }
 
-.weather-provider-icon {
-    display: block;
-    width: clamp(4rem, 8vw, 5.5rem);
-    height: clamp(4rem, 8vw, 5.5rem);
-}
-
 .weather-temperature {
     color: var(--text-primary);
     font-size: clamp(3rem, 6vw, 4.4rem);
@@ -68,7 +62,7 @@
 
 .weather-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: .65rem;
 }
 
@@ -168,6 +162,11 @@ body.high-contrast .weather-card {
 @media (max-width: 760px) {
     .weather-current { grid-template-columns: 1fr; }
     .weather-current-summary { min-height: 8rem; }
+    .weather-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+    .weather-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (hover: none) {

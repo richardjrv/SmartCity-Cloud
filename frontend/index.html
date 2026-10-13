@@ -99,7 +99,7 @@
     <div id="app-layout" class="app-layout">
         <aside id="app-sidebar" class="app-sidebar hidden" aria-label="Navegación principal">
             <div class="sidebar-topline">
-                <span class="sidebar-section-title">MENÚ</span>
+                <span class="sidebar-section-title">MENÚ PRINCIPAL</span>
                 <button id="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Contraer barra lateral" title="Contraer barra lateral" aria-expanded="true">‹</button>
             </div>
             <nav class="sidebar-nav" aria-label="Secciones del sitio">
@@ -307,11 +307,31 @@
                             <strong id="wx-humidity" class="weather-value">—</strong>
                             <span class="weather-unit">%</span>
                         </article>
+                        <article class="weather-card">
+                            <h3>🌡️ Sensación térmica</h3>
+                            <strong id="wx-apparent-temperature" class="weather-value">—</strong>
+                            <span class="weather-unit">°C</span>
+                        </article>
+                        <article class="weather-card">
+                            <h3>☔ Probabilidad de lluvia</h3>
+                            <strong id="wx-rain-probability" class="weather-value">—</strong>
+                            <span class="weather-unit">%</span>
+                        </article>
+                        <article class="weather-card">
+                            <h3>💨 Ráfagas de viento</h3>
+                            <strong id="wx-wind-gusts" class="weather-value">—</strong>
+                            <span class="weather-unit">km/h</span>
+                        </article>
+                        <article class="weather-card">
+                            <h3>🔆 Índice UV</h3>
+                            <strong id="wx-uv-index" class="weather-value">—</strong>
+                            <span class="weather-unit">actual</span>
+                        </article>
                     </div>
                 </div>
 
                 <p class="weather-credit">
-                    Condiciones meteorológicas locales. Datos de <a href="https://www.weatherapi.com/" target="_blank" rel="noopener noreferrer">WeatherAPI.com</a>.
+                    Condiciones meteorológicas locales. Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>.
                     <span id="wx-updated" aria-live="polite"></span>
                 </p>
             </section>
