@@ -132,6 +132,52 @@ function applyAccent(color, persist = true) {
     }
 }
 
+function animarEntradaAuth() {
+    const authView = document.getElementById("vista-auth");
+    if (!authView || document.body.classList.contains("reduce-motion")) return;
+    authView.classList.remove("auth-entry");
+    requestAnimationFrame(() => authView.classList.add("auth-entry"));
+}
+
+function animarEntradaDashboard() {
+    if (document.body.classList.contains("reduce-motion")) return;
+    requestAnimationFrame(() => {
+        const panels = Array.from(document.querySelectorAll("#vista-dashboard [data-dashboard-panel]:not(.hidden)"))
+            .filter(panel => panel.getClientRects().length > 0);
+        panels.forEach((panel, index) => {
+            panel.classList.remove("dashboard-panel-enter");
+            panel.style.setProperty("--panel-entry-order", index);
+            void panel.offsetWidth;
+            panel.classList.add("dashboard-panel-enter");
+            window.setTimeout(() => {
+                panel.classList.remove("dashboard-panel-enter");
+                panel.style.removeProperty("--panel-entry-order");
+            }, 900);
+        });
+    });
+}
+
+function inicializarAnimacionLecturas() {
+    if (typeof MutationObserver !== "function") return;
+    const lecturaIds = [
+        "metric-temp", "metric-hum", "metric-aire", "metric-distance", "metric-rain",
+        "metric-light", "metric-water-level", "metric-tcrt5000", "wx-temperature",
+        "wx-rain", "wx-wind", "wx-humidity", "wx-apparent-temperature", "wx-rain-probability"
+    ];
+    lecturaIds.forEach(id => {
+        const element = document.getElementById(id);
+        if (!element) return;
+        const observer = new MutationObserver(() => {
+            if (document.body.classList.contains("reduce-motion")) return;
+            element.classList.remove("reading-update-pulse");
+            void element.offsetWidth;
+            element.classList.add("reading-update-pulse");
+            window.setTimeout(() => element.classList.remove("reading-update-pulse"), 650);
+        });
+        observer.observe(element, { childList: true, characterData: true, subtree: true });
+    });
+}
+
 function navegarA(vista) {
     document.body.classList.toggle("login-only", vista === "auth");
     cerrarMobileNav();
@@ -163,11 +209,13 @@ function navegarA(vista) {
         document.getElementById("btn-menu-configuracion")?.classList.add("hidden");
 
         document.getElementById("vista-auth")?.classList.remove("hidden");
+        animarEntradaAuth();
     } else if (["dashboard", "capas", "alertas", "sensores", "reportes"].includes(vista)) {
         document.getElementById("app-sidebar")?.classList.remove("hidden");
         document.getElementById("vista-dashboard")?.classList.remove("hidden");
         const vistaDashboard = vista === "sensores" ? "dashboard" : vista;
         aplicarVistaDashboard(vistaDashboard);
+        animarEntradaDashboard();
         if (!dashboardSensorDataRequested) {
             dashboardSensorDataRequested = true;
             cargarMapaSensores();
@@ -453,6 +501,8 @@ function cerrarRecorridoGuiado() {
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("login-only");
+    inicializarAnimacionLecturas();
+    if (!obtenerToken()) animarEntradaAuth();
     inicializarBarraLateral();
     initTextSizeControls();
     initAccountMenu();

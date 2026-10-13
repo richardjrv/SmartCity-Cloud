@@ -6,7 +6,9 @@
     const parametros = new URLSearchParams({
         latitude: String(LATITUD),
         longitude: String(LONGITUD),
-        current: "temperature_2m,relative_humidity_2m,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,uv_index",
+        current: "temperature_2m,relative_humidity_2m,precipitation,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,uv_index",
+        hourly: "precipitation_probability,precipitation,uv_index,weather_code,temperature_2m",
+        forecast_days: "2",
         temperature_unit: "celsius",
         wind_speed_unit: "kmh",
         precipitation_unit: "mm",
@@ -19,7 +21,7 @@
 
     let climaActual = null;
     let ultimaCarga = 0;
-    let cargando = false;
+    let cargaEnCurso = null;
     const numeroValido = valor => valor === null || valor === undefined || valor === "" ? null : Number(valor);
 
     function describirClima(codigo) {
@@ -36,6 +38,7 @@
         if (codigo >= 95 && codigo <= 99) return ["Tormenta", "⛈️"];
         return ["Condición variable", "🌡️"];
     }
+    window.describirClimaOpenMeteo = describirClima;
 
     function pintarClimaActual(datos) {
         const clima = datos.current || {};
@@ -56,19 +59,21 @@
         }
 
         const precip = numeroValido(clima.precipitation);
-        const probabilidad = numeroValido(clima.precipitation_probability);
         const viento = numeroValido(clima.wind_speed_10m);
         const rafagas = numeroValido(clima.wind_gusts_10m);
         const humedad = numeroValido(clima.relative_humidity_2m);
         const sensacion = numeroValido(clima.apparent_temperature);
         const uv = numeroValido(clima.uv_index);
+        const indiceHora = datos.hourly?.time?.indexOf(clima.time) ?? -1;
+        const probabilidadPronostico = numeroValido(indiceHora >= 0 ? datos.hourly?.precipitation_probability?.[indiceHora] : null);
+        const uvPronostico = numeroValido(indiceHora >= 0 ? datos.hourly?.uv_index?.[indiceHora] : null);
         if (porId("wx-rain")) porId("wx-rain").textContent = Number.isFinite(precip) ? precip.toFixed(1) : "—";
-        if (porId("wx-rain-probability")) porId("wx-rain-probability").textContent = Number.isFinite(probabilidad) ? `${Math.round(probabilidad)}` : "—";
+        if (porId("wx-rain-probability")) porId("wx-rain-probability").textContent = Number.isFinite(probabilidadPronostico) ? `${Math.round(probabilidadPronostico)}` : "—";
         if (porId("wx-wind")) porId("wx-wind").textContent = Number.isFinite(viento) ? viento.toFixed(1) : "—";
         if (porId("wx-wind-gusts")) porId("wx-wind-gusts").textContent = Number.isFinite(rafagas) ? rafagas.toFixed(1) : "—";
         if (porId("wx-humidity")) porId("wx-humidity").textContent = Number.isFinite(humedad) ? String(Math.round(humedad)) : "—";
         if (porId("wx-apparent-temperature")) porId("wx-apparent-temperature").textContent = Number.isFinite(sensacion) ? sensacion.toFixed(1) : "—";
-        if (porId("wx-uv-index")) porId("wx-uv-index").textContent = Number.isFinite(uv) ? uv.toFixed(1) : "—";
+        if (porId("wx-uv-index")) porId("wx-uv-index").textContent = Number.isFinite(uvPronostico) ? uvPronostico.toFixed(1) : Number.isFinite(uv) ? uv.toFixed(1) : "—";
 
         const actualizado = porId("wx-updated");
         if (actualizado) {
@@ -79,9 +84,7 @@
         }
     }
 
-    async function cargarClima() {
-        if (cargando) return;
-        cargando = true;
+    async function consultarClima() {
         panel.classList.add("is-loading");
         const estado = porId("weather-status");
         const controller = new AbortController();
@@ -98,23 +101,50 @@
             if (!respuesta.ok) throw new Error(`Open-Meteo respondió ${respuesta.status}`);
             if (!datos.current) throw new Error("La respuesta no contiene condiciones actuales.");
 
-            climaActual = datos.current;
+            climaActual = { ...datos.current, hourly: datos.hourly || null };
             ultimaCarga = Date.now();
             pintarClimaActual(datos);
             panel.classList.add("is-updated");
             window.setTimeout(() => panel.classList.remove("is-updated"), 1100);
             if (estado) estado.textContent = "Clima actualizado";
+            return climaActual;
         } catch (error) {
             console.warn("No se pudo actualizar el clima local:", error);
             if (estado) estado.textContent = climaActual
                 ? "Sin conexión · se conserva la última consulta"
                 : "Clima temporalmente no disponible";
+            return climaActual;
         } finally {
             window.clearTimeout(timeout);
             panel.classList.remove("is-loading");
-            cargando = false;
         }
     }
+
+    function cargarClima() {
+        if (cargaEnCurso) return cargaEnCurso;
+        cargaEnCurso = consultarClima().finally(() => { cargaEnCurso = null; });
+        return cargaEnCurso;
+    }
+
+    async function obtenerClimaActual({ actualizar = false } = {}) {
+        if (actualizar || !climaActual || Date.now() - ultimaCarga >= INTERVALO_MS) {
+            await cargarClima();
+        }
+        if (!climaActual) return null;
+        const [condicion, icono] = describirClima(Number(climaActual.weather_code));
+        return {
+            ...climaActual,
+            timeZone: "America/Guayaquil",
+            location: "Puerto Francisco de Orellana, Ecuador",
+            condition: condicion,
+            icon: icono,
+            source: "Open-Meteo",
+            fetchedAt: ultimaCarga
+        };
+    }
+
+    // Brunito consume exactamente la misma consulta que alimenta el panel del clima.
+    window.smartCityWeather = Object.freeze({ getCurrent: obtenerClimaActual });
 
     if ("IntersectionObserver" in window) {
         new IntersectionObserver(entradas => {

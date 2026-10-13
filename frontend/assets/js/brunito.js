@@ -385,6 +385,115 @@ async function enviarMensajeBrunito(e) {
     return procesarMensajeBrunito(texto);
 }
 
+function normalizarConsultaClimaBrunito(texto) {
+    return String(texto || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+}
+
+function esConsultaClimaBrunito(texto) {
+    const consulta = normalizarConsultaClimaBrunito(texto);
+    const mencionaClima = /\b(clima|tiempo|weather|pronostico|temperatura|sensacion termica|humedad|precipitacion|lluvia|probabilidad|indice uv|uv|ultravioleta|radiacion|sol|soleado|soleada|despejado|despejada|nublado|nublada|cielo|viento|rafaga|rafagas)\b/.test(consulta);
+    const consultaDeSensor = /\b(sensor|sensores|esp32|dht22)\b/.test(consulta)
+        && !/\b(clima|tiempo|weather|pronostico|open meteo)\b/.test(consulta);
+    return mencionaClima && !consultaDeSensor;
+}
+
+function valorClimaBrunito(valor, decimales = 1) {
+    const numero = valor === null || valor === undefined || valor === "" ? NaN : Number(valor);
+    return Number.isFinite(numero)
+        ? new Intl.NumberFormat("es-EC", { maximumFractionDigits: decimales }).format(numero)
+        : "no disponible";
+}
+
+function generarRespuestaClimaBrunito(clima, consulta) {
+    if (!clima) {
+        return "Ahora no tengo una lectura disponible de Open-Meteo. Inténtalo de nuevo en un momento; te responderé con los datos del panel de clima.";
+    }
+
+    const ubicacion = clima.location || "Puerto Francisco de Orellana, Ecuador";
+    const ubicacionPregunta = consulta.match(/\b(?:en|de|para)\s+([a-zñ][a-zñ\s-]{2,45}?)(?=\s+(?:hoy|ahora|actual|actualmente|por favor|dime|esta|manana|y\b)|[?.,!]|$)/)?.[1]?.trim();
+    const normalizarLugar = lugar => normalizarConsultaClimaBrunito(lugar || "").replace(/\s+/g, " ").trim();
+    const lugarConfigurado = normalizarLugar("Puerto Francisco de Orellana Ecuador");
+    const lugarSolicitado = normalizarLugar(ubicacionPregunta);
+    const aliasOrellana = /\b(orellana|el coca|francisco de orellana|puerto francisco de orellana|manacisco de rellana|manacisco de orellana)\b/.test(lugarSolicitado);
+    if (ubicacionPregunta && !aliasOrellana && !lugarConfigurado.includes(lugarSolicitado)) {
+        return `Por ahora Open-Meteo está configurado para ${ubicacion}. No tengo datos de ${ubicacionPregunta}; para responder sobre ese lugar habría que añadir su ubicación.`;
+    }
+
+    const horaModelo = clima.time ? new Date(`${clima.time}:00-05:00`) : null;
+    const horaTexto = horaModelo && !Number.isNaN(horaModelo.getTime())
+        ? new Intl.DateTimeFormat("es-EC", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guayaquil" }).format(horaModelo)
+        : "reciente";
+    const preguntarPronostico = /\b(manana|mas tarde|esta tarde|esta noche|proximas horas|pronostico|prevision|va a llover|va a hacer|probabilidad|posibilidad)\b/.test(consulta);
+    const horaPronostico = /\b(manana|mañana)\b/.test(consulta) ? 24 : 6;
+    const horas = clima.hourly;
+    let filaPronostico = -1;
+    if (preguntarPronostico && horas?.time?.length && horaModelo) {
+        const objetivo = horaModelo.getTime() + horaPronostico * 60 * 60 * 1000;
+        let distanciaMinima = Infinity;
+        horas.time.forEach((hora, indice) => {
+            const fechaHora = new Date(`${hora}:00-05:00`).getTime();
+            if (fechaHora >= horaModelo.getTime() && Math.abs(fechaHora - objetivo) < distanciaMinima) {
+                distanciaMinima = Math.abs(fechaHora - objetivo);
+                filaPronostico = indice;
+            }
+        });
+    }
+    const indiceHoraActual = horas?.time?.indexOf(clima.time) ?? -1;
+    const probabilidadActual = indiceHoraActual >= 0 ? horas.precipitation_probability?.[indiceHoraActual] : null;
+    const consultaProbabilidad = /\b(probabilidad|posibilidad|llover|lluvia|precipitacion|pronostico|prevision|manana|mañana|mas tarde|esta tarde|esta noche|proximas horas)\b/.test(consulta);
+    if (consultaProbabilidad && filaPronostico >= 0) {
+        const probabilidad = horas.precipitation_probability?.[filaPronostico];
+        const milimetros = horas.precipitation?.[filaPronostico];
+        const codigo = Number(horas.weather_code?.[filaPronostico]);
+        const [condicionHora] = Number.isFinite(codigo) ? window.describirClimaOpenMeteo?.(codigo) || [""] : [""];
+        const horaObjetivo = new Date(`${horas.time[filaPronostico]}:00-05:00`);
+        const horaFormato = new Intl.DateTimeFormat("es-EC", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guayaquil" }).format(horaObjetivo);
+        return `En ${ubicacion}, el pronóstico de Open-Meteo para las ${horaFormato} indica ${valorClimaBrunito(probabilidad, 0)}% de probabilidad de lluvia y ${valorClimaBrunito(milimetros)} mm de precipitación${condicionHora ? `; ${condicionHora.toLowerCase()}` : ""}.`;
+    }
+    if (preguntarPronostico && filaPronostico >= 0) {
+        const horaObjetivo = new Date(`${horas.time[filaPronostico]}:00-05:00`);
+        const horaFormato = new Intl.DateTimeFormat("es-EC", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guayaquil" }).format(horaObjetivo);
+        const [condicionHora] = window.describirClimaOpenMeteo?.(Number(horas.weather_code?.[filaPronostico])) || ["condición no disponible"];
+        return `En ${ubicacion}, el pronóstico para las ${horaFormato} indica ${condicionHora.toLowerCase()}, ${valorClimaBrunito(horas.temperature_2m?.[filaPronostico])} °C e índice UV ${valorClimaBrunito(horas.uv_index?.[filaPronostico])}.`;
+    }
+    if (preguntarPronostico) {
+        return `No encuentro ese horario en el pronóstico que recibí de Open-Meteo para ${ubicacion}. Inténtalo de nuevo en unos minutos.`;
+    }
+
+    const tema = /\b(humedad)\b/.test(consulta) ? `La humedad relativa` :
+        /\b(uv|ultravioleta|radiacion)\b/.test(consulta) ? `El índice UV` :
+        /\b(viento|rafaga|rafagas)\b/.test(consulta) ? `El viento` :
+        /\b(lluvia|precipitacion|probabilidad)\b/.test(consulta) ? `La precipitación actual` :
+        /\b(temperatura|sensacion termica|calor|frio)\b/.test(consulta) ? `La temperatura` : `El clima`;
+    const datosRespuesta = {
+        "La humedad relativa": `${valorClimaBrunito(clima.relative_humidity_2m, 0)}%`,
+        "El índice UV": valorClimaBrunito(clima.uv_index),
+        "El viento": `${valorClimaBrunito(clima.wind_speed_10m)} km/h, con ráfagas de ${valorClimaBrunito(clima.wind_gusts_10m)} km/h`,
+        "La precipitación actual": `${valorClimaBrunito(clima.precipitation)} mm en la última hora; probabilidad de lluvia para esta hora ${valorClimaBrunito(probabilidadActual, 0)}%`,
+        "La temperatura": `${valorClimaBrunito(clima.temperature_2m)} °C, sensación térmica ${valorClimaBrunito(clima.apparent_temperature)} °C`,
+        "El clima": `${clima.condition || "condición no disponible"}, ${valorClimaBrunito(clima.temperature_2m)} °C; humedad ${valorClimaBrunito(clima.relative_humidity_2m, 0)}%; probabilidad de lluvia ${valorClimaBrunito(probabilidadActual, 0)}%`
+    };
+    return `${tema} en ${ubicacion} es ${datosRespuesta[tema]} (Open-Meteo, actualizado a las ${horaTexto}).`;
+}
+
+async function responderConsultaClimaBrunito(texto, typing) {
+    try {
+        const clima = await window.smartCityWeather?.getCurrent();
+        const respuesta = generarRespuestaClimaBrunito(clima, normalizarConsultaClimaBrunito(texto));
+        typing?.remove();
+        agregarMensajeBrunito("model", respuesta);
+        brunitoHistory.push({ role: "user", content: texto });
+        brunitoHistory.push({ role: "assistant", content: respuesta });
+    } catch (error) {
+        console.warn("Brunito no pudo consultar los datos locales del clima:", error);
+        typing?.remove();
+        agregarMensajeBrunito("model", "No pude consultar ahora los datos meteorológicos. Prueba nuevamente en unos segundos.");
+    }
+}
+
 async function procesarMensajeBrunito(texto) {
     const container = document.getElementById("chat-mensajes");
     if (!texto || !container) return;
@@ -399,6 +508,11 @@ async function procesarMensajeBrunito(texto) {
     typing.innerText = "🤖 Brunito está pensando...";
     container.appendChild(typing);
     container.scrollTop = container.scrollHeight;
+
+    if (esConsultaClimaBrunito(texto)) {
+        await responderConsultaClimaBrunito(texto, typing);
+        return;
+    }
 
     try {
         const { ok, data } = await apiFetch("/api/ia/chat", {

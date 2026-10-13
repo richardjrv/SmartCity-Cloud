@@ -109,6 +109,14 @@ function toggleModoAuth() {
         if (authToggleTexto) authToggleTexto.innerText = "¿No tienes cuenta?";
         if (authToggleBtn) authToggleBtn.innerText = "Crear una cuenta";
     }
+
+    const authCard = document.querySelector(".auth-card");
+    if (authCard && !document.body.classList.contains("reduce-motion")) {
+        authCard.classList.remove("auth-mode-animate");
+        void authCard.offsetWidth;
+        authCard.classList.add("auth-mode-animate");
+        window.setTimeout(() => authCard.classList.remove("auth-mode-animate"), 700);
+    }
 }
 
 function togglePasswordVisibility() {

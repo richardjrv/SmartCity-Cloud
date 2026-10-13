@@ -1135,3 +1135,140 @@ html[data-theme="light"] .map-interaction-badge { color: #1d4ed8; }
     #sensor-detail-content:not(.hidden) { grid-template-columns: 1fr; }
     #sensor-detail-content > div:last-child { grid-column: auto; align-items: flex-start; flex-direction: column; }
 }
+
+/* Ambient motion for the welcome screen and monitoring dashboard. */
+.auth-layout { position: relative; isolation: isolate; }
+.auth-layout::before {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    background:
+        radial-gradient(ellipse at 18% 24%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 24rem),
+        radial-gradient(ellipse at 83% 76%, rgba(14, 165, 233, .13), transparent 27rem);
+    content: "";
+    pointer-events: none;
+    animation: auth-ambient-drift 14s ease-in-out infinite alternate;
+}
+.auth-mission, .auth-card { position: relative; z-index: 1; }
+.auth-entry .auth-mission { animation: auth-copy-enter .8s cubic-bezier(.2, .8, .2, 1) both; }
+.auth-entry .auth-card { animation: auth-card-enter .82s cubic-bezier(.2, .8, .2, 1) .12s both; }
+.auth-brand-mark {
+    box-shadow: 0 10px 35px color-mix(in srgb, var(--accent) 22%, transparent);
+    animation: brand-float 5s ease-in-out infinite;
+}
+.auth-card { overflow: hidden; }
+.auth-card::before {
+    position: absolute;
+    top: 0;
+    left: -55%;
+    width: 48%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 82%, white), transparent);
+    content: "";
+    opacity: .75;
+    animation: auth-card-glint 8s ease-in-out 1.2s infinite;
+    pointer-events: none;
+}
+.mission-vision-grid article {
+    position: relative;
+    overflow: hidden;
+    transition: transform .28s cubic-bezier(.2, .8, .2, 1), border-color .25s ease, box-shadow .25s ease;
+}
+.mission-vision-grid article:hover {
+    transform: translateY(-5px) rotateX(1deg);
+    box-shadow: 0 18px 36px rgba(2, 8, 23, .2), 0 0 24px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.auth-entry .mission-vision-grid article { animation: auth-card-enter .65s cubic-bezier(.2, .8, .2, 1) both; }
+.auth-entry .mission-vision-grid article:nth-child(2) { animation-delay: .2s; }
+.auth-mode-animate { animation: auth-mode-change .48s cubic-bezier(.2, .8, .2, 1); }
+.auth-mode-animate #campo-nombre:not(.hidden),
+.auth-mode-animate #campo-pin:not(.hidden) { animation: auth-fields-enter .42s cubic-bezier(.2, .8, .2, 1) both; }
+.auth-mode-animate #campo-pin:not(.hidden) { animation-delay: .08s; }
+#auth-btn-submit { position: relative; overflow: hidden; transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
+#auth-btn-submit:hover { transform: translateY(-2px); box-shadow: 0 14px 32px var(--accent-glow); filter: brightness(1.06); }
+#auth-btn-submit::after {
+    position: absolute;
+    inset: -40% auto -40% -45%;
+    width: 32%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+    content: "";
+    transform: skewX(-20deg);
+    transition: left .55s cubic-bezier(.2, .8, .2, 1);
+    pointer-events: none;
+}
+#auth-btn-submit:hover::after { left: 115%; }
+
+.dashboard-overview { animation: dashboard-hero-in .7s cubic-bezier(.2, .8, .2, 1) both; }
+.dashboard-overview::before {
+    position: absolute;
+    z-index: 0;
+    inset: -60% -35%;
+    background: linear-gradient(110deg, transparent 42%, rgba(255,255,255,.075) 49%, transparent 56%);
+    content: "";
+    transform: translateX(-42%) rotate(7deg);
+    animation: dashboard-sheen 12s ease-in-out 1s infinite;
+    pointer-events: none;
+}
+.dashboard-overview::after { animation: dashboard-rings 22s linear infinite; }
+.dashboard-panel-enter { animation: dashboard-section-enter .62s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--panel-entry-order, 0) * 75ms); }
+.dashboard-panel-enter .dashboard-metric-card,
+.dashboard-panel-enter .weather-card { animation: dashboard-card-enter .55s cubic-bezier(.2, .8, .2, 1) both; }
+.dashboard-panel-enter .dashboard-metric-card:nth-child(2),
+.dashboard-panel-enter .weather-card:nth-child(2) { animation-delay: .07s; }
+.dashboard-panel-enter .dashboard-metric-card:nth-child(3),
+.dashboard-panel-enter .weather-card:nth-child(3) { animation-delay: .14s; }
+.dashboard-panel-enter .dashboard-metric-card:nth-child(4),
+.dashboard-panel-enter .weather-card:nth-child(4) { animation-delay: .21s; }
+.dashboard-panel-enter .dashboard-metric-card:nth-child(5),
+.dashboard-panel-enter .weather-card:nth-child(5) { animation-delay: .28s; }
+.dashboard-metric-card { transform: translateZ(0); }
+.dashboard-metric-card::before {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.075) 48%, transparent 66%);
+    content: "";
+    opacity: 0;
+    transform: translateX(-75%);
+    pointer-events: none;
+}
+.dashboard-metric-card:hover::before { opacity: 1; transform: translateX(75%); transition: transform .6s ease, opacity .2s ease; }
+.dashboard-metric-icon { transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease; }
+.dashboard-metric-card:hover .dashboard-metric-icon { transform: translateY(-2px) rotate(-5deg) scale(1.06); box-shadow: 0 8px 20px var(--metric-glow); }
+.weather-panel .weather-icon { display: inline-block; animation: weather-float 4.2s ease-in-out infinite; transform-origin: 50% 70%; }
+.pulse-dot { --pulse-color: var(--warning); animation: live-pulse 2.1s ease-out infinite; }
+.urban-pulse-strip[data-source="api"] .pulse-dot { --pulse-color: var(--success); }
+.reading-update-pulse { animation: reading-value-update .58s cubic-bezier(.2, .8, .2, 1); }
+.dashboard-quick-action, .notification-trigger, #btn-chat-launcher { transition: transform .22s cubic-bezier(.2, .8, .2, 1), box-shadow .22s ease, filter .22s ease; }
+.dashboard-quick-action:hover, .notification-trigger:hover, #btn-chat-launcher:hover { filter: brightness(1.08); }
+
+@keyframes auth-ambient-drift { to { transform: translate3d(1.5%, -1%, 0) scale(1.035); } }
+@keyframes auth-copy-enter { from { opacity: 0; transform: translateX(-24px); filter: blur(6px); } to { opacity: 1; transform: translateX(0); filter: blur(0); } }
+@keyframes auth-card-enter { from { opacity: 0; transform: translateY(22px) scale(.97); filter: blur(7px); } to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
+@keyframes auth-fields-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes auth-mode-change { 45% { box-shadow: 0 24px 70px color-mix(in srgb, var(--accent) 25%, transparent); } }
+@keyframes auth-card-glint { 0%, 42%, 100% { left: -55%; opacity: .15; } 58% { left: 110%; opacity: .9; } }
+@keyframes brand-float { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(2deg); } }
+@keyframes dashboard-hero-in { from { opacity: 0; transform: translateY(13px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes dashboard-section-enter { from { opacity: 0; transform: translateY(17px); filter: blur(5px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+@keyframes dashboard-card-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes dashboard-sheen { 0%, 25%, 100% { transform: translateX(-42%) rotate(7deg); } 55% { transform: translateX(42%) rotate(7deg); } }
+@keyframes dashboard-rings { to { transform: rotate(360deg); } }
+@keyframes weather-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
+@keyframes live-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--pulse-color) 58%, transparent); } 70%, 100% { box-shadow: 0 0 0 9px transparent; } }
+@keyframes reading-value-update { 0% { color: var(--accent); transform: translateY(4px) scale(.97); text-shadow: 0 0 0 transparent; } 45% { color: var(--accent); transform: translateY(0) scale(1.035); text-shadow: 0 0 18px var(--accent-glow); } 100% { color: inherit; transform: none; text-shadow: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-layout::before, .auth-brand-mark, .auth-card::before, .dashboard-overview,
+    .dashboard-overview::before, .dashboard-overview::after, .weather-panel .weather-icon,
+    .pulse-dot, .auth-entry *, .dashboard-panel-enter, .dashboard-panel-enter *,
+    .auth-mode-animate, .reading-update-pulse { animation: none !important; }
+    .mission-vision-grid article, .dashboard-metric-card, .dashboard-metric-icon,
+    .dashboard-quick-action, .notification-trigger, #btn-chat-launcher { transition-duration: .01ms !important; }
+}
+body.reduce-motion .auth-layout::before,
+body.reduce-motion .auth-card::before,
+body.reduce-motion .dashboard-overview::before,
+body.reduce-motion .dashboard-overview::after,
+body.reduce-motion .weather-panel .weather-icon,
+body.reduce-motion .pulse-dot { animation: none !important; transition: none !important; }
