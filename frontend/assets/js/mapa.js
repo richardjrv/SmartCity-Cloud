@@ -9,6 +9,7 @@ const DEMO_HISTORY_STEP_MS = 30 * 60 * 1000;
 let sensoresEnMapa = [];
 let lecturasEnVivo = [];
 let modoDemoSensores = true;
+let lecturaApiReciente = false;
 let sensorEnDetalle = null;
 let mapaSensoresEventosInstalados = false;
 let capaMapaActual = "estado";
@@ -105,9 +106,14 @@ async function cargarMapaSensores() {
         lecturasEnVivo = deduplicarLecturas(lecturasReales)
             .sort((a, b) => new Date(b.lectura.fecha_hora || 0) - new Date(a.lectura.fecha_hora || 0))
             .slice(0, 1);
-        actualizarFuenteDatos("DATOS DE API", false);
+        const fechaUltima = new Date(lecturasEnVivo[0]?.lectura?.fecha_hora || 0);
+        const edadLectura = Date.now() - fechaUltima.getTime();
+        const lecturaReciente = Number.isFinite(fechaUltima.getTime()) && edadLectura >= 0 && edadLectura <= 10 * 60 * 1000;
+        lecturaApiReciente = lecturaReciente;
+        actualizarFuenteDatos(lecturaReciente ? "API · LECTURA RECIENTE" : "API · ÚLTIMA LECTURA ANTIGUA", false, !lecturaReciente);
     } else {
         modoDemoSensores = true;
+        lecturaApiReciente = false;
         lecturasEnVivo = crearLecturasDemo();
         actualizarFuenteDatos("DEMO · DATOS SIMULADOS", true);
     }
@@ -133,19 +139,21 @@ async function cargarMapaSensores() {
         : `Consulta API · ${new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-function actualizarFuenteDatos(texto, esDemo) {
+function actualizarFuenteDatos(texto, esDemo, esAntigua = false) {
     const badge = document.getElementById("sensor-data-source");
     if (badge) {
         badge.textContent = texto;
         badge.classList.toggle("demo-source", esDemo);
         badge.classList.toggle("api-source", !esDemo);
+        badge.classList.toggle("stale-source", esAntigua);
         badge.classList.remove("checking-source");
     }
     const estadoEsp32 = document.getElementById("esp32-connection-state");
     if (estadoEsp32) {
-        estadoEsp32.textContent = esDemo ? "Demo · ESP32 aún no conectado" : "API · ESP32 reportando";
+        estadoEsp32.textContent = esDemo ? "Demo · ESP32 aún no conectado" : esAntigua ? "API · lectura antigua" : "API · lectura reciente";
         estadoEsp32.classList.toggle("demo-source", esDemo);
         estadoEsp32.classList.toggle("api-source", !esDemo);
+        estadoEsp32.classList.toggle("stale-source", esAntigua);
         estadoEsp32.classList.remove("checking-source");
     }
     const note = document.getElementById("alert-center-note");
@@ -176,11 +184,12 @@ function nivelLectura(lectura, capa) {
     const temp = numero("temperatura");
     const humedad = numero("humedad");
     const aire = numero("calidad_aire");
-    if (capa === "temperatura") return temp === null ? "good" : temp >= 35 ? "high" : temp >= 29 ? "warn" : "good";
-    if (capa === "humedad") return humedad === null ? "good" : humedad < 20 || humedad > 80 ? "high" : humedad < 30 || humedad > 70 ? "warn" : "good";
-    if (capa === "calidad_aire") return aire === null ? "good" : aire > 100 ? "high" : aire > 50 ? "warn" : "good";
-    if (temp !== null && temp >= 35 || humedad !== null && (humedad < 20 || humedad > 80) || aire !== null && aire > 100) return "high";
+    if (capa === "temperatura") return temp === null ? "unknown" : temp < 0 || temp >= 35 ? "high" : temp >= 29 ? "warn" : "good";
+    if (capa === "humedad") return humedad === null ? "unknown" : humedad < 20 || humedad > 80 ? "high" : humedad < 30 || humedad > 70 ? "warn" : "good";
+    if (capa === "calidad_aire") return aire === null ? "unknown" : aire < 0 || aire > 100 ? "high" : aire > 50 ? "warn" : "good";
+    if (temp !== null && (temp < 0 || temp >= 35) || humedad !== null && (humedad < 20 || humedad > 80) || aire !== null && (aire < 0 || aire > 100)) return "high";
     if (temp !== null && temp >= 29 || humedad !== null && (humedad < 30 || humedad > 70) || aire !== null && aire > 50) return "warn";
+    if (temp === null && humedad === null && aire === null) return "unknown";
     return "good";
 }
 
@@ -244,17 +253,19 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
     const count = document.getElementById("pulse-sensor-count");
     const alerts = document.getElementById("pulse-alert-count");
     const updated = document.getElementById("pulse-updated");
-    if (label) label.textContent = modoDemoSensores ? "Datos de demostración" : "ESP32 conectado al servicio";
+    if (label) label.textContent = modoDemoSensores ? "Datos de demostración" : lecturaApiReciente ? "Lectura reciente desde la API" : "Última lectura antigua · revisar ESP32";
     const summary = document.getElementById("city-pulse-summary");
     const strip = document.getElementById("urban-pulse-strip");
     const dashboardSource = document.getElementById("dashboard-source-summary");
     if (dashboardSource) dashboardSource.textContent = modoDemoSensores
         ? "Valores demostrativos para un solo ESP32; todavía no son mediciones de la maqueta."
-        : "Un ESP32 envía a la API las mediciones de los sensores de la maqueta.";
+        : lecturaApiReciente ? "Un ESP32 envía a la API las mediciones de los sensores de la maqueta."
+            : "La API conserva una lectura anterior; comprueba que el ESP32 siga enviando datos.";
     if (summary) summary.textContent = modoDemoSensores
         ? "Un marcador de referencia representa el ESP32; las lecturas son demostrativas."
-        : "Un ESP32 concentra y reporta las lecturas de todos los sensores conectados.";
-    if (strip) strip.dataset.source = modoDemoSensores ? "demo" : "api";
+        : lecturaApiReciente ? "Un ESP32 concentra y reporta las lecturas de todos los sensores conectados."
+            : "Se muestra la última lectura almacenada. La conexión del ESP32 necesita revisión.";
+    if (strip) strip.dataset.source = modoDemoSensores ? "demo" : lecturaApiReciente ? "api" : "stale";
     if (count) count.textContent = String(sensoresEnMapa.length);
     if (alerts) alerts.textContent = String(sensoresEnMapa.filter(sensor => valoresFueraDeRango(sensor.lectura).length).length);
     if (updated) updated.textContent = `${fechaTexto} · actualización ${ahora}`;
@@ -361,7 +372,10 @@ function actualizarMetricasDashboard(lecturas) {
     const formato = value => new Intl.NumberFormat("es-EC", { maximumFractionDigits: 1 }).format(value);
     const asignar = (id, valor) => {
         const node = document.getElementById(id);
-        if (node) node.textContent = valor;
+        if (node) {
+            node.textContent = valor;
+            node.classList.remove("skeleton-loading");
+        }
     };
     const fuente = (id, disponible) => {
         const source = document.getElementById(id);
@@ -401,6 +415,18 @@ function actualizarMetricasDashboard(lecturas) {
     fuente("metric-light-source", luz !== null);
     fuente("metric-water-source", agua !== null);
     fuente("metric-tcrt-source", Boolean(tcrt) || reflejo !== null);
+
+    const nivel = (value, good, warning, high) => value === null ? "unknown"
+        : high(value) ? "high" : warning(value) ? "warn" : good(value) ? "good" : "unknown";
+    const estados = {
+        "metric-temp": nivel(temp, value => value >= 0 && value < 29, value => value >= 29 && value < 35, value => value < 0 || value >= 35),
+        "metric-hum": nivel(humedad, value => value >= 30 && value <= 70, value => value >= 20 && value < 30 || value > 70 && value <= 80, value => value < 20 || value > 80),
+        "metric-aire": nivel(aire, value => value >= 0 && value <= 50, value => value > 50 && value <= 100, value => value < 0 || value > 100)
+    };
+    Object.entries(estados).forEach(([id, state]) => {
+        const card = document.getElementById(id)?.closest(".dashboard-metric-card");
+        if (card) card.dataset.readingState = state;
+    });
 }
 
 function mostrarDetalleSensor(sensor) {

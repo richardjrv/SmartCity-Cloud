@@ -91,6 +91,7 @@
         if (porId("wx-humidity")) porId("wx-humidity").textContent = Number.isFinite(humedad) ? String(Math.round(humedad)) : "—";
         if (porId("wx-apparent-temperature")) porId("wx-apparent-temperature").textContent = Number.isFinite(sensacion) ? sensacion.toFixed(1) : "—";
         if (porId("wx-uv-index")) porId("wx-uv-index").textContent = Number.isFinite(uvPronostico) ? uvPronostico.toFixed(1) : Number.isFinite(uv) ? uv.toFixed(1) : "—";
+        panel.querySelectorAll(".skeleton-loading").forEach(node => node.classList.remove("skeleton-loading"));
 
         const actualizado = porId("wx-updated");
         if (actualizado) {
@@ -123,17 +124,24 @@
             pintarClimaActual(datos);
             panel.classList.add("is-updated");
             window.setTimeout(() => panel.classList.remove("is-updated"), 1100);
-            if (estado) estado.textContent = "Clima actualizado";
+            if (estado) {
+                estado.textContent = "Clima actualizado";
+                estado.classList.add("weather-status--live");
+            }
             return climaActual;
         } catch (error) {
             console.warn("No se pudo actualizar el clima local:", error);
-            if (estado) estado.textContent = climaActual
-                ? "Sin conexión · se conserva la última consulta"
-                : "Clima temporalmente no disponible";
+            if (estado) {
+                estado.textContent = climaActual
+                    ? "Sin conexión · se conserva la última consulta"
+                    : "Clima temporalmente no disponible";
+                estado.classList.remove("weather-status--live");
+            }
             return climaActual;
         } finally {
             window.clearTimeout(timeout);
             panel.classList.remove("is-loading");
+            if (!climaActual) panel.querySelectorAll(".skeleton-loading").forEach(node => node.classList.remove("skeleton-loading"));
         }
     }
 
