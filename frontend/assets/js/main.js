@@ -229,6 +229,7 @@ function mostrarDashboard(nombre, idRol) {
     }
 
     navegarA("dashboard");
+    if (typeof prepararActivacionWakeBrunito === "function") prepararActivacionWakeBrunito();
 }
 
 function toggleMobileNav() {

@@ -413,6 +413,7 @@ async function comprobarSesion() {
 }
 
 function cerrarSesion() {
+    if (typeof detenerEscuchaWakeBrunito === "function") detenerEscuchaWakeBrunito();
     localStorage.removeItem("token_cloud");
     localStorage.removeItem("user_role_cloud");
     localStorage.removeItem("user_name_cloud");
