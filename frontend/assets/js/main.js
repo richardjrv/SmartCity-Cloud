@@ -51,6 +51,8 @@ const ACCENT_STORAGE_KEY = "accent_cloud";
 const ACCENT_OPTIONS = ["blue", "green", "purple", "orange"];
 const SIDEBAR_STORAGE_KEY = "smartcity_sidebar_collapsed";
 let dashboardSensorDataRequested = false;
+let sidebarTooltipNode = null;
+let sidebarTooltipTarget = null;
 
 function initTextSizeControls() {
     let savedScale = 1;
@@ -253,6 +255,76 @@ function cerrarMobileNav() {
     document.getElementById("btn-mobile-nav")?.setAttribute("aria-label", "Abrir navegación");
 }
 
+function ocultarTooltipBarraLateral() {
+    if (sidebarTooltipTarget?.getAttribute("aria-describedby") === "sidebar-tooltip") {
+        sidebarTooltipTarget.removeAttribute("aria-describedby");
+    }
+    sidebarTooltipTarget = null;
+    if (sidebarTooltipNode) {
+        sidebarTooltipNode.classList.remove("is-visible");
+        sidebarTooltipNode.hidden = true;
+        sidebarTooltipNode.setAttribute("aria-hidden", "true");
+    }
+}
+
+function mostrarTooltipBarraLateral(target) {
+    if (!target || !sidebarTooltipNode || !document.body.classList.contains("sidebar-collapsed") || window.innerWidth <= 767 || !target.getClientRects().length) {
+        ocultarTooltipBarraLateral();
+        return;
+    }
+    const label = target.getAttribute("aria-label") || target.textContent.trim();
+    if (!label) return;
+    if (sidebarTooltipTarget && sidebarTooltipTarget !== target) {
+        sidebarTooltipTarget.removeAttribute("aria-describedby");
+    }
+    sidebarTooltipTarget = target;
+    sidebarTooltipTarget.setAttribute("aria-describedby", "sidebar-tooltip");
+    sidebarTooltipNode.textContent = label;
+    sidebarTooltipNode.hidden = false;
+    sidebarTooltipNode.setAttribute("aria-hidden", "false");
+    sidebarTooltipNode.classList.add("is-visible");
+
+    const targetRect = target.getBoundingClientRect();
+    const tooltipRect = sidebarTooltipNode.getBoundingClientRect();
+    const left = Math.min(targetRect.right + 12, window.innerWidth - tooltipRect.width - 12);
+    const top = Math.max(8, Math.min(targetRect.top + (targetRect.height - tooltipRect.height) / 2, window.innerHeight - tooltipRect.height - 8));
+    sidebarTooltipNode.style.left = `${Math.max(8, left)}px`;
+    sidebarTooltipNode.style.top = `${top}px`;
+}
+
+function inicializarTooltipsBarraLateral() {
+    const sidebar = document.getElementById("app-sidebar");
+    if (!sidebar) return;
+    sidebarTooltipNode = document.createElement("div");
+    sidebarTooltipNode.id = "sidebar-tooltip";
+    sidebarTooltipNode.className = "sidebar-tooltip";
+    sidebarTooltipNode.setAttribute("role", "tooltip");
+    sidebarTooltipNode.setAttribute("aria-hidden", "true");
+    sidebarTooltipNode.hidden = true;
+    document.body.appendChild(sidebarTooltipNode);
+
+    const tooltipTargets = sidebar.querySelectorAll(".sidebar-link, #sidebar-toggle, .sidebar-tour-button");
+    tooltipTargets.forEach(target => {
+        target.addEventListener("pointerenter", event => {
+            if (event.pointerType !== "touch") mostrarTooltipBarraLateral(target);
+        });
+        target.addEventListener("pointerleave", () => {
+            if (sidebarTooltipTarget === target) ocultarTooltipBarraLateral();
+        });
+        target.addEventListener("focus", () => mostrarTooltipBarraLateral(target));
+        target.addEventListener("blur", () => {
+            if (!target.matches(":hover")) ocultarTooltipBarraLateral();
+        });
+    });
+
+    window.addEventListener("resize", () => {
+        if (sidebarTooltipTarget) mostrarTooltipBarraLateral(sidebarTooltipTarget);
+    }, { passive: true });
+    window.addEventListener("scroll", () => {
+        if (sidebarTooltipTarget) mostrarTooltipBarraLateral(sidebarTooltipTarget);
+    }, { passive: true, capture: true });
+}
+
 function toggleSidebar() {
     const collapsed = !document.body.classList.contains("sidebar-collapsed");
     document.body.classList.toggle("sidebar-collapsed", collapsed);
@@ -260,7 +332,6 @@ function toggleSidebar() {
     const label = collapsed ? "Expandir barra lateral" : "Contraer barra lateral";
     if (button) {
         button.setAttribute("aria-label", label);
-        button.title = label;
         button.setAttribute("aria-expanded", String(!collapsed));
         button.textContent = collapsed ? "›" : "‹";
     }
@@ -269,6 +340,8 @@ function toggleSidebar() {
     } catch (error) {
         console.warn("No se pudo guardar el estado de la barra lateral.", error);
     }
+    if (collapsed) mostrarTooltipBarraLateral(button);
+    else ocultarTooltipBarraLateral();
 }
 
 function actualizarNavegacionLateral(vista) {
@@ -303,12 +376,12 @@ function inicializarBarraLateral() {
         if (button && collapsed) {
             button.textContent = "›";
             button.setAttribute("aria-label", "Expandir barra lateral");
-            button.title = "Expandir barra lateral";
             button.setAttribute("aria-expanded", "false");
         }
     } catch (error) {
         console.warn("No se pudo recuperar el estado de la barra lateral.", error);
     }
+    inicializarTooltipsBarraLateral();
     actualizarIndicadorNavegacionLateral();
     window.addEventListener("resize", () => actualizarIndicadorNavegacionLateral(), { passive: true });
     document.addEventListener("keydown", event => {

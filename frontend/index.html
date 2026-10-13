@@ -100,27 +100,27 @@
         <aside id="app-sidebar" class="app-sidebar hidden" aria-label="Navegación principal">
             <div class="sidebar-topline">
                 <span class="sidebar-section-title">MENÚ PRINCIPAL</span>
-                <button id="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Contraer barra lateral" title="Contraer barra lateral" aria-expanded="true">‹</button>
+                <button id="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Contraer barra lateral" aria-expanded="true">‹</button>
             </div>
             <nav class="sidebar-nav" aria-label="Secciones del sitio">
-                <button type="button" class="sidebar-link" data-sidebar-view="dashboard" onclick="navegarA('dashboard')" aria-label="Inicio" title="Inicio">
+                <button type="button" class="sidebar-link" data-sidebar-view="dashboard" onclick="navegarA('dashboard')" aria-label="Inicio">
                     <span class="sidebar-icon" aria-hidden="true">⌂</span><span class="sidebar-link-label">Inicio</span>
                 </button>
-                <button type="button" class="sidebar-link" data-sidebar-view="capas" onclick="navegarA('capas')" aria-label="Mapa por capas" title="Mapa por capas">
+                <button type="button" class="sidebar-link" data-sidebar-view="capas" onclick="navegarA('capas')" aria-label="Mapa por capas">
                     <span class="sidebar-icon" aria-hidden="true">▦</span><span class="sidebar-link-label">Mapa por capas</span>
                 </button>
-                <button type="button" class="sidebar-link" data-sidebar-view="alertas" onclick="navegarA('alertas')" aria-label="Centro de alertas" title="Centro de alertas">
+                <button type="button" class="sidebar-link" data-sidebar-view="alertas" onclick="navegarA('alertas')" aria-label="Centro de alertas">
                     <span class="sidebar-icon" aria-hidden="true">⚑</span><span class="sidebar-link-label">Centro de alertas</span>
                     <span id="sensor-alert-badge" class="sidebar-alert-badge hidden" aria-label="0 lecturas fuera de rango">0</span>
                 </button>
-                <button type="button" class="sidebar-link" data-sidebar-view="reportes" onclick="navegarA('reportes')" aria-label="Reportes" title="Reportes">
+                <button type="button" class="sidebar-link" data-sidebar-view="reportes" onclick="navegarA('reportes')" aria-label="Reportes">
                     <span class="sidebar-icon" aria-hidden="true">▤</span><span class="sidebar-link-label">Reportes</span>
                 </button>
-                <button id="btn-menu-admin" type="button" class="sidebar-link hidden" data-sidebar-view="admin-usuarios" onclick="navegarA('admin-usuarios')" aria-label="Gestión de usuarios" title="Gestión de usuarios">
+                <button id="btn-menu-admin" type="button" class="sidebar-link hidden" data-sidebar-view="admin-usuarios" onclick="navegarA('admin-usuarios')" aria-label="Gestión de usuarios">
                     <span class="sidebar-icon" aria-hidden="true">♙</span><span class="sidebar-link-label">Gestión de usuarios</span>
                 </button>
             </nav>
-            <button type="button" class="sidebar-tour-button" onclick="iniciarRecorridoGuiado()" title="Recorrido guiado por las funciones">
+            <button type="button" class="sidebar-tour-button" onclick="iniciarRecorridoGuiado()" aria-label="Recorrido guiado por las funciones">
                 <span aria-hidden="true">✨</span><span class="sidebar-link-label">Recorrido guiado</span>
             </button>
         </aside>
