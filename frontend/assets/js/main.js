@@ -274,6 +274,7 @@ function toggleSidebar() {
 function actualizarNavegacionLateral(vista) {
     const vistas = ["dashboard", "capas", "alertas", "reportes", "admin-usuarios"];
     const activa = vistas.includes(vista) ? vista : null;
+    const nav = document.querySelector(".sidebar-nav");
     document.querySelectorAll("[data-sidebar-view]").forEach(button => {
         if (button.dataset.sidebarView === activa) {
             button.setAttribute("aria-current", "page");
@@ -281,6 +282,17 @@ function actualizarNavegacionLateral(vista) {
             button.removeAttribute("aria-current");
         }
     });
+    actualizarIndicadorNavegacionLateral(nav);
+}
+
+function actualizarIndicadorNavegacionLateral(nav = document.querySelector(".sidebar-nav")) {
+    if (!nav) return;
+    const activa = nav.querySelector('.sidebar-link[aria-current="page"]');
+    nav.classList.toggle("has-active-link", Boolean(activa));
+    if (!activa) return;
+    const navRect = nav.getBoundingClientRect();
+    const activeRect = activa.getBoundingClientRect();
+    nav.style.setProperty("--sidebar-active-top", `${activeRect.top - navRect.top + nav.scrollTop}px`);
 }
 
 function inicializarBarraLateral() {
@@ -297,6 +309,8 @@ function inicializarBarraLateral() {
     } catch (error) {
         console.warn("No se pudo recuperar el estado de la barra lateral.", error);
     }
+    actualizarIndicadorNavegacionLateral();
+    window.addEventListener("resize", () => actualizarIndicadorNavegacionLateral(), { passive: true });
     document.addEventListener("keydown", event => {
         if (event.key === "Escape") {
             cerrarMobileNav();
