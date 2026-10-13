@@ -2,6 +2,7 @@
 // 🔔 SISTEMA DE NOTIFICACIONES TOAST
 // ============================================================
 function mostrarNotificacion(mensaje, tipo = "info") {
+    if (tipo === "exito") reproducirFeedbackSonoro("confirmacion");
     const container = document.getElementById("toast-container");
     if (!container) return;
 
@@ -189,6 +190,7 @@ function navegarA(vista) {
         navegarA("auth");
         return;
     }
+    document.body.classList.toggle("sidebar-fixed-layout", vista !== "auth");
 
     // Ocultar todas las secciones
     document.getElementById("vista-dashboard")?.classList.add("hidden");
@@ -207,6 +209,7 @@ function navegarA(vista) {
         document.getElementById("notification-menu-wrap")?.classList.add("hidden");
         document.getElementById("dashboard-header-context")?.classList.add("hidden");
         document.getElementById("btn-menu-configuracion")?.classList.add("hidden");
+        document.getElementById("btn-dashboard-fullscreen")?.classList.add("hidden");
 
         document.getElementById("vista-auth")?.classList.remove("hidden");
         animarEntradaAuth();
@@ -257,12 +260,14 @@ function aplicarVistaDashboard(vista) {
 
 function mostrarDashboard(nombre, idRol) {
     // 🔓 Mostrar navegación y acciones superiores únicamente con sesión válida
+    document.body.classList.add("sidebar-fixed-layout");
     document.getElementById("app-sidebar")?.classList.remove("hidden");
     document.getElementById("btn-mobile-nav")?.classList.remove("hidden");
     document.getElementById("account-menu-wrap")?.classList.remove("hidden");
     document.getElementById("notification-menu-wrap")?.classList.remove("hidden");
     document.getElementById("dashboard-header-context")?.classList.remove("hidden");
     document.getElementById("btn-menu-configuracion")?.classList.remove("hidden");
+    document.getElementById("btn-dashboard-fullscreen")?.classList.remove("hidden");
     renderizarNotificaciones();
     if (typeof cargarAlertasCompartidas === "function") void cargarAlertasCompartidas({ silencioso: true });
 
@@ -522,11 +527,73 @@ document.addEventListener("DOMContentLoaded", () => {
 const SETTINGS_KEYS = {
     refresh: "smartcity_refresh_seconds",
     reportPeriod: "smartcity_report_period",
-    reducedMotion: "smartcity_reduce_motion"
+    reducedMotion: "smartcity_reduce_motion",
+    soundFeedback: "smartcity_sound_feedback",
+    hapticFeedback: "smartcity_haptic_feedback"
 };
 let dashboardRefreshTimer = null;
 let jsPDFLoadPromise = null;
 let dashboardClockTimer = null;
+let feedbackAudioContext = null;
+
+function preferenciaActiva(key) {
+    try { return localStorage.getItem(key) === "true"; }
+    catch (error) { return false; }
+}
+
+function reproducirFeedbackSonoro(tipo = "toque") {
+    if (!preferenciaActiva(SETTINGS_KEYS.soundFeedback)) return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    try {
+        feedbackAudioContext ||= new AudioContextClass();
+        const contexto = feedbackAudioContext;
+        const emitir = () => {
+            const tonos = tipo === "confirmacion" ? [{ frecuencia: 660, demora: 0 }, { frecuencia: 880, demora: .085 }] : [{ frecuencia: 740, demora: 0 }];
+            tonos.forEach(({ frecuencia, demora }) => {
+                const inicio = contexto.currentTime + demora;
+                const duracion = tipo === "confirmacion" ? .075 : .045;
+                const oscilador = contexto.createOscillator();
+                const volumen = contexto.createGain();
+                oscilador.type = "sine";
+                oscilador.frequency.setValueAtTime(frecuencia, inicio);
+                volumen.gain.setValueAtTime(.0001, inicio);
+                volumen.gain.exponentialRampToValueAtTime(.022, inicio + .008);
+                volumen.gain.exponentialRampToValueAtTime(.0001, inicio + duracion);
+                oscilador.connect(volumen);
+                volumen.connect(contexto.destination);
+                oscilador.start(inicio);
+                oscilador.stop(inicio + duracion + .01);
+                oscilador.addEventListener("ended", () => { oscilador.disconnect(); volumen.disconnect(); }, { once: true });
+            });
+        };
+        if (contexto.state === "suspended") void contexto.resume().then(emitir).catch(() => {});
+        else emitir();
+    } catch (error) {
+        // El audio es opcional y puede no estar disponible en algunos navegadores.
+    }
+}
+
+function emitirFeedbackTactil() {
+    if (!preferenciaActiva(SETTINGS_KEYS.hapticFeedback) || typeof navigator.vibrate !== "function") return;
+    try { navigator.vibrate(8); } catch (error) { /* La vibración depende del dispositivo y el navegador. */ }
+}
+
+function instalarFeedbackInteractivo() {
+    document.addEventListener("click", event => {
+        if (!event.isTrusted || !(event.target instanceof Element)) return;
+        const control = event.target.closest("button, [role='button']");
+        if (!control || control.getAttribute("aria-disabled") === "true") return;
+        reproducirFeedbackSonoro();
+        emitirFeedbackTactil();
+    }, { capture: true });
+    document.addEventListener("change", event => {
+        if (!event.isTrusted || !(event.target instanceof Element) || !event.target.matches("select, input[type='checkbox'], input[type='range']")) return;
+        if (event.target.id === "config-sound-feedback" || event.target.id === "config-haptic-feedback") return;
+        reproducirFeedbackSonoro();
+    });
+}
 
 function actualizarRelojDashboard() {
     const ahora = new Date();
@@ -768,6 +835,7 @@ async function cargarResumenCuenta() {
     const nombre = document.getElementById("account-menu-name");
     const email = document.getElementById("account-menu-email");
     const rol = document.getElementById("account-menu-role");
+    email?.classList.add("skeleton-account-loading");
     try {
         const { ok, data } = await apiFetch("/api/perfil");
         if (!ok) return;
@@ -776,6 +844,8 @@ async function cargarResumenCuenta() {
         if (rol) rol.textContent = data.rol || "Cuenta activa";
     } catch (error) {
         if (email) email.textContent = "No se pudieron cargar los datos de cuenta.";
+    } finally {
+        email?.classList.remove("skeleton-account-loading");
     }
 }
 
@@ -783,6 +853,8 @@ function cargarConfiguracionEnControles() {
     const refresh = document.getElementById("config-refresh-interval");
     const period = document.getElementById("config-default-period");
     const reduceMotion = document.getElementById("config-reduce-motion");
+    const soundFeedback = document.getElementById("config-sound-feedback");
+    const hapticFeedback = document.getElementById("config-haptic-feedback");
     const reportSelector = document.getElementById("sensor-report-period");
     try {
         const savedRefresh = localStorage.getItem(SETTINGS_KEYS.refresh) || "0";
@@ -792,6 +864,8 @@ function cargarConfiguracionEnControles() {
         if (period) period.value = savedPeriod;
         if (reportSelector && reportSelector.querySelector(`option[value="${savedPeriod}"]`)) reportSelector.value = savedPeriod;
         if (reduceMotion) reduceMotion.checked = savedReduceMotion;
+        if (soundFeedback) soundFeedback.checked = localStorage.getItem(SETTINGS_KEYS.soundFeedback) === "true";
+        if (hapticFeedback) hapticFeedback.checked = localStorage.getItem(SETTINGS_KEYS.hapticFeedback) === "true";
         document.body.classList.toggle("reduce-motion", savedReduceMotion);
         configureDashboardRefresh(Number(savedRefresh));
     } catch (error) {
@@ -823,6 +897,18 @@ function initDashboardSettings() {
         localStorage.setItem(SETTINGS_KEYS.reducedMotion, String(event.target.checked));
         mostrarEstadoConfiguracion("Preferencia de animación guardada.");
     });
+    document.getElementById("config-sound-feedback")?.addEventListener("change", event => {
+        try { localStorage.setItem(SETTINGS_KEYS.soundFeedback, String(event.target.checked)); }
+        catch (error) { console.warn("No se pudo guardar el sonido de interfaz.", error); }
+        if (event.target.checked) reproducirFeedbackSonoro("confirmacion");
+        mostrarEstadoConfiguracion(event.target.checked ? "Sonidos de interfaz activados." : "Sonidos de interfaz desactivados.");
+    });
+    document.getElementById("config-haptic-feedback")?.addEventListener("change", event => {
+        try { localStorage.setItem(SETTINGS_KEYS.hapticFeedback, String(event.target.checked)); }
+        catch (error) { console.warn("No se pudo guardar la vibración táctil.", error); }
+        if (event.target.checked) emitirFeedbackTactil();
+        mostrarEstadoConfiguracion(event.target.checked ? "Vibración táctil activada si el dispositivo la admite." : "Vibración táctil desactivada.");
+    });
     document.getElementById("config-refresh-interval")?.addEventListener("change", event => {
         localStorage.setItem(SETTINGS_KEYS.refresh, event.target.value);
         configureDashboardRefresh(Number(event.target.value));
@@ -836,7 +922,40 @@ function initDashboardSettings() {
         mostrarEstadoConfiguracion("Periodo inicial del reporte guardado.");
     });
     document.getElementById("config-reset")?.addEventListener("click", restablecerConfiguracion);
+    instalarFeedbackInteractivo();
+    inicializarPantallaCompletaDashboard();
     cargarConfiguracionEnControles();
+}
+
+function inicializarPantallaCompletaDashboard() {
+    const button = document.getElementById("btn-dashboard-fullscreen");
+    const fullscreenRoot = document.documentElement;
+    if (!button) return;
+    if (typeof fullscreenRoot.requestFullscreen !== "function" || typeof document.exitFullscreen !== "function") {
+        button.hidden = true;
+        return;
+    }
+
+    const sincronizar = () => {
+        const activa = document.fullscreenElement === fullscreenRoot;
+        button.setAttribute("aria-label", activa ? "Salir de pantalla completa" : "Activar pantalla completa");
+        button.title = activa ? "Salir de pantalla completa" : "Pantalla completa";
+        const icon = document.getElementById("dashboard-fullscreen-icon");
+        if (icon) icon.textContent = activa ? "⤢" : "⛶";
+    };
+
+    document.addEventListener("fullscreenchange", sincronizar);
+    sincronizar();
+}
+
+async function togglePantallaCompletaDashboard() {
+    const fullscreenRoot = document.documentElement;
+    try {
+        if (document.fullscreenElement === fullscreenRoot) await document.exitFullscreen();
+        else await fullscreenRoot.requestFullscreen();
+    } catch (error) {
+        if (typeof mostrarNotificacion === "function") mostrarNotificacion("No se pudo activar la pantalla completa en este navegador.", "error");
+    }
 }
 
 function mostrarEstadoConfiguracion(mensaje) {

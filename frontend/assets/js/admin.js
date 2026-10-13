@@ -9,7 +9,9 @@ async function cargarUsuariosAdmin() {
     tabla.innerHTML = `
         <tr>
             <td colspan="7" class="px-4 py-8 text-center text-slate-400">
-                ⏳ Cargando usuarios...
+                <span class="admin-loading-state" role="status" aria-label="Cargando usuarios">
+                    <span class="admin-skeleton-line"></span><span class="admin-skeleton-line"></span><span class="admin-skeleton-line"></span>
+                </span>
             </td>
         </tr>
     `;

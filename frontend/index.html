@@ -81,13 +81,16 @@
                     <div id="account-menu" class="hidden account-menu absolute right-0 mt-2 w-72 bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-2xl z-50">
                         <div class="pb-3 border-b border-slate-700/70">
                             <p id="account-menu-name" class="font-bold text-white">Usuario</p>
-                            <p id="account-menu-email" class="text-xs text-slate-400 mt-1">Cargando cuenta…</p>
+                            <p id="account-menu-email" class="text-xs text-slate-400 mt-1 skeleton-account-loading">Cargando cuenta…</p>
                             <p id="account-menu-role" class="text-xs text-blue-300 mt-2">Cuenta activa</p>
                         </div>
                         <button type="button" onclick="navegarA('perfil'); cerrarAccountMenu()" class="w-full text-left px-3 py-2.5 mt-2 rounded-lg text-sm text-slate-200 hover:bg-slate-700">👤 Mi cuenta y seguridad</button>
                         <button type="button" onclick="cerrarSesion()" class="w-full text-left px-3 py-2.5 rounded-lg text-sm text-rose-300 hover:bg-rose-500/10">↪ Cerrar sesión</button>
                     </div>
                 </div>
+                <button id="btn-dashboard-fullscreen" type="button" onclick="togglePantallaCompletaDashboard()" aria-label="Activar pantalla completa" title="Pantalla completa" class="hidden header-icon-control">
+                    <span id="dashboard-fullscreen-icon" aria-hidden="true">⛶</span>
+                </button>
                 <button id="btn-menu-configuracion" type="button" onclick="navegarA('configuracion')" aria-label="Configuración" title="Configuración" class="hidden px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
                     <span aria-hidden="true">⚙️</span>
                 </button>
@@ -287,44 +290,44 @@
                     <div class="weather-current-summary">
                         <span id="wx-icon" class="weather-icon" aria-hidden="true">🌤️</span>
                         <div>
-                            <p id="wx-temperature" class="weather-temperature">—°</p>
+                            <p id="wx-temperature" class="weather-temperature skeleton-loading">—°</p>
                             <p id="wx-condition" class="weather-condition">Consultando el estado del cielo…</p>
                         </div>
                     </div>
                     <div class="weather-grid" aria-label="Condiciones meteorológicas actuales">
                         <article class="weather-card">
                             <h3>🌧️ Precipitación</h3>
-                            <strong id="wx-rain" class="weather-value">—</strong>
+                            <strong id="wx-rain" class="weather-value skeleton-loading">—</strong>
                             <span class="weather-unit">mm</span>
                         </article>
                         <article class="weather-card">
                             <h3>💨 Viento</h3>
-                            <strong id="wx-wind" class="weather-value">—</strong>
+                            <strong id="wx-wind" class="weather-value skeleton-loading">—</strong>
                             <span class="weather-unit">km/h</span>
                         </article>
                         <article class="weather-card">
                             <h3>💧 Humedad</h3>
-                            <strong id="wx-humidity" class="weather-value">—</strong>
+                            <strong id="wx-humidity" class="weather-value skeleton-loading">—</strong>
                             <span class="weather-unit">%</span>
                         </article>
                         <article class="weather-card">
                             <h3>🌡️ Sensación térmica</h3>
-                            <strong id="wx-apparent-temperature" class="weather-value">—</strong>
+                            <strong id="wx-apparent-temperature" class="weather-value skeleton-loading">—</strong>
                             <span class="weather-unit">°C</span>
                         </article>
                         <article class="weather-card">
                             <h3>☔ Probabilidad de lluvia ahora</h3>
-                            <strong id="wx-rain-probability" class="weather-value">—</strong>
+                            <strong id="wx-rain-probability" class="weather-value skeleton-loading">—</strong>
                             <span class="weather-unit">%</span>
                         </article>
                         <article class="weather-card">
                             <h3>💨 Ráfagas de viento</h3>
-                            <strong id="wx-wind-gusts" class="weather-value">—</strong>
+                            <strong id="wx-wind-gusts" class="weather-value skeleton-loading">—</strong>
                             <span class="weather-unit">km/h</span>
                         </article>
                         <article class="weather-card">
                             <h3>🔆 Índice UV</h3>
-                            <strong id="wx-uv-index" class="weather-value">—</strong>
+                            <strong id="wx-uv-index" class="weather-value skeleton-loading">—</strong>
                             <span class="weather-unit">actual</span>
                         </article>
                     </div>
@@ -346,7 +349,7 @@
                     <span class="dashboard-metric-icon" aria-hidden="true">🌡️</span>
                     <div class="dashboard-metric-copy">
                         <p>Temperatura actual</p>
-                        <strong id="metric-temp">-- °C</strong>
+                        <strong id="metric-temp" class="skeleton-loading">-- °C</strong>
                         <span id="metric-temp-source">Fuente pendiente</span>
                     </div>
                     <span class="dashboard-metric-unit" aria-hidden="true">°C</span>
@@ -355,7 +358,7 @@
                     <span class="dashboard-metric-icon" aria-hidden="true">💧</span>
                     <div class="dashboard-metric-copy">
                         <p>Humedad relativa actual</p>
-                        <strong id="metric-hum">-- %</strong>
+                        <strong id="metric-hum" class="skeleton-loading">-- %</strong>
                         <span id="metric-hum-source">Fuente pendiente</span>
                     </div>
                     <span class="dashboard-metric-unit" aria-hidden="true">%</span>
@@ -364,7 +367,7 @@
                     <span class="dashboard-metric-icon" aria-hidden="true">🍃</span>
                     <div class="dashboard-metric-copy">
                         <p>Calidad del aire</p>
-                        <strong id="metric-aire">-- ICA</strong>
+                        <strong id="metric-aire" class="skeleton-loading">-- ICA</strong>
                         <span id="metric-aire-source">Fuente pendiente</span>
                     </div>
                     <span class="dashboard-metric-unit" aria-hidden="true">ICA</span>
@@ -380,27 +383,27 @@
                 <div class="dashboard-metrics" aria-label="Lecturas urbanas enviadas por el ESP32">
                 <article class="dashboard-metric-card dashboard-metric-card--distance">
                     <span class="dashboard-metric-icon" aria-hidden="true">📏</span>
-                    <div class="dashboard-metric-copy"><p>Proximidad HC-SR04</p><strong id="metric-distance">— cm</strong><span>Distancia en centímetros</span><span id="metric-distance-source">Sin lectura recibida</span></div>
+                    <div class="dashboard-metric-copy"><p>Proximidad HC-SR04</p><strong id="metric-distance" class="skeleton-loading">— cm</strong><span>Distancia en centímetros</span><span id="metric-distance-source">Sin lectura recibida</span></div>
                     <span class="dashboard-metric-unit" aria-hidden="true">CM</span>
                 </article>
                 <article class="dashboard-metric-card dashboard-metric-card--rain">
                     <span class="dashboard-metric-icon" aria-hidden="true">🌧️</span>
-                    <div class="dashboard-metric-copy"><p>Sensor de lluvia</p><strong id="metric-rain">Sin lectura</strong><span>Detecta presencia; no mide milímetros</span><span id="metric-rain-source">Sin lectura recibida</span></div>
+                    <div class="dashboard-metric-copy"><p>Sensor de lluvia</p><strong id="metric-rain" class="skeleton-loading">Sin lectura</strong><span>Detecta presencia; no mide milímetros</span><span id="metric-rain-source">Sin lectura recibida</span></div>
                     <span class="dashboard-metric-unit" aria-hidden="true">ESTADO</span>
                 </article>
                 <article class="dashboard-metric-card dashboard-metric-card--light">
                     <span class="dashboard-metric-icon" aria-hidden="true">☀️</span>
-                    <div class="dashboard-metric-copy"><p>Luminosidad LDR</p><strong id="metric-light">—</strong><span>Lectura cruda · calibrar para expresar en lux</span><span id="metric-light-source">Sin lectura recibida</span></div>
+                    <div class="dashboard-metric-copy"><p>Luminosidad LDR</p><strong id="metric-light" class="skeleton-loading">—</strong><span>Lectura cruda · calibrar para expresar en lux</span><span id="metric-light-source">Sin lectura recibida</span></div>
                     <span class="dashboard-metric-unit" aria-hidden="true">LECTURA</span>
                 </article>
                 <article class="dashboard-metric-card dashboard-metric-card--water">
                     <span class="dashboard-metric-icon" aria-hidden="true">🌊</span>
-                    <div class="dashboard-metric-copy"><p>Nivel de agua</p><strong id="metric-water-level">—</strong><span>Lectura cruda · calibrar para mostrar porcentaje</span><span id="metric-water-source">Sin lectura recibida</span></div>
+                    <div class="dashboard-metric-copy"><p>Nivel de agua</p><strong id="metric-water-level" class="skeleton-loading">—</strong><span>Lectura cruda · calibrar para mostrar porcentaje</span><span id="metric-water-source">Sin lectura recibida</span></div>
                     <span class="dashboard-metric-unit" aria-hidden="true">LECTURA</span>
                 </article>
                 <article class="dashboard-metric-card dashboard-metric-card--tcrt">
                     <span class="dashboard-metric-icon" aria-hidden="true">🚗</span>
-                    <div class="dashboard-metric-copy"><p>Detección TCRT5000</p><strong id="metric-tcrt5000">Sin lectura</strong><span>Detección digital o reflectancia infrarroja</span><span id="metric-tcrt-source">Sin lectura recibida</span></div>
+                    <div class="dashboard-metric-copy"><p>Detección TCRT5000</p><strong id="metric-tcrt5000" class="skeleton-loading">Sin lectura</strong><span>Detección digital o reflectancia infrarroja</span><span id="metric-tcrt-source">Sin lectura recibida</span></div>
                     <span class="dashboard-metric-unit" aria-hidden="true">ESTADO</span>
                 </article>
                 </div>
@@ -673,6 +676,20 @@
                     </div>
                 </section>
             </div>
+            <section class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-6" aria-labelledby="config-feedback-title">
+                <h3 id="config-feedback-title" class="font-bold text-white">Sonido y respuesta táctil</h3>
+                <p class="text-xs text-slate-400 mt-1">Activa señales discretas para los controles. Se guardan solo en este navegador y están desactivadas inicialmente.</p>
+                <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <label class="flex items-center justify-between gap-4 text-sm text-slate-200">
+                        <span><strong class="block">Sonidos de interfaz</strong><span class="text-xs text-slate-400">Toque breve y tono al confirmar acciones.</span></span>
+                        <input id="config-sound-feedback" type="checkbox" class="h-5 w-5 accent-blue-600">
+                    </label>
+                    <label class="flex items-center justify-between gap-4 text-sm text-slate-200">
+                        <span><strong class="block">Vibración táctil</strong><span class="text-xs text-slate-400">Vibra al tocar controles, si el dispositivo lo admite.</span></span>
+                        <input id="config-haptic-feedback" type="checkbox" class="h-5 w-5 accent-blue-600">
+                    </label>
+                </div>
+            </section>
             <div class="flex flex-wrap items-center gap-3">
                 <button id="config-reset" type="button" class="px-4 py-2.5 rounded-xl border border-slate-600 text-slate-200 hover:bg-slate-700 text-sm font-semibold">Restablecer preferencias</button>
                 <span id="config-status" class="text-sm text-emerald-400" aria-live="polite"></span>

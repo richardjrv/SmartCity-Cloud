@@ -85,7 +85,11 @@
     padding: .8rem .45rem;
     border: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
     border-radius: 1rem;
-    background: color-mix(in srgb, var(--bg-input) 88%, transparent);
+    background:
+        radial-gradient(ellipse at 100% 0, color-mix(in srgb, var(--accent) 8%, transparent), transparent 10rem),
+        color-mix(in srgb, var(--bg-input) 68%, transparent);
+    backdrop-filter: blur(14px) saturate(135%);
+    -webkit-backdrop-filter: blur(14px) saturate(135%);
     text-align: center;
     animation: weather-card-arrive .5s cubic-bezier(.2, .75, .25, 1) both;
     transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
