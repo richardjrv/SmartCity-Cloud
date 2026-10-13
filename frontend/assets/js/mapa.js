@@ -289,6 +289,9 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
         };
         const item = document.createElement("article");
         item.className = `alert-item alert-item--${alerta.estado}`;
+        if (typeof prepararAnimacionAlerta === "function") {
+            prepararAnimacionAlerta(item, `sensor:${sensor.id}:${metrica}`, alerta);
+        }
         const main = document.createElement("div");
         main.className = "alert-item-main";
         const texto = document.createElement("div");

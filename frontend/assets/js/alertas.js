@@ -1,6 +1,7 @@
 let alertasCompartidas = [];
 let alertasInicializadas = false;
 let alertasCargando = false;
+const alertasVistas = new Set();
 
 const ESTADOS_ALERTA = [
     ["pendiente", "Pendiente"],
@@ -20,6 +21,23 @@ function alertaSensorGuardada(sensorId, metrica) {
 
 function etiquetaEstadoAlerta(estado) {
     return ESTADOS_ALERTA.find(([valor]) => valor === estado)?.[1] || "Pendiente";
+}
+
+function prioridadVisualAlerta(alerta) {
+    if (alerta.origen === "sensor") {
+        return /humedad/i.test(`${alerta.metrica || ""} ${alerta.titulo || ""}`) ? "media" : "alta";
+    }
+    return /\b(urgente|emergencia|incendio|inundacion|accidente|peligro|riesgo|herido|colapso)\b/i
+        .test(`${alerta.titulo || ""} ${alerta.descripcion || ""}`) ? "alta" : "media";
+}
+
+function prepararAnimacionAlerta(item, clave, alerta) {
+    const prioridad = prioridadVisualAlerta(alerta);
+    item.dataset.priority = prioridad;
+    if (alertasVistas.has(clave)) return;
+    alertasVistas.add(clave);
+    item.classList.add("alert-item--new");
+    window.setTimeout(() => item.classList.remove("alert-item--new"), 5600);
 }
 
 function actualizarEstadoVisualAlerta(item, estado) {
@@ -116,6 +134,7 @@ function renderizarAlertasReportadas(destino = document.getElementById("alert-ce
         const item = document.createElement("article");
         item.className = `alert-item alert-item--${alerta.estado}`;
         item.dataset.alertaReportada = String(alerta.id);
+        prepararAnimacionAlerta(item, `usuario:${alerta.id}`, alerta);
 
         const main = document.createElement("div");
         main.className = "alert-item-main";

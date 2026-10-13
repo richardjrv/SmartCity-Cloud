@@ -42,6 +42,15 @@
     font-size: clamp(3rem, 7vw, 4.7rem);
     line-height: 1;
     filter: drop-shadow(0 7px 16px color-mix(in srgb, var(--accent) 28%, transparent));
+    transition: filter .35s ease;
+}
+.weather-icon--sunny { filter: drop-shadow(0 7px 18px rgba(251, 191, 36, .55)); }
+.weather-icon--cloudy { filter: drop-shadow(0 7px 18px rgba(148, 163, 184, .42)); }
+.weather-icon--rainy { filter: drop-shadow(0 7px 18px rgba(56, 189, 248, .48)); }
+.weather-icon--changing { animation-name: weather-condition-change !important; animation-duration: .48s !important; animation-timing-function: ease-out !important; }
+@keyframes weather-condition-change {
+    0% { opacity: .45; filter: blur(3px) drop-shadow(0 7px 12px rgba(56, 189, 248, .18)); }
+    100% { opacity: 1; filter: blur(0) drop-shadow(0 7px 18px rgba(56, 189, 248, .42)); }
 }
 
 .weather-temperature {
@@ -175,6 +184,7 @@ body.high-contrast .weather-card {
 
 @media (prefers-reduced-motion: reduce) {
     .weather-card { animation: none; transition: none; }
+    .weather-icon--changing, .alert-item--new { animation: none !important; }
     .weather-panel.is-loading .weather-status::before,
     .weather-panel.is-updated .weather-status { animation: none; }
 }

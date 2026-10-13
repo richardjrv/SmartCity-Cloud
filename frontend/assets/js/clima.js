@@ -47,7 +47,24 @@
         const iconoNode = porId("wx-icon");
         const temperaturaNode = porId("wx-temperature");
         const condicionNode = porId("wx-condition");
-        if (iconoNode) iconoNode.textContent = icono;
+        if (iconoNode) {
+            const codigo = Number(clima.weather_code);
+            const tipoCondicion = codigo <= 1 ? "sunny"
+                : codigo === 2 || codigo === 3 || codigo === 45 || codigo === 48 ? "cloudy"
+                    : codigo >= 51 ? "rainy" : "cloudy";
+            if (iconoNode.dataset.weatherCondition !== tipoCondicion) {
+                if (iconoNode.dataset.weatherCondition) {
+                    iconoNode.classList.remove("weather-icon--changing");
+                    void iconoNode.offsetWidth;
+                    iconoNode.classList.add("weather-icon--changing");
+                    window.setTimeout(() => iconoNode.classList.remove("weather-icon--changing"), 520);
+                }
+                iconoNode.dataset.weatherCondition = tipoCondicion;
+            }
+            iconoNode.classList.remove("weather-icon--sunny", "weather-icon--cloudy", "weather-icon--rainy");
+            iconoNode.classList.add(`weather-icon--${tipoCondicion}`);
+            iconoNode.textContent = icono;
+        }
         if (condicionNode) condicionNode.textContent = condicion;
         if (temperaturaNode) {
             temperaturaNode.textContent = Number.isFinite(temperatura)
