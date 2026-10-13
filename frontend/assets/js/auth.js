@@ -201,6 +201,7 @@ async function procesarAuth(e) {
 
         retoPinActual = data.challenge_token;
         configurarPinActual = Boolean(data.configurar_pin);
+        document.getElementById("auth-password").value = "";
         mostrarPasoPin(data.nombre);
     } catch (error) {
         mostrarMensajeAuth("❌ Error de conexión con el servidor.", "error");
@@ -215,6 +216,7 @@ function mostrarPasoPin(nombre) {
     const descripcion = document.getElementById("pin-step-description");
     const boton = document.getElementById("pin-step-submit");
     const confirmacion = document.getElementById("pin-confirmation-fields");
+    const botonRestablecer = document.getElementById("pin-reset-open");
     const estado = document.getElementById("pin-step-status");
 
     formularioAuth?.classList.add("hidden");
@@ -228,6 +230,7 @@ function mostrarPasoPin(nombre) {
     }
     if (boton) boton.textContent = configurarPinActual ? "Guardar PIN y continuar" : "Verificar PIN";
     confirmacion?.classList.toggle("hidden", !configurarPinActual);
+    botonRestablecer?.classList.toggle("hidden", configurarPinActual);
     establecerCamposObligatorios("[data-pin-group='login-pin-confirmacion']", configurarPinActual);
     limpiarPin("login-pin");
     limpiarPin("login-pin-confirmacion");
@@ -295,6 +298,9 @@ function completarInicioSesion(data) {
     localStorage.setItem("user_role_cloud", data.id_rol);
     localStorage.setItem("user_name_cloud", data.nombre);
     localStorage.setItem("user_id_cloud", data.user_id);
+    limpiarPin("login-pin");
+    limpiarPin("login-pin-confirmacion");
+    document.getElementById("form-pin-reset")?.reset();
     mostrarDashboard(data.nombre, data.id_rol);
 }
 
@@ -304,6 +310,8 @@ function cancelarPasoPin(mensaje = "") {
     limpiarPin("login-pin");
     limpiarPin("login-pin-confirmacion");
     document.getElementById("form-pin-step")?.classList.add("hidden");
+    document.getElementById("form-pin-reset")?.classList.add("hidden");
+    document.getElementById("form-pin-reset")?.reset();
     document.getElementById("form-auth")?.classList.remove("hidden");
     document.getElementById("auth-toggle-container")?.classList.remove("hidden");
     establecerCamposObligatorios("[data-pin-group='login-pin-confirmacion']", false);
@@ -311,6 +319,56 @@ function cancelarPasoPin(mensaje = "") {
     if (clave) clave.value = "";
     ocultarPasswordAuth();
     if (mensaje) mostrarMensajeAuth(mensaje, "error");
+}
+
+function mostrarRestablecerPin() {
+    document.getElementById("form-pin-step")?.classList.add("hidden");
+    document.getElementById("form-pin-reset")?.classList.remove("hidden");
+    document.getElementById("pin-reset-email").value = document.getElementById("auth-email").value.trim();
+    document.getElementById("pin-reset-password").value = "";
+    document.getElementById("pin-reset-status").textContent = "";
+    document.getElementById("pin-reset-email")?.focus();
+}
+
+function volverAVerificarPin() {
+    document.getElementById("form-pin-reset")?.classList.add("hidden");
+    document.getElementById("form-pin-step")?.classList.remove("hidden");
+}
+
+async function procesarRestablecerPin(evento) {
+    evento.preventDefault();
+    const estado = document.getElementById("pin-reset-status");
+    const boton = document.getElementById("pin-reset-submit");
+    estado.textContent = "";
+    boton.disabled = true;
+    boton.textContent = "Validando…";
+
+    try {
+        const { ok, data } = await apiFetch("/login/recuperar-pin", {
+            method: "POST",
+            body: JSON.stringify({
+                email: document.getElementById("pin-reset-email").value.trim(),
+                password: document.getElementById("pin-reset-password").value
+            })
+        });
+        if (!ok) {
+            estado.textContent = data.detail || "No se pudo validar la cuenta.";
+            return;
+        }
+
+        document.getElementById("pin-reset-password").value = "";
+        retoPinActual = data.challenge_token;
+        configurarPinActual = true;
+        document.getElementById("form-pin-reset")?.classList.add("hidden");
+        mostrarPasoPin("");
+        const descripcion = document.getElementById("pin-step-description");
+        if (descripcion) descripcion.textContent = "Contraseña validada. Elige y confirma tu PIN nuevo.";
+    } catch (error) {
+        estado.textContent = "No se pudo conectar con el servidor. Inténtalo otra vez.";
+    } finally {
+        boton.disabled = false;
+        boton.textContent = "Validar y continuar";
+    }
 }
 
 function mostrarMensajeAuth(texto, tipo) {

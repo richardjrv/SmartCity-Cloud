@@ -16,9 +16,21 @@ def obtener_contexto_ciudad_supabase():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT sensor_id, temperatura, humedad, calidad_aire, fecha_hora FROM lecturas_sensores ORDER BY fecha_hora DESC LIMIT 1")
+        cursor.execute(
+            """SELECT sensor_id, temperatura, humedad, calidad_aire, distancia_cm,
+                      lluvia_detectada, luminosidad, nivel_agua,
+                      reflectancia_tcrt5000, tcrt5000_detectado, fecha_hora
+               FROM public.lecturas_sensores ORDER BY fecha_hora DESC LIMIT 1"""
+        )
         ultima = cursor.fetchone()
-        cursor.execute("SELECT ROUND(AVG(temperatura)::numeric, 2), MAX(temperatura), MIN(temperatura), ROUND(AVG(humedad)::numeric, 2), ROUND(AVG(calidad_aire)::numeric, 2), COUNT(*) FROM lecturas_sensores WHERE fecha_hora >= NOW() - INTERVAL '24 hours'")
+        cursor.execute(
+            """SELECT ROUND(AVG(temperatura)::numeric, 2), MAX(temperatura), MIN(temperatura),
+                      ROUND(AVG(humedad)::numeric, 2), ROUND(AVG(calidad_aire)::numeric, 2),
+                      ROUND(AVG(distancia_cm)::numeric, 2), BOOL_OR(lluvia_detectada),
+                      ROUND(AVG(luminosidad)::numeric, 2), ROUND(AVG(nivel_agua)::numeric, 2),
+                      ROUND(AVG(reflectancia_tcrt5000)::numeric, 2), COUNT(*)
+               FROM public.lecturas_sensores WHERE fecha_hora >= NOW() - INTERVAL '24 hours'"""
+        )
         stats_24h = cursor.fetchone()
         cursor.execute("SELECT DISTINCT sensor_id FROM lecturas_sensores WHERE fecha_hora >= NOW() - INTERVAL '7 days'")
         sensores_activos = [s[0] for s in cursor.fetchall()]
@@ -27,12 +39,23 @@ def obtener_contexto_ciudad_supabase():
 
         contexto = "--- DATOS REALES EN TIEMPO REAL DESDE SUPABASE ---\n"
         if ultima:
-            contexto += f"• Última medición ({ultima[4]}): Sensor {ultima[0]}, Temp: {ultima[1]} °C, Hum: {ultima[2]} %, Calidad Aire: {ultima[3]} ICA\n"
+            contexto += (
+                f"• Última medición ({ultima[10]}): Sensor {ultima[0]}, Temp: {ultima[1]} °C, "
+                f"Hum: {ultima[2]} %, Calidad Aire: {ultima[3]} ICA, Distancia HC-SR04: {ultima[4]} cm, "
+                f"Lluvia detectada: {ultima[5]}, Lectura LDR: {ultima[6]}, Nivel de agua: {ultima[7]}, "
+                f"Reflectancia TCRT5000: {ultima[8]}, Detección TCRT5000: {ultima[9]}\n"
+            )
         else:
             contexto += "• No hay mediciones recientes.\n"
 
-        if stats_24h and stats_24h[5] > 0:
-            contexto += f"• Promedio 24h ({stats_24h[5]} muestras): Max {stats_24h[1]}°C, Min {stats_24h[2]}°C, Prom {stats_24h[0]}°C, Hum Prom {stats_24h[3]}%, Aire Prom {stats_24h[4]} ICA\n"
+        if stats_24h and stats_24h[10] > 0:
+            contexto += (
+                f"• Promedio 24h ({stats_24h[10]} lecturas): Max {stats_24h[1]}°C, Min {stats_24h[2]}°C, "
+                f"Temp Prom {stats_24h[0]}°C, Hum Prom {stats_24h[3]}%, Aire Prom {stats_24h[4]} ICA, "
+                f"Distancia Prom {stats_24h[5]} cm, Lluvia detectada en alguna lectura: {stats_24h[6]}, "
+                f"LDR Prom {stats_24h[7]}, Nivel de agua Prom {stats_24h[8]}, "
+                f"Reflectancia TCRT5000 Prom {stats_24h[9]}\n"
+            )
         
         contexto += f"• Sensores Activos: {', '.join(sensores_activos) if sensores_activos else 'Ninguno'}\n"
         return contexto

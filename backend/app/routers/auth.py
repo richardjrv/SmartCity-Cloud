@@ -33,6 +33,13 @@ def _crear_reto(cursor, user_id: int, proposito: str) -> str:
     challenge_id = secrets.token_urlsafe(32)
     cursor.execute(
         """
+        DELETE FROM public.auth_pin_challenges
+        WHERE expires_at < NOW() - INTERVAL '1 day'
+           OR consumed_at < NOW() - INTERVAL '1 day'
+        """
+    )
+    cursor.execute(
+        """
         INSERT INTO public.auth_pin_challenges (id, user_id, purpose, expires_at)
         VALUES (%s, %s, %s, %s)
         """,
@@ -190,7 +197,8 @@ def _obtener_reto_bloqueado(cursor, claims, proposito_esperado):
         (claims["challenge_id"], claims["user_id"]),
     )
     reto = cursor.fetchone()
-    if not reto or reto[1] != proposito_esperado:
+    propositos_validos = proposito_esperado if isinstance(proposito_esperado, tuple) else (proposito_esperado,)
+    if not reto or reto[1] not in propositos_validos:
         raise HTTPException(status_code=401, detail="El paso de verificación ya no es válido. Inicia sesión otra vez.")
     if reto[4] is not None:
         raise HTTPException(status_code=401, detail="Este PIN ya se utilizó. Inicia sesión otra vez.")
@@ -201,8 +209,15 @@ def _obtener_reto_bloqueado(cursor, claims, proposito_esperado):
     return reto
 
 
-def _completar_sesion(cursor, conn, usuario, challenge_id):
-    cursor.execute("UPDATE public.auth_pin_challenges SET consumed_at = NOW() WHERE id = %s", (challenge_id,))
+def _completar_sesion(cursor, conn, usuario):
+    cursor.execute(
+        """
+        UPDATE public.auth_pin_challenges
+        SET consumed_at = NOW()
+        WHERE user_id = %s AND consumed_at IS NULL
+        """,
+        (usuario[5],),
+    )
     cursor.execute(
         """
         UPDATE public.usuarios
@@ -269,7 +284,7 @@ def verificar_pin(datos: PinChallengeData):
                 raise HTTPException(status_code=429, detail="Demasiados intentos. El PIN quedó bloqueado por 15 minutos.")
             raise HTTPException(status_code=401, detail=f"PIN incorrecto. Te quedan {PIN_MAX_INTENTOS - intentos} intentos.")
 
-        return _completar_sesion(cursor, conn, reto, claims["challenge_id"])
+        return _completar_sesion(cursor, conn, reto)
     except HTTPException:
         if conn:
             conn.rollback()
@@ -288,16 +303,18 @@ def verificar_pin(datos: PinChallengeData):
 
 @router.post("/login/establecer-pin")
 def establecer_pin(datos: PinChallengeData):
-    """Activa el PIN para cuentas existentes que se registraron antes de esta mejora."""
+    """Activa un PIN nuevo para una cuenta existente o después de autenticar su contraseña."""
     claims = _leer_reto(datos.challenge_token)
     conn = None
     cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        reto = _obtener_reto_bloqueado(cursor, claims, "setup")
-        if reto[9]:
+        reto = _obtener_reto_bloqueado(cursor, claims, ("setup", "reset"))
+        if reto[1] == "setup" and reto[9]:
             raise HTTPException(status_code=409, detail="Esta cuenta ya tiene un PIN. Inicia sesión de nuevo.")
+        if reto[1] == "reset" and not reto[9]:
+            raise HTTPException(status_code=409, detail="Esta cuenta aún no tiene un PIN. Inicia sesión para configurarlo.")
 
         cursor.execute(
             """
@@ -308,7 +325,7 @@ def establecer_pin(datos: PinChallengeData):
             """,
             (_hash_pin(datos.pin), reto[5]),
         )
-        respuesta = _completar_sesion(cursor, conn, reto, claims["challenge_id"])
+        respuesta = _completar_sesion(cursor, conn, reto)
         registrar_auditoria(reto[5], "PIN_CONFIGURADO", "autenticacion", "PIN de acceso configurado")
         return respuesta
     except HTTPException:
@@ -320,6 +337,53 @@ def establecer_pin(datos: PinChallengeData):
             conn.rollback()
         print(f"No se pudo configurar el PIN: {error}")
         raise HTTPException(status_code=503, detail="No se pudo guardar el PIN ahora. Inténtalo nuevamente.") from error
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@router.post("/login/recuperar-pin")
+def iniciar_recuperacion_pin(datos: LoginData):
+    """Permite cambiar un PIN olvidado después de volver a validar la contraseña."""
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT id, password_hash, COALESCE(estado, 'activo'), pin_hash
+            FROM public.usuarios
+            WHERE lower(email) = lower(%s)
+            """,
+            (datos.email.strip(),),
+        )
+        usuario = cursor.fetchone()
+        if not usuario or not verificar_password(datos.password, usuario[1]):
+            raise HTTPException(status_code=401, detail="Credenciales incorrectas.")
+        if usuario[2] != "activo":
+            raise HTTPException(status_code=403, detail="Tu cuenta está desactivada. Contacta al administrador.")
+        if not usuario[3]:
+            raise HTTPException(status_code=409, detail="Esta cuenta aún no tiene PIN. Inicia sesión para configurarlo.")
+
+        reto = _crear_reto(cursor, usuario[0], "reset")
+        conn.commit()
+        return {
+            "challenge_token": reto,
+            "mensaje": "Confirma tu contraseña y crea un PIN nuevo.",
+            "expira_en_segundos": PIN_RETO_MINUTOS * 60,
+        }
+    except HTTPException:
+        if conn:
+            conn.rollback()
+        raise
+    except Exception as error:
+        if conn:
+            conn.rollback()
+        print(f"No se pudo iniciar la recuperación del PIN: {error}")
+        raise HTTPException(status_code=503, detail="No se pudo iniciar la recuperación. Inténtalo nuevamente.") from error
     finally:
         if cursor:
             cursor.close()
