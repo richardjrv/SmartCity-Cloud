@@ -169,6 +169,9 @@ function navegarA(vista) {
             dashboardSensorDataRequested = true;
             cargarMapaSensores();
         }
+        if (vistaDashboard === "alertas" && typeof cargarAlertasCompartidas === "function") {
+            void cargarAlertasCompartidas();
+        }
         if (vistaDashboard === "capas") seleccionarCapaMapa(capaMapaActual || "estado");
         const behavior = document.body.classList.contains("reduce-motion") ? "auto" : "smooth";
         requestAnimationFrame(() => window.scrollTo({ top: 0, behavior }));
@@ -209,6 +212,7 @@ function mostrarDashboard(nombre, idRol) {
     document.getElementById("notification-menu-wrap")?.classList.remove("hidden");
     document.getElementById("btn-menu-configuracion")?.classList.remove("hidden");
     renderizarNotificaciones();
+    if (typeof cargarAlertasCompartidas === "function") void cargarAlertasCompartidas({ silencioso: true });
 
     const navNombre = document.getElementById("nav-usuario-nombre");
     if (navNombre) navNombre.innerText = nombre;
@@ -364,6 +368,8 @@ document.addEventListener("DOMContentLoaded", () => {
     initAccountMenu();
     initSiteInformation();
     initDashboardSettings();
+    inicializarRelojDashboard();
+    if (typeof inicializarCentroAlertas === "function") inicializarCentroAlertas();
     const reportPeriod = document.getElementById("sensor-report-period");
     const customRange = document.getElementById("sensor-report-custom-range");
     reportPeriod?.addEventListener("change", () => {
@@ -380,6 +386,31 @@ const SETTINGS_KEYS = {
 };
 let dashboardRefreshTimer = null;
 let jsPDFLoadPromise = null;
+let dashboardClockTimer = null;
+
+function actualizarRelojDashboard() {
+    const ahora = new Date();
+    const time = document.getElementById("dashboard-clock-time");
+    const date = document.getElementById("dashboard-clock-date");
+    const zona = { timeZone: "America/Guayaquil" };
+    if (time) {
+        time.textContent = new Intl.DateTimeFormat("es-EC", {
+            ...zona, hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+        }).format(ahora);
+        time.dateTime = ahora.toISOString();
+    }
+    if (date) {
+        date.textContent = new Intl.DateTimeFormat("es-EC", {
+            ...zona, weekday: "long", day: "numeric", month: "long", year: "numeric"
+        }).format(ahora);
+        date.dateTime = ahora.toISOString();
+    }
+}
+
+function inicializarRelojDashboard() {
+    actualizarRelojDashboard();
+    if (!dashboardClockTimer) dashboardClockTimer = window.setInterval(actualizarRelojDashboard, 1000);
+}
 
 function claveNotificacionesUsuario(sufijo) {
     const usuarioId = localStorage.getItem("user_id_cloud") || localStorage.getItem("user_name_cloud") || "usuario";
@@ -400,31 +431,6 @@ function guardarNotificacionesUsuario(notificaciones) {
         localStorage.setItem(claveNotificacionesUsuario("notificaciones"), JSON.stringify(notificaciones.slice(0, 40)));
     } catch (error) {
         console.warn("No se pudieron guardar las notificaciones en este navegador.", error);
-    }
-}
-
-function leerEstadosAlertasUsuario() {
-    try {
-        const parsed = JSON.parse(localStorage.getItem(claveNotificacionesUsuario("estados_alertas")) || "{}");
-        return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-    } catch (error) {
-        return {};
-    }
-}
-
-function obtenerEstadoAlertaSensor(clave) {
-    const estado = leerEstadosAlertasUsuario()[clave];
-    return ["pendiente", "revision", "resuelta"].includes(estado) ? estado : "pendiente";
-}
-
-function guardarEstadoAlertaSensor(clave, estado) {
-    if (!["pendiente", "revision", "resuelta"].includes(estado)) return;
-    const estados = leerEstadosAlertasUsuario();
-    estados[clave] = estado;
-    try {
-        localStorage.setItem(claveNotificacionesUsuario("estados_alertas"), JSON.stringify(estados));
-    } catch (error) {
-        console.warn("No se pudo guardar el estado de la alerta.", error);
     }
 }
 
@@ -547,7 +553,6 @@ function registrarNotificacionesSensores(sensores, esDemo = false) {
             const key = `${id}::${metrica}`;
             actuales[key] = { sensorId: id, valor };
             if (!anteriores[key]) {
-                guardarEstadoAlertaSensor(key, "pendiente");
                 eventos.push({ titulo: "Lectura fuera de rango", mensaje: `${id}: ${valor}`, sensorId: id, demo: esDemo });
             }
         });

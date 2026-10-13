@@ -127,6 +127,7 @@
     async function cargarClima() {
         if (cargando) return;
         cargando = true;
+        panel.classList.add("is-loading");
         const estado = porId("weather-status");
         const controller = new AbortController();
         const timeout = window.setTimeout(() => controller.abort(), 8000);
@@ -146,6 +147,9 @@
             ultimaCarga = Date.now();
             pintarClimaActual(climaActual);
             pintarComparaciones();
+            panel.classList.remove("is-loading");
+            panel.classList.add("is-updated");
+            window.setTimeout(() => panel.classList.remove("is-updated"), 1100);
             if (estado) estado.textContent = "Clima actualizado";
         } catch (error) {
             console.warn("No se pudo actualizar el clima exterior:", error);
@@ -155,6 +159,7 @@
             pintarComparaciones();
         } finally {
             window.clearTimeout(timeout);
+            panel.classList.remove("is-loading");
             cargando = false;
         }
     }

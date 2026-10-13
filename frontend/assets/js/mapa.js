@@ -116,6 +116,9 @@ async function cargarMapaSensores() {
     if (typeof registrarNotificacionesSensores === "function") {
         registrarNotificacionesSensores(sensoresEnMapa, modoDemoSensores);
     }
+    if (typeof cargarAlertasCompartidas === "function") {
+        await cargarAlertasCompartidas({ silencioso: true });
+    }
     actualizarVistaSensores({ fechaTexto: modoDemoSensores ? "Escenario simulado" : "Lecturas consultadas" });
     renderizarMarcadoresSensores();
     const seleccionado = sensoresEnMapa.find(sensor => sensor.id === sensorEnDetalle);
@@ -262,21 +265,30 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
     const observaciones = sensoresEnMapa.flatMap(sensor => valoresFueraDeRango(sensor.lectura)
         .map(valor => ({ sensor, valor, metrica: valor.split(/\s+/)[0] })));
     lista.replaceChildren();
-    if (!observaciones.length) {
-        if (total) total.textContent = "0 alertas · 0 pendientes · 0 en revisión · 0 resueltas";
+    const hayReportesDeUsuarios = typeof alertasCompartidas !== "undefined"
+        && alertasCompartidas.some(alerta => alerta.origen === "usuario");
+    if (!observaciones.length && !hayReportesDeUsuarios) {
         const vacio = document.createElement("div");
         vacio.className = "alert-empty-state";
         vacio.innerHTML = `<span aria-hidden="true">✓</span><div><strong>Sin observaciones en este momento</strong><p>${modoDemoSensores ? "Las lecturas mostradas son solo una referencia visual de demostración." : "Las lecturas actuales están dentro de los rangos informativos."}</p></div>`;
         lista.appendChild(vacio);
-        return;
     }
     observaciones.forEach(({ sensor, valor, metrica }) => {
-        const claveEstado = `${sensor.id}::${metrica}`;
-        const estadoGuardado = typeof obtenerEstadoAlertaSensor === "function"
-            ? obtenerEstadoAlertaSensor(claveEstado)
-            : "pendiente";
+        const guardada = typeof alertaSensorGuardada === "function"
+            ? alertaSensorGuardada(sensor.id, metrica)
+            : null;
+        const alerta = {
+            ...guardada,
+            id: guardada?.id || null,
+            origen: "sensor",
+            sensor_id: sensor.id,
+            metrica,
+            titulo: `Lectura fuera de rango · ${metrica}`,
+            descripcion: valor,
+            estado: guardada?.estado || "pendiente"
+        };
         const item = document.createElement("article");
-        item.className = `alert-item alert-item--${estadoGuardado}`;
+        item.className = `alert-item alert-item--${alerta.estado}`;
         const main = document.createElement("div");
         main.className = "alert-item-main";
         const texto = document.createElement("div");
@@ -289,30 +301,11 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
 
         const controls = document.createElement("div");
         controls.className = "alert-item-controls";
-        const statusLabel = document.createElement("label");
-        statusLabel.className = "alert-status-label";
-        const statusSelect = document.createElement("select");
-        statusSelect.className = "alert-status-select";
-        statusSelect.setAttribute("aria-label", `Estado de alerta ${sensor.id}, ${metrica}`);
-        statusSelect.dataset.status = estadoGuardado;
-        [
-            ["pendiente", "Pendiente de resolver"],
-            ["revision", "En revisión"],
-            ["resuelta", "Resuelta"]
-        ].forEach(([value, label]) => {
-            const option = document.createElement("option");
-            option.value = value;
-            option.textContent = label;
-            option.selected = value === estadoGuardado;
-            statusSelect.appendChild(option);
-        });
-        statusSelect.addEventListener("change", () => {
-            statusSelect.dataset.status = statusSelect.value;
-            item.className = `alert-item alert-item--${statusSelect.value}`;
-            if (typeof guardarEstadoAlertaSensor === "function") guardarEstadoAlertaSensor(claveEstado, statusSelect.value);
-            actualizarResumenEstadosAlertas();
-        });
-        statusLabel.append("Estado", statusSelect);
+        const statusControl = typeof crearControlEstadoAlerta === "function"
+            ? crearControlEstadoAlerta(alerta, (estado, select) => {
+                void cambiarEstadoAlerta(alerta, estado, select);
+            })
+            : document.createTextNode("Pendiente");
 
         const button = document.createElement("button");
         button.type = "button";
@@ -322,10 +315,11 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
             if (typeof navegarA === "function") navegarA("dashboard");
             mostrarDetalleSensor(sensor);
         });
-        controls.append(statusLabel, button);
+        controls.append(statusControl, button);
         item.append(main, controls);
         lista.appendChild(item);
     });
+    if (typeof renderizarAlertasReportadas === "function") renderizarAlertasReportadas(lista);
     actualizarResumenEstadosAlertas();
 }
 
@@ -333,11 +327,11 @@ function actualizarResumenEstadosAlertas() {
     const lista = document.getElementById("alert-center-list");
     const total = document.getElementById("alert-center-count");
     if (!lista || !total) return;
-    const estados = Array.from(lista.querySelectorAll(".alert-status-select"), select => select.value);
+    const estados = Array.from(lista.querySelectorAll("[data-alert-status]"), element => element.dataset.alertStatus);
     const pendientes = estados.filter(estado => estado === "pendiente").length;
-    const revision = estados.filter(estado => estado === "revision").length;
-    const resueltas = estados.filter(estado => estado === "resuelta").length;
-    total.textContent = `${estados.length} ${estados.length === 1 ? "alerta" : "alertas"} · ${pendientes} pendientes · ${revision} en revisión · ${resueltas} resueltas`;
+    const enProceso = estados.filter(estado => estado === "en_proceso").length;
+    const resueltas = estados.filter(estado => estado === "resuelto").length;
+    total.textContent = `${estados.length} ${estados.length === 1 ? "alerta" : "alertas"} · ${pendientes} pendientes · ${enProceso} en proceso · ${resueltas} resueltas`;
 }
 
 function actualizarBadgeAlertasSensores(sensores) {

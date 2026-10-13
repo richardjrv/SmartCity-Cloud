@@ -263,6 +263,11 @@
                     <p id="dashboard-source-summary">Métricas y estado de las lecturas disponibles.</p>
                 </div>
                 <div class="dashboard-overview-actions">
+                    <div class="dashboard-clock-card" aria-label="Fecha y hora local de Ecuador">
+                        <span class="dashboard-clock-label">Hora local · Ecuador</span>
+                        <time id="dashboard-clock-time" class="dashboard-clock-time">--:--:--</time>
+                        <time id="dashboard-clock-date" class="dashboard-clock-date">Consultando fecha…</time>
+                    </div>
                     <button type="button" class="dashboard-quick-action dashboard-quick-action--primary" onclick="navegarA('reportes')">
                         <span aria-hidden="true">⇩</span> Exportar datos
                     </button>
@@ -378,7 +383,7 @@
                 <p class="weather-credit">
                     Comparación orientativa: el clima exterior y un sensor urbano pueden diferir por ubicación o exposición.
                     Datos meteorológicos de <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>.
-                    <span id="wx-updated"></span>
+                    <span id="wx-updated" aria-live="polite"></span>
                 </p>
             </section>
 
@@ -484,9 +489,29 @@
             <section id="alert-center-panel" data-dashboard-panel="alertas" class="dashboard-feature-panel" aria-labelledby="alert-center-title">
                 <div class="feature-panel-heading">
                     <div><p class="feature-eyebrow">CENTRO DE OPERACIONES</p><h2 id="alert-center-title">⚑ Alertas y observaciones</h2></div>
-                    <span id="alert-center-count" class="feature-count">0 por revisar</span>
+                    <div class="alert-center-actions">
+                        <span id="alert-center-count" class="feature-count">0 por revisar</span>
+                        <button id="alert-center-refresh" type="button" class="alert-view-button">Actualizar</button>
+                    </div>
                 </div>
-                <p id="alert-center-note" class="feature-panel-note">Los umbrales son orientativos para la demostración; no sustituyen una evaluación ambiental. El estado de seguimiento se guarda por usuario en este navegador.</p>
+                <p id="alert-center-note" class="feature-panel-note">Todos pueden consultar y reportar alertas. Solo el administrador puede cambiar su estado.</p>
+                <form id="alert-report-form" class="alert-report-form">
+                    <div class="alert-report-fields">
+                        <label class="alert-report-field">Título del aviso
+                            <input id="alert-report-title" name="titulo" type="text" minlength="3" maxlength="120" required placeholder="Ej.: Nivel de agua elevado">
+                        </label>
+                        <label class="alert-report-field">Descripción
+                            <textarea id="alert-report-description" name="descripcion" minlength="3" maxlength="1500" required rows="2" placeholder="Describe qué observaste y dónde."></textarea>
+                        </label>
+                        <label class="alert-report-field alert-report-sensor-field">ESP32 relacionado (opcional)
+                            <input id="alert-report-sensor" name="sensor_id" type="text" maxlength="100" placeholder="ESP32-MAQUETA">
+                        </label>
+                    </div>
+                    <div class="alert-report-submit-row">
+                        <p id="alert-report-feedback" role="status" aria-live="polite"></p>
+                        <button id="alert-report-submit" type="submit" class="alert-view-button">Notificar al administrador</button>
+                    </div>
+                </form>
                 <div id="alert-center-list" class="alert-center-list" aria-live="polite"></div>
             </section>
 
@@ -834,6 +859,7 @@
     <script src="assets/js/perfil.js"></script>
     <script src="assets/js/admin.js"></script>
     <script src="assets/js/brunito.js"></script>
+    <script src="assets/js/alertas.js"></script>
     <script src="assets/js/mapa.js"></script>
     <script src="assets/js/clima.js"></script>
     <script src="assets/js/main.js"></script>
