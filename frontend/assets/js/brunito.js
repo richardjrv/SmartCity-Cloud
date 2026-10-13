@@ -13,6 +13,9 @@ let brunitoWakeRestartDelay = 700;
 let brunitoWakeCommandTimer = null;
 let brunitoWakeWaitingForCommand = false;
 let brunitoWakeGestureHandler = null;
+let brunitoWakePhraseBuffer = [];
+let brunitoWakeLocaleIndex = 0;
+const BRUNITO_WAKE_LOCALES = ["es-EC", "es-MX", "es-ES"];
 
 function tipoReconocimientoVozBrunito() {
     return window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -70,8 +73,12 @@ function procesarResultadoWakeBrunito(transcripcion) {
         return;
     }
 
-    const comando = extraerComandoWakeBrunito(texto);
+    brunitoWakePhraseBuffer.push(texto);
+    brunitoWakePhraseBuffer = brunitoWakePhraseBuffer.slice(-4);
+    const textoAcumulado = brunitoWakePhraseBuffer.join(" ");
+    const comando = extraerComandoWakeBrunito(textoAcumulado);
     if (comando === null) return;
+    brunitoWakePhraseBuffer = [];
 
     activarChatPorWakeBrunito();
     if (comando) {
@@ -94,7 +101,7 @@ function crearReconocimientoWakeBrunito() {
     if (!SpeechRecognition || !brunitoWakeEnabled || brunitoWakeRecognition || brunitoWakeStarting) return;
 
     const recognition = new SpeechRecognition();
-    recognition.lang = "es-EC";
+    recognition.lang = BRUNITO_WAKE_LOCALES[brunitoWakeLocaleIndex] || "es-EC";
     recognition.continuous = true;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
@@ -122,6 +129,14 @@ function crearReconocimientoWakeBrunito() {
         };
         if (mensajes[event.error]) {
             desactivarEscuchaWakeBrunito(mensajes[event.error]);
+        } else if (event.error === "language-not-supported") {
+            brunitoWakeLocaleIndex += 1;
+            if (brunitoWakeLocaleIndex >= BRUNITO_WAKE_LOCALES.length) {
+                desactivarEscuchaWakeBrunito("El navegador no admite los idiomas de voz configurados. Prueba Safari actualizado y Español en el teclado del iPhone.");
+            } else {
+                actualizarEstadoVozBrunito(`Probando reconocimiento en ${BRUNITO_WAKE_LOCALES[brunitoWakeLocaleIndex]}…`);
+                brunitoWakeRestartDelay = 700;
+            }
         } else if (event.error !== "no-speech" && event.error !== "aborted") {
             actualizarEstadoVozBrunito("La escucha tuvo una interrupción; Brunito intentará reconectarse.");
             brunitoWakeRestartDelay = Math.min(brunitoWakeRestartDelay * 2, 5600);
