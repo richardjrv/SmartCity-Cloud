@@ -31,8 +31,20 @@
     <link rel="stylesheet" href="pin.css">
     <link rel="stylesheet" href="mejoras.css">
     <link rel="stylesheet" href="clima.css">
+    <script>
+        if (["localhost", "127.0.0.1", "::1"].includes(window.location.hostname)) {
+            const cssStudio = document.createElement("script");
+            cssStudio.src = "https://unpkg.com/cssstudio";
+            cssStudio.async = true;
+            document.head.appendChild(cssStudio);
+        }
+    </script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased flex flex-col">
+    <div id="orbital-cursor" class="orbital-cursor" aria-hidden="true">
+        <span class="orbital-cursor__ring"></span>
+        <span class="orbital-cursor__dot"></span>
+    </div>
 <!-- Contenedor de Notificaciones Toast Flotantes -->
 <div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
     <!-- ============================================================ -->
@@ -43,8 +55,9 @@
             
             <!-- Logo & Marca -->
             <div class="flex items-center gap-3 cursor-pointer" onclick="navegarA('dashboard')">
-                <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xl">
-                    ☁️
+                <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xl brand-cloud-scene" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" class="brand-cloud-icon" focusable="false"><path d="M14 34h21a8 8 0 0 0 1-16 12 12 0 0 0-23-2 9 9 0 0 0 1 18Z" fill="currentColor"/><path d="M14 34h21a8 8 0 0 0 1-16 12 12 0 0 0-23-2 9 9 0 0 0 1 18Z" fill="url(#brandCloudGradient)"/><defs><linearGradient id="brandCloudGradient" x1="10" y1="12" x2="39" y2="37"><stop stop-color="#fff" stop-opacity=".82"/><stop offset="1" stop-color="#60a5fa" stop-opacity=".28"/></linearGradient></defs></svg>
+                    <span class="brand-cloud-orbit"></span>
                 </div>
                 <div>
                     <h1 class="font-bold text-base tracking-wide text-white">SmartCity Cloud</h1>
@@ -78,21 +91,31 @@
                         <span id="nav-usuario-nombre" class="font-semibold text-white max-w-28 truncate">Usuario</span>
                         <span aria-hidden="true">⌄</span>
                     </button>
-                    <div id="account-menu" class="hidden account-menu absolute right-0 mt-2 w-72 bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-2xl z-50">
-                        <div class="pb-3 border-b border-slate-700/70">
-                            <p id="account-menu-name" class="font-bold text-white">Usuario</p>
-                            <p id="account-menu-email" class="text-xs text-slate-400 mt-1 skeleton-account-loading">Cargando cuenta…</p>
-                            <p id="account-menu-role" class="text-xs text-blue-300 mt-2">Cuenta activa</p>
+                    <div id="account-menu" class="hidden account-menu">
+                        <button type="button" class="account-menu-profile" onclick="navegarA('perfil'); cerrarAccountMenu()" aria-label="Abrir mi perfil">
+                            <span id="account-menu-avatar" class="account-menu-avatar" aria-hidden="true">U</span>
+                            <span class="account-menu-identity">
+                                <span id="account-menu-name" class="account-menu-name">Usuario</span>
+                                <span id="account-menu-role" class="account-menu-role">Cuenta activa</span>
+                                <span id="account-menu-email" class="account-menu-email skeleton-account-loading">Cargando cuenta…</span>
+                            </span>
+                            <span class="account-menu-chevron" aria-hidden="true">›</span>
+                        </button>
+                        <div class="account-menu-actions" role="group" aria-label="Acciones de cuenta">
+                            <button id="account-theme-toggle" type="button" class="account-action" onclick="alternarTemaDesdePerfil()" aria-label="Cambiar tema" title="Cambiar tema">
+                                <svg id="account-theme-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13A8.5 8.5 0 0 1 11 3.1 8.5 8.5 0 1 0 20.9 13Z"></path></svg>
+                            </button>
+                            <button type="button" class="account-action" onclick="navegarA('configuracion'); cerrarAccountMenu()" aria-label="Configuración" title="Configuración">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="m19.4 15 .1.1a1.7 1.7 0 1 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 1 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 1 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 1 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 1 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"></path></svg>
+                            </button>
+                            <button type="button" class="account-action account-action-logout" onclick="cerrarSesion()" aria-label="Cerrar sesión" title="Cerrar sesión">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17l5-5-5-5"></path><path d="M15 12H3"></path><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"></path></svg>
+                            </button>
                         </div>
-                        <button type="button" onclick="navegarA('perfil'); cerrarAccountMenu()" class="w-full text-left px-3 py-2.5 mt-2 rounded-lg text-sm text-slate-200 hover:bg-slate-700">👤 Mi cuenta y seguridad</button>
-                        <button type="button" onclick="cerrarSesion()" class="w-full text-left px-3 py-2.5 rounded-lg text-sm text-rose-300 hover:bg-rose-500/10">↪ Cerrar sesión</button>
                     </div>
                 </div>
                 <button id="btn-dashboard-fullscreen" type="button" onclick="togglePantallaCompletaDashboard()" aria-label="Activar pantalla completa" title="Pantalla completa" class="hidden header-icon-control">
                     <span id="dashboard-fullscreen-icon" aria-hidden="true">⛶</span>
-                </button>
-                <button id="btn-menu-configuracion" type="button" onclick="navegarA('configuracion')" aria-label="Configuración" title="Configuración" class="hidden px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
-                    <span aria-hidden="true">⚙️</span>
                 </button>
             </div>
 
@@ -118,6 +141,9 @@
                 </button>
                 <button type="button" class="sidebar-link" data-sidebar-view="reportes" onclick="navegarA('reportes')" aria-label="Reportes">
                     <span class="sidebar-icon" aria-hidden="true">▤</span><span class="sidebar-link-label">Reportes</span>
+                </button>
+                <button type="button" class="sidebar-link" data-sidebar-view="graficas" onclick="navegarA('graficas')" aria-label="Gráficas">
+                    <span class="sidebar-icon" aria-hidden="true">⌁</span><span class="sidebar-link-label">Gráficas</span>
                 </button>
                 <button id="btn-menu-admin" type="button" class="sidebar-link hidden" data-sidebar-view="admin-usuarios" onclick="navegarA('admin-usuarios')" aria-label="Gestión de usuarios">
                     <span class="sidebar-icon" aria-hidden="true">♙</span><span class="sidebar-link-label">Gestión de usuarios</span>
@@ -281,9 +307,17 @@
                 <div class="feature-panel-heading">
                     <div>
                         <p class="feature-eyebrow">CLIMA LOCAL · EN TIEMPO REAL</p>
-                        <h2 id="weather-title">🌦️ Clima en Puerto Francisco de Orellana</h2>
+                        <h2 id="weather-title">🌦️ Clima en <span id="wx-location">Puerto Francisco de Orellana, Ecuador</span></h2>
                     </div>
-                    <span id="weather-status" class="weather-status" aria-live="polite">Esperando el dashboard…</span>
+                    <div class="weather-heading-actions">
+                        <form id="weather-city-search" class="weather-city-search" role="search" aria-label="Consultar clima de otra ciudad">
+                            <label class="sr-only" for="weather-city-input">Buscar otra ciudad para consultar el clima</label>
+                            <input id="weather-city-input" name="ciudad" type="search" maxlength="100" placeholder="Buscar otra ciudad…" autocomplete="off">
+                            <button id="weather-city-submit" type="submit" aria-label="Buscar clima de la ciudad">Buscar</button>
+                            <button id="weather-city-reset" type="button" aria-label="Volver al clima de Puerto Francisco de Orellana" title="Volver a Puerto Francisco de Orellana">Orellana</button>
+                        </form>
+                        <span id="weather-status" class="weather-status" aria-live="polite">Esperando el dashboard…</span>
+                    </div>
                 </div>
 
                 <div class="weather-current">
@@ -333,6 +367,13 @@
                     </div>
                 </div>
 
+                <section class="weather-forecast" aria-labelledby="weather-forecast-title">
+                    <div class="weather-forecast-heading"><div><p class="feature-eyebrow">PRÓXIMAS HORAS</p><h3 id="weather-forecast-title">Pronóstico para las próximas 12 horas</h3></div><span>Pronóstico meteorológico · Open-Meteo</span></div>
+                    <div id="weather-hourly-forecast" class="weather-hourly-forecast" role="list" aria-live="polite">
+                        <p class="weather-forecast-empty" role="status">Consultando pronóstico…</p>
+                    </div>
+                </section>
+
                 <p class="weather-credit">
                     Condiciones meteorológicas locales. Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>.
                     <span id="wx-updated" aria-live="polite"></span>
@@ -372,6 +413,18 @@
                     </div>
                     <span class="dashboard-metric-unit" aria-hidden="true">ICA</span>
                 </article>
+                </div>
+            </section>
+
+            <section id="dashboard-trends" data-dashboard-panel="dashboard" class="dashboard-trends" aria-labelledby="dashboard-trends-title">
+                <div class="dashboard-trends-heading">
+                    <div><p class="feature-eyebrow">LECTURAS GUARDADAS</p><h2 id="dashboard-trends-title">Tendencia reciente del ESP32</h2><p>Temperatura y humedad de las últimas 24 horas.</p></div>
+                    <button type="button" class="dashboard-trends-link" onclick="navegarA('graficas')">Ver gráficas <span aria-hidden="true">→</span></button>
+                </div>
+                <div class="dashboard-trend-content">
+                    <div class="dashboard-trend-legend"><span><i class="trend-dot trend-dot--temperature" aria-hidden="true"></i>Temperatura (°C)</span><span><i class="trend-dot trend-dot--humidity" aria-hidden="true"></i>Humedad (%)</span></div>
+                    <div class="dashboard-trend-chart-wrap"><canvas id="sensor-trend-chart" role="img" aria-label="Tendencia de temperatura y humedad medidas por el ESP32 en las últimas 24 horas"></canvas><p id="sensor-trend-empty" class="dashboard-trend-empty" role="status">Consultando historial del ESP32…</p></div>
+                    <p id="sensor-trend-summary" class="dashboard-trend-summary">Las tendencias se basan en lecturas reales almacenadas.</p>
                 </div>
             </section>
 
@@ -561,7 +614,30 @@
                     <div><label for="sensor-report-start" class="block text-xs text-slate-400 mb-1">Desde</label><input id="sensor-report-start" type="datetime-local" class="rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100"></div>
                     <div><label for="sensor-report-end" class="block text-xs text-slate-400 mb-1">Hasta</label><input id="sensor-report-end" type="datetime-local" class="rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100"></div>
                 </div>
+                <div class="report-overview-grid" aria-label="Resumen del reporte">
+                    <article class="report-overview-card"><span class="report-overview-icon" aria-hidden="true">◷</span><div><span>Periodo seleccionado</span><strong id="report-period-summary">Últimas 24 horas</strong></div></article>
+                    <article class="report-overview-card"><span class="report-overview-icon" aria-hidden="true">⌁</span><div><span>Datos del dispositivo</span><strong id="report-data-summary">Consulta el historial para exportar</strong></div></article>
+                    <article class="report-overview-card"><span class="report-overview-icon" aria-hidden="true">⇩</span><div><span>Formatos disponibles</span><strong>CSV y PDF</strong></div></article>
+                </div>
                 <p id="sensor-report-status" class="text-xs text-slate-400 mt-3" aria-live="polite"></p>
+            </section>
+
+            <section id="charts-panel" data-dashboard-panel="graficas" class="charts-panel hidden" aria-labelledby="charts-title">
+                <div class="charts-heading">
+                    <div><p class="feature-eyebrow">HISTORIAL DEL ESP32</p><h2 id="charts-title">Gráficas de mediciones</h2><p>Explora las lecturas registradas en Supabase para el periodo seleccionado.</p></div>
+                    <div class="charts-controls">
+                        <label for="chart-period">Periodo</label><select id="chart-period"><option value="1">Última hora</option><option value="10">Últimas 10 horas</option><option value="24" selected>Últimas 24 horas</option><option value="168">Últimos 7 días</option></select>
+                        <button id="chart-refresh" type="button" class="chart-refresh-button">Actualizar</button>
+                    </div>
+                </div>
+                <div class="chart-metric-row" role="group" aria-label="Variable de la gráfica">
+                    <button type="button" class="chart-metric-button is-active" data-chart-metric="temperatura" aria-pressed="true">🌡️ Temperatura</button>
+                    <button type="button" class="chart-metric-button" data-chart-metric="humedad" aria-pressed="false">💧 Humedad</button>
+                    <button type="button" class="chart-metric-button" data-chart-metric="calidad_aire" aria-pressed="false">🍃 Calidad del aire</button>
+                    <button type="button" class="chart-metric-button" data-chart-metric="distancia_cm" aria-pressed="false">📏 Distancia HC-SR04</button>
+                </div>
+                <div class="chart-canvas-wrap"><canvas id="sensor-history-chart" role="img" aria-label="Gráfica histórica de lecturas de sensores"></canvas><div id="chart-empty-state" class="chart-empty-state" role="status">Cargando historial de sensores…</div></div>
+                <div class="chart-footer"><span id="chart-data-summary">Los datos se consultan desde el backend.</span><span id="chart-updated-at">—</span></div>
             </section>
         </section>
 
@@ -626,14 +702,8 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <section class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-6">
                     <h3 class="font-bold text-white">Apariencia y accesibilidad</h3>
-                    <p class="text-xs text-slate-400 mt-1">Personaliza el tema y el tamaño del texto para adaptar la interfaz a tus necesidades.</p>
+                    <p class="text-xs text-slate-400 mt-1">Personaliza los colores y la accesibilidad para adaptar la interfaz a tus necesidades.</p>
                     <div class="mt-5 space-y-4">
-                        <div>
-                            <label for="config-theme" class="block text-sm text-slate-200 mb-2">Tema visual</label>
-                            <select id="config-theme" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100">
-                                <option value="dark">Nocturno</option><option value="light">Claro</option>
-                            </select>
-                        </div>
                         <fieldset class="theme-accent-picker">
                             <legend class="block text-sm text-slate-200 mb-2">Color de acento</legend>
                             <p class="text-xs text-slate-400 mb-3">Elige el color principal de botones y controles.</p>
@@ -715,6 +785,13 @@
                     <div class="relative min-w-[260px]">
                         <input type="text" id="buscar-usuario" onkeyup="filtrarUsuarios()" placeholder="🔎 Buscar por nombre o correo..." class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 transition">
                     </div>
+                </div>
+
+                <div class="admin-summary-grid" aria-label="Resumen de cuentas">
+                    <article class="admin-summary-card"><span aria-hidden="true">♙</span><div><strong id="admin-total-users">—</strong><small>Usuarios registrados</small></div></article>
+                    <article class="admin-summary-card"><span aria-hidden="true">●</span><div><strong id="admin-active-users">—</strong><small>Cuentas activas</small></div></article>
+                    <article class="admin-summary-card"><span aria-hidden="true">👑</span><div><strong id="admin-admin-users">—</strong><small>Administradores</small></div></article>
+                    <p class="admin-summary-note">Gestiona roles y estados desde las acciones de cada cuenta. Los cambios de permisos también deben validarse en el backend.</p>
                 </div>
 
                 <!-- Tabla de Usuarios -->
@@ -898,6 +975,7 @@
     <script src="assets/js/alertas.js"></script>
     <script src="assets/js/mapa.js"></script>
     <script src="assets/js/clima.js"></script>
+    <script src="assets/js/graficas.js"></script>
     <script src="assets/js/main.js"></script>
 
 </body>

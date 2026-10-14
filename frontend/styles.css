@@ -200,6 +200,70 @@ html[data-accent]:not([data-accent="blue"]) [class*="shadow-blue-600"] { --tw-sh
     margin: 1.2rem 0; overflow: hidden;
 }
 
+/* Cursor orbital: solo escritorio, respeta el color de acento del usuario. */
+.orbital-cursor { display: none; }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    body.cursor-orbit-enabled,
+    body.cursor-orbit-enabled * { cursor: none !important; }
+    body.cursor-orbit-enabled :is(input, textarea, [contenteditable="true"]) { cursor: text !important; }
+    body.cursor-orbit-enabled select { cursor: pointer !important; }
+    .orbital-cursor {
+        position: fixed;
+        z-index: 12000;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        display: block;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity .16s ease;
+    }
+    .orbital-cursor.is-visible { opacity: 1; }
+    .orbital-cursor__ring {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 2.25rem;
+        height: 2.25rem;
+        border: 1px solid color-mix(in srgb, var(--accent) 78%, transparent);
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--accent) 7%, transparent);
+        box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 22%, transparent), inset 0 0 10px color-mix(in srgb, var(--accent) 10%, transparent);
+        transform: translate(-50%, -50%);
+        transition: width .2s ease, height .2s ease, border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+    }
+    .orbital-cursor__dot {
+        position: absolute;
+        top: var(--cursor-y, 0px);
+        left: var(--cursor-x, 0px);
+        width: .42rem;
+        height: .42rem;
+        border: 1px solid color-mix(in srgb, white 55%, var(--accent));
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 12px var(--accent-glow);
+        transform: translate(-50%, -50%);
+        transition: width .16s ease, height .16s ease, background-color .16s ease, box-shadow .16s ease;
+    }
+    .orbital-cursor.is-hovering .orbital-cursor__ring {
+        width: 2.8rem;
+        height: 2.8rem;
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 12%, transparent);
+        box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 35%, transparent);
+    }
+    .orbital-cursor.is-hovering .orbital-cursor__dot {
+        width: .62rem;
+        height: .62rem;
+        background: var(--accent-hover);
+        box-shadow: 0 0 16px var(--accent-glow);
+    }
+    .orbital-cursor.is-pressed .orbital-cursor__ring { width: 1.8rem; height: 1.8rem; }
+    .orbital-cursor.is-paused { opacity: 0 !important; }
+}
+body.reduce-motion .orbital-cursor { display: none !important; }
+
 model-viewer { width: 100%; height: 100%; }
 
 .sensor-grid {
@@ -406,6 +470,7 @@ body.login-only {
     gap: clamp(2rem, 6vw, 5rem);
     padding: clamp(1.5rem, 5vw, 4.5rem) clamp(1.5rem, 8vw, 9rem);
 }
+.auth-layout.hidden { display: none !important; }
 .auth-mission { padding: clamp(0.5rem, 3vw, 2rem) 0; }
 .auth-brand-mark { width: 3.5rem; height: 3.5rem; display: grid; place-items: center; border-radius: 1.15rem; background: rgba(37, 99, 235, .18); border: 1px solid rgba(59, 130, 246, .35); font-size: 1.8rem; }
 .auth-eyebrow { margin-top: 1.8rem; color: #60a5fa; font-size: .68rem; letter-spacing: .18em; font-weight: 800; }
@@ -416,7 +481,63 @@ body.login-only {
 .mission-vision-grid h3 { color: #f8fafc; font-size: .95rem; font-weight: 750; }
 .mission-vision-grid p { margin-top: .55rem; color: #aebdd0; font-size: .82rem; line-height: 1.6; }
 .auth-demo-note { margin-top: 1.3rem; color: #94a3b8; font-size: .72rem; }
-.account-menu { color: #e2e8f0; }
+.account-menu {
+    position: absolute;
+    top: calc(100% + .65rem);
+    right: 0;
+    z-index: 60;
+    width: min(18rem, calc(100vw - 1.5rem));
+    padding: .65rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border-color));
+    border-radius: 1rem;
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--bg-card) 94%, transparent);
+    box-shadow: 0 20px 55px rgba(2, 8, 23, .34), 0 0 26px color-mix(in srgb, var(--accent) 9%, transparent);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+}
+.account-menu-profile {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: .7rem;
+    padding: .65rem .55rem .8rem;
+    border: 0;
+    border-radius: .75rem;
+    color: inherit;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+.account-menu-profile:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.account-menu-avatar {
+    display: grid;
+    width: 2.65rem;
+    height: 2.65rem;
+    flex: 0 0 2.65rem;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
+    border-radius: 50%;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 15%, var(--bg-input));
+    font-size: 1rem;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+.account-menu-identity { display: grid; min-width: 0; gap: .12rem; flex: 1; }
+.account-menu-name { overflow: hidden; color: var(--text-primary); font-size: .82rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.account-menu-role { color: var(--accent); font-size: .66rem; font-weight: 700; }
+.account-menu-email { overflow: hidden; color: var(--text-secondary); font-size: .65rem; text-overflow: ellipsis; white-space: nowrap; }
+.account-menu-chevron { color: var(--text-muted); font-size: 1.4rem; line-height: 1; transition: color .18s ease, transform .18s ease; }
+.account-menu-profile:hover .account-menu-chevron { color: var(--accent); transform: translateX(2px); }
+.account-menu-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; padding: .65rem .3rem .25rem; border-top: 1px solid color-mix(in srgb, var(--border-color) 75%, transparent); }
+.account-action { display: grid; min-height: 2.6rem; place-items: center; border: 1px solid transparent; border-radius: .72rem; color: var(--text-secondary); background: color-mix(in srgb, var(--bg-input) 62%, transparent); cursor: pointer; transition: color .18s ease, background .18s ease, border-color .18s ease, transform .18s ease; }
+.account-action svg { width: 1.1rem; height: 1.1rem; }
+.account-action:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--accent) 35%, var(--border-color)); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-input)); }
+.account-action-logout:hover { border-color: rgba(244, 63, 94, .38); color: #fb7185; background: rgba(244, 63, 94, .1); }
+.account-menu :is(button):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+html[data-theme="light"] .account-menu { box-shadow: 0 18px 46px rgba(15, 23, 42, .18), 0 0 24px color-mix(in srgb, var(--accent) 8%, transparent); }
 #notification-menu-wrap { position: relative; }
 .notification-trigger {
     position: relative;
@@ -956,15 +1077,13 @@ header > div.max-w-7xl > .flex.items-center.gap-3:hover { opacity: .9; transform
 .sidebar-tour-button,
 #sensor-map-refresh,
 #sensor-report-toolbar button,
-#usuario-badge,
-#btn-menu-configuracion {
+#usuario-badge {
     transition: transform .16s ease, color .16s ease, background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
 }
 .map-layer-toolbar button:hover,
 .sidebar-tour-button:hover,
 #sensor-map-refresh:hover,
-#sensor-report-toolbar button:hover,
-#btn-menu-configuracion:hover {
+#sensor-report-toolbar button:hover {
     transform: translateY(-1px);
     box-shadow: 0 8px 22px rgba(2, 6, 23, .18);
 }

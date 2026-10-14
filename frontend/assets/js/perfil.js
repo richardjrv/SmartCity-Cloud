@@ -143,6 +143,8 @@ async function guardarEdicionPerfil(e) {
             if (navNombre) navNombre.innerText = nombre;
             const accountName = document.getElementById("account-menu-name");
             if (accountName) accountName.textContent = nombre;
+            const accountAvatar = document.getElementById("account-menu-avatar");
+            if (accountAvatar) accountAvatar.textContent = nombre.trim().charAt(0).toLocaleUpperCase("es");
         } else {
             alert("❌ " + (data.detail || "Error actualizando perfil."));
         }
