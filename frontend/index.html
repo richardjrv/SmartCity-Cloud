@@ -41,6 +41,7 @@
     </script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased flex flex-col">
+    <a class="skip-link" href="#main-content">Saltar al contenido principal</a>
     <div id="orbital-cursor" class="orbital-cursor" aria-hidden="true">
         <span class="orbital-cursor__ring"></span>
         <span class="orbital-cursor__dot"></span>
@@ -54,7 +55,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             
             <!-- Logo & Marca -->
-            <div class="flex items-center gap-3 cursor-pointer" onclick="navegarA('dashboard')">
+            <button type="button" class="brand-home-button flex items-center gap-3" onclick="navegarA('dashboard')" aria-label="Ir al inicio de SmartCity Cloud">
                 <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xl brand-cloud-scene" aria-hidden="true">
                     <svg viewBox="0 0 48 48" class="brand-cloud-icon" focusable="false"><path d="M14 34h21a8 8 0 0 0 1-16 12 12 0 0 0-23-2 9 9 0 0 0 1 18Z" fill="currentColor"/><path d="M14 34h21a8 8 0 0 0 1-16 12 12 0 0 0-23-2 9 9 0 0 0 1 18Z" fill="url(#brandCloudGradient)"/><defs><linearGradient id="brandCloudGradient" x1="10" y1="12" x2="39" y2="37"><stop stop-color="#fff" stop-opacity=".82"/><stop offset="1" stop-color="#60a5fa" stop-opacity=".28"/></linearGradient></defs></svg>
                     <span class="brand-cloud-orbit"></span>
@@ -63,7 +64,7 @@
                     <h1 class="font-bold text-base tracking-wide text-white">SmartCity Cloud</h1>
                     <p class="text-xs text-slate-400 hidden sm:block">Plataforma IoT & Nube</p>
                 </div>
-            </div>
+            </button>
 
             <div class="flex items-center gap-2 sm:gap-3">
                 <button id="btn-mobile-nav" type="button" class="hidden md:hidden px-3 py-2 rounded-lg border border-slate-600 text-slate-200" aria-expanded="false" aria-controls="app-sidebar" aria-label="Abrir navegación" onclick="toggleMobileNav()">☰</button>
@@ -158,7 +159,7 @@
     <!-- ============================================================ -->
     <!-- 2. CONTENIDO PRINCIPAL (SECCIONES Y VISTAS)                  -->
     <!-- ============================================================ -->
-    <main id="main-content" class="main-content flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
+    <main id="main-content" class="main-content flex-1 min-w-0 p-4 sm:p-6 lg:p-8" tabindex="-1">
 
         <!-- ========================================== -->
         <!-- VISTA A: AUTENTICACIÓN (LOGIN / REGISTRO)  -->
@@ -292,8 +293,8 @@
         <section id="vista-dashboard" class="hidden space-y-6">
             <section id="dashboard-overview" data-dashboard-panel="dashboard" class="dashboard-overview" aria-labelledby="dashboard-title">
                 <div class="dashboard-overview-copy">
-                    <p class="dashboard-eyebrow">SMARTCITY CLOUD <span aria-hidden="true">/</span> CENTRO DE MONITOREO</p>
-                    <h2 id="dashboard-title">Resumen operativo</h2>
+                    <p class="dashboard-eyebrow">Monitoreo de la maqueta</p>
+                    <h2 id="dashboard-title">Resumen de la ciudad</h2>
                     <p id="dashboard-source-summary">Métricas y estado de las lecturas disponibles.</p>
                 </div>
                 <div class="dashboard-overview-actions">
@@ -306,7 +307,7 @@
             <section id="weather-local-panel" data-dashboard-panel="dashboard" class="dashboard-feature-panel weather-panel" aria-labelledby="weather-title">
                 <div class="feature-panel-heading">
                     <div>
-                        <p class="feature-eyebrow">CLIMA LOCAL · EN TIEMPO REAL</p>
+                        <p class="feature-eyebrow">Clima local</p>
                         <h2 id="weather-title">🌦️ Clima en <span id="wx-location">Puerto Francisco de Orellana, Ecuador</span></h2>
                     </div>
                     <div class="weather-heading-actions">
@@ -368,7 +369,7 @@
                 </div>
 
                 <section class="weather-forecast" aria-labelledby="weather-forecast-title">
-                    <div class="weather-forecast-heading"><div><p class="feature-eyebrow">PRÓXIMAS HORAS</p><h3 id="weather-forecast-title">Pronóstico para las próximas 12 horas</h3></div><span>Pronóstico meteorológico · Open-Meteo</span></div>
+                    <div class="weather-forecast-heading"><div><p class="feature-eyebrow">Pronóstico</p><h3 id="weather-forecast-title">Próximas 12 horas</h3></div><span>Datos meteorológicos de Open-Meteo</span></div>
                     <div id="weather-hourly-forecast" class="weather-hourly-forecast" role="list" aria-live="polite">
                         <p class="weather-forecast-empty" role="status">Consultando pronóstico…</p>
                     </div>
@@ -380,10 +381,10 @@
                 </p>
             </section>
 
-            <section data-dashboard-panel="dashboard" class="dashboard-metric-group" aria-labelledby="environment-metrics-title">
+            <section data-dashboard-panel="dashboard" class="dashboard-metric-group dashboard-metric-group--primary" aria-labelledby="environment-metrics-title">
                 <div class="dashboard-metric-group-heading">
-                    <div><p class="feature-eyebrow">DHT22 Y CALIDAD AMBIENTAL</p><h2 id="environment-metrics-title">Sensores ambientales</h2></div>
-                    <span id="esp32-connection-state" class="data-source-badge checking-source" role="status">Comprobando ESP32</span>
+                    <div><p class="feature-eyebrow">DHT22 y calidad ambiental</p><h2 id="environment-metrics-title">Sensores ambientales</h2></div>
+                        <span id="esp32-connection-state" class="data-source-badge checking-source" role="status" aria-live="polite">Comprobando ESP32</span>
                 </div>
                 <div class="dashboard-metrics" aria-label="Indicadores ambientales">
                 <article class="dashboard-metric-card dashboard-metric-card--temperature">
@@ -416,9 +417,9 @@
                 </div>
             </section>
 
-            <section id="dashboard-trends" data-dashboard-panel="dashboard" class="dashboard-trends" aria-labelledby="dashboard-trends-title">
+            <section id="dashboard-trends" data-dashboard-panel="dashboard" class="dashboard-trends dashboard-trends--primary" aria-labelledby="dashboard-trends-title">
                 <div class="dashboard-trends-heading">
-                    <div><p class="feature-eyebrow">LECTURAS GUARDADAS</p><h2 id="dashboard-trends-title">Tendencia reciente del ESP32</h2><p>Temperatura y humedad de las últimas 24 horas.</p></div>
+                    <div><p class="feature-eyebrow">Lecturas guardadas</p><h2 id="dashboard-trends-title">Tendencia reciente del ESP32</h2><p>Temperatura y humedad de las últimas 24 horas.</p></div>
                     <button type="button" class="dashboard-trends-link" onclick="navegarA('graficas')">Ver gráficas <span aria-hidden="true">→</span></button>
                 </div>
                 <div class="dashboard-trend-content">
@@ -428,15 +429,15 @@
                 </div>
             </section>
 
-            <section data-dashboard-panel="dashboard" class="dashboard-metric-group" aria-labelledby="urban-sensors-title">
+            <section data-dashboard-panel="dashboard" class="dashboard-metric-group dashboard-metric-group--secondary" aria-labelledby="urban-sensors-title">
                 <div class="dashboard-metric-group-heading">
-                    <div><p class="feature-eyebrow">UN SOLO CONTROLADOR EN LA MAQUETA</p><h2 id="urban-sensors-title">Sensores urbanos del ESP32</h2></div>
-                    <span class="dashboard-metric-group-note">HC-SR04 · lluvia · LDR · nivel de agua · TCRT5000</span>
+                    <div><p class="feature-eyebrow">Un controlador para toda la maqueta</p><h2 id="urban-sensors-title">Sensores urbanos del ESP32</h2></div>
+                    <span class="dashboard-metric-group-note">Valores crudos donde aún falta calibración: LDR y nivel de agua.</span>
                 </div>
                 <div class="dashboard-metrics" aria-label="Lecturas urbanas enviadas por el ESP32">
                 <article class="dashboard-metric-card dashboard-metric-card--distance">
                     <span class="dashboard-metric-icon" aria-hidden="true">📏</span>
-                    <div class="dashboard-metric-copy"><p>Proximidad HC-SR04</p><strong id="metric-distance" class="skeleton-loading">— cm</strong><span>Distancia en centímetros</span><span id="metric-distance-source">Sin lectura recibida</span></div>
+                    <div class="dashboard-metric-copy"><p>Proximidad HC-SR04</p><strong id="metric-distance" class="skeleton-loading">— cm</strong><span>Distancia medida en centímetros.</span><span id="metric-distance-source">Sin lectura recibida</span></div>
                     <span class="dashboard-metric-unit" aria-hidden="true">CM</span>
                 </article>
                 <article class="dashboard-metric-card dashboard-metric-card--rain">
@@ -446,13 +447,13 @@
                 </article>
                 <article class="dashboard-metric-card dashboard-metric-card--light">
                     <span class="dashboard-metric-icon" aria-hidden="true">☀️</span>
-                    <div class="dashboard-metric-copy"><p>Luminosidad LDR</p><strong id="metric-light" class="skeleton-loading">—</strong><span>Lectura cruda · calibrar para expresar en lux</span><span id="metric-light-source">Sin lectura recibida</span></div>
-                    <span class="dashboard-metric-unit" aria-hidden="true">LECTURA</span>
+                    <div class="dashboard-metric-copy"><p>Luminosidad LDR</p><strong id="metric-light" class="skeleton-loading">—</strong><span>Lectura analógica cruda; requiere calibración para mostrar lux.</span><span id="metric-light-source">Sin lectura recibida</span></div>
+                    <span class="dashboard-metric-unit" aria-hidden="true">LECTURA CRUDA</span>
                 </article>
                 <article class="dashboard-metric-card dashboard-metric-card--water">
                     <span class="dashboard-metric-icon" aria-hidden="true">🌊</span>
-                    <div class="dashboard-metric-copy"><p>Nivel de agua</p><strong id="metric-water-level" class="skeleton-loading">—</strong><span>Lectura cruda · calibrar para mostrar porcentaje</span><span id="metric-water-source">Sin lectura recibida</span></div>
-                    <span class="dashboard-metric-unit" aria-hidden="true">LECTURA</span>
+                    <div class="dashboard-metric-copy"><p>Nivel de agua</p><strong id="metric-water-level" class="skeleton-loading">—</strong><span>Lectura cruda; requiere calibración para mostrar nivel o porcentaje.</span><span id="metric-water-source">Sin lectura recibida</span></div>
+                    <span class="dashboard-metric-unit" aria-hidden="true">LECTURA CRUDA</span>
                 </article>
                 <article class="dashboard-metric-card dashboard-metric-card--tcrt">
                     <span class="dashboard-metric-icon" aria-hidden="true">🚗</span>
@@ -473,7 +474,7 @@
             <div id="city-3d-panel" data-dashboard-panel="dashboard capas" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
                 <div class="dashboard-map-heading">
                     <div>
-                        <p class="dashboard-eyebrow">VISTA URBANA <span aria-hidden="true">/</span> MODELO 3D</p>
+                        <p class="dashboard-eyebrow">Vista urbana · modelo 3D</p>
                         <h3>🏙️ Pulso de la ciudad</h3>
                         <p id="city-pulse-summary">Un ESP32 recopila las lecturas de los sensores distribuidos en la maqueta.</p>
                     </div>
@@ -512,9 +513,7 @@
         <p id="sensor-map-empty" class="sensor-map-empty">Cargando lecturas de sensores…</p>
     </div>
     <div class="map-layer-legend" data-dashboard-panel="capas" aria-label="Leyenda de colores de sensores">
-        <span><i class="legend-dot level-good"></i>Dentro del rango orientativo</span>
-        <span><i class="legend-dot level-warn"></i>Revisión recomendada</span>
-        <span><i class="legend-dot level-high"></i>Fuera del rango orientativo</span>
+        <span><i class="legend-dot level-unknown"></i>Lectura disponible · sin umbrales calibrados</span>
     </div>
             </div>
             <!-- Lecturas de los sensores representados en las luminarias del modelo 3D -->

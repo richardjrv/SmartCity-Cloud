@@ -167,6 +167,15 @@ html[data-accent]:not([data-accent="blue"]) [class*="shadow-blue-600"] { --tw-sh
     border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
+.input-wrapper :is(input, select):focus-visible,
+button:focus-visible,
+a:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
 .toggle-password { position: absolute; right: 12px; background: none; border: none; color: var(--text-muted); cursor: pointer; }
 
 .form-options { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 1.5rem; }
@@ -721,6 +730,7 @@ html[data-theme="light"] [class~="text-white"]:not([class*="bg-blue-"]):not([cla
 .sensor-reading-row strong { color: #f8fafc; white-space: nowrap; }
 .sensor-detail-status { display: inline-flex; align-items: center; padding: 0.3rem 0.55rem; border-radius: 999px; background: rgba(100, 116, 139, 0.16); color: #cbd5e1; font-size: 0.7rem; font-weight: 700; white-space: nowrap; }
 .sensor-detail-status.has-reading { background: rgba(16, 185, 129, 0.12); color: #6ee7b7; }
+.sensor-detail-status.stale-reading { background: rgba(245, 158, 11, 0.12); color: #fbbf24; }
 
 html[data-theme="light"] .sensor-map-canvas { background: radial-gradient(ellipse at 50% 70%, #9db9cf, #dbeafe 78%); }
 html[data-theme="light"] .city-lamp-label, html[data-theme="light"] .sensor-reading-row { color: #334155; }

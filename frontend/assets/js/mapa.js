@@ -10,6 +10,8 @@ let sensoresEnMapa = [];
 let lecturasEnVivo = [];
 let modoDemoSensores = true;
 let lecturaApiReciente = false;
+let fechaUltimaLecturaSensor = null;
+let temporizadorAntiguedadSensor = null;
 let sensorEnDetalle = null;
 let mapaSensoresEventosInstalados = false;
 let capaMapaActual = "estado";
@@ -86,6 +88,9 @@ async function cargarMapaSensores() {
     const markerLayer = document.getElementById("sensor-map-model");
     const emptyState = document.getElementById("sensor-map-empty");
     if (!markerLayer || !emptyState) return;
+    if (!temporizadorAntiguedadSensor) {
+        temporizadorAntiguedadSensor = window.setInterval(actualizarAntiguedadSensor, 30_000);
+    }
 
     emptyState.textContent = "Cargando lecturas de sensores…";
     emptyState.classList.remove("hidden");
@@ -110,10 +115,12 @@ async function cargarMapaSensores() {
         const edadLectura = Date.now() - fechaUltima.getTime();
         const lecturaReciente = Number.isFinite(fechaUltima.getTime()) && edadLectura >= 0 && edadLectura <= 10 * 60 * 1000;
         lecturaApiReciente = lecturaReciente;
+        fechaUltimaLecturaSensor = Number.isFinite(fechaUltima.getTime()) ? fechaUltima : null;
         actualizarFuenteDatos(lecturaReciente ? "API · LECTURA RECIENTE" : "API · ÚLTIMA LECTURA ANTIGUA", false, !lecturaReciente, fechaUltima);
     } else {
         modoDemoSensores = true;
         lecturaApiReciente = false;
+        fechaUltimaLecturaSensor = null;
         lecturasEnVivo = crearLecturasDemo();
         actualizarFuenteDatos("DEMO · DATOS SIMULADOS", true);
     }
@@ -163,8 +170,8 @@ function actualizarFuenteDatos(texto, esDemo, esAntigua = false, ultimaLectura =
     if (estadoEsp32) {
         const antiguedad = ultimaLectura ? describirAntiguedadLectura(ultimaLectura) : "";
         estadoEsp32.textContent = esDemo ? "Demo · ESP32 aún no conectado"
-            : esAntigua ? `Sin actualizar · ${antiguedad || "lectura antigua"}`
-                : `ESP32 activo · ${antiguedad || "lectura reciente"}`;
+            : esAntigua ? `Lectura antigua · ${antiguedad || "antigua"}`
+                : `Dato reciente · ${antiguedad || "hace poco"}`;
         estadoEsp32.title = ultimaLectura && Number.isFinite(ultimaLectura.getTime())
             ? `Último dato recibido: ${new Intl.DateTimeFormat("es-EC", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Guayaquil" }).format(ultimaLectura)}`
             : esDemo ? "Se muestran datos simulados; el ESP32 aún no ha reportado mediciones reales." : "No se dispone de la fecha de la última lectura.";
@@ -177,7 +184,37 @@ function actualizarFuenteDatos(texto, esDemo, esAntigua = false, ultimaLectura =
     const note = document.getElementById("alert-center-note");
     if (note) note.textContent = esDemo
         ? "Valores de demostración para un ESP32. No provienen de la maqueta ni sustituyen una evaluación ambiental."
-        : "Lecturas reportadas por el único ESP32 de la maqueta. Los umbrales son orientativos.";
+        : "Lecturas reportadas por el único ESP32 de la maqueta. Los colores no indican normalidad porque aún no hay umbrales calibrados.";
+}
+
+function actualizarAntiguedadSensor() {
+    if (modoDemoSensores || !fechaUltimaLecturaSensor) return;
+    const badge = document.getElementById("esp32-connection-state");
+    if (!badge) return;
+    const edadMs = Date.now() - fechaUltimaLecturaSensor.getTime();
+    const esAntigua = edadMs < 0 || edadMs > 10 * 60 * 1000;
+    const cambioEstado = lecturaApiReciente === esAntigua;
+    lecturaApiReciente = !esAntigua;
+    const antiguedad = describirAntiguedadLectura(fechaUltimaLecturaSensor);
+    badge.textContent = esAntigua ? `Lectura antigua · ${antiguedad}` : `Dato reciente · ${antiguedad}`;
+    badge.classList.toggle("stale-source", esAntigua);
+    badge.classList.toggle("api-source", !esAntigua);
+    badge.title = `Último dato recibido: ${new Intl.DateTimeFormat("es-EC", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Guayaquil" }).format(fechaUltimaLecturaSensor)}`;
+    badge.setAttribute("aria-label", badge.title);
+    const mapaBadge = document.getElementById("sensor-data-source");
+    if (mapaBadge && cambioEstado) {
+        mapaBadge.textContent = esAntigua ? "API · ÚLTIMA LECTURA ANTIGUA" : "API · LECTURA RECIENTE";
+        mapaBadge.classList.toggle("stale-source", esAntigua);
+        mapaBadge.classList.toggle("api-source", !esAntigua);
+    }
+    actualizarMetricasDashboard(sensoresEnMapa.map(sensor => sensor.lectura));
+    const detalleAbierto = document.getElementById("sensor-detail-content")?.classList.contains("hidden") === false;
+    const detalleEstado = document.getElementById("sensor-detail-status");
+    if (detalleAbierto && detalleEstado) {
+        detalleEstado.textContent = esAntigua ? `Lectura antigua · ${antiguedad}` : `Dato reciente · ${antiguedad}`;
+        detalleEstado.classList.toggle("stale-reading", esAntigua);
+    }
+    if (cambioEstado) actualizarVistaSensores({ fechaTexto: esAntigua ? "Última lectura antigua" : "Lectura reciente" });
 }
 
 function instalarEventosMapaSensores() {
@@ -195,20 +232,9 @@ function seleccionarCapaMapa(capa) {
     renderizarMarcadoresSensores();
 }
 
-function nivelLectura(lectura, capa) {
-    const numero = campo => lectura[campo] == null || lectura[campo] === "" || !Number.isFinite(Number(lectura[campo]))
-        ? null
-        : Number(lectura[campo]);
-    const temp = numero("temperatura");
-    const humedad = numero("humedad");
-    const aire = numero("calidad_aire");
-    if (capa === "temperatura") return temp === null ? "unknown" : temp < 0 || temp >= 35 ? "high" : temp >= 29 ? "warn" : "good";
-    if (capa === "humedad") return humedad === null ? "unknown" : humedad < 20 || humedad > 80 ? "high" : humedad < 30 || humedad > 70 ? "warn" : "good";
-    if (capa === "calidad_aire") return aire === null ? "unknown" : aire < 0 || aire > 100 ? "high" : aire > 50 ? "warn" : "good";
-    if (temp !== null && (temp < 0 || temp >= 35) || humedad !== null && (humedad < 20 || humedad > 80) || aire !== null && (aire < 0 || aire > 100)) return "high";
-    if (temp !== null && temp >= 29 || humedad !== null && (humedad < 30 || humedad > 70) || aire !== null && aire > 50) return "warn";
-    if (temp === null && humedad === null && aire === null) return "unknown";
-    return "good";
+function nivelLectura() {
+    // No se muestran categorías de riesgo hasta acordar límites calibrados para esta maqueta.
+    return "unknown";
 }
 
 function renderizarMarcadoresSensores() {
@@ -235,7 +261,7 @@ function renderizarMarcadoresSensores() {
         marker.dataset.position = `${position.x}m 0.15m ${position.z}m`;
         marker.dataset.normal = "0m 1m 0m";
         marker.slot = `hotspot-sensor-${sensor.index}`;
-        marker.setAttribute("aria-label", `Controlador ESP32 ${sensor.id}; estado ${level === "high" ? "para revisar" : level === "warn" ? "moderado" : "dentro del rango orientativo"}. Ver lecturas.`);
+        marker.setAttribute("aria-label", `Controlador ESP32 ${sensor.id}; ${level === "unknown" ? "lectura disponible, sin umbrales configurados" : "estado no disponible"}. Ver lecturas.`);
         marker.title = `${sensor.id} · ${capaMapaActual === "estado" ? "Estado" : capaMapaActual.replace("_", " ")}: ${formatearValorSensor(sensor.lectura[capaMapaActual] ?? sensor.lectura.temperatura)}`;
 
         const board = document.createElement("span");
@@ -252,15 +278,8 @@ function renderizarMarcadoresSensores() {
 }
 
 function valoresFueraDeRango(lectura) {
-    const resultado = [];
-    const valido = valor => valor !== null && valor !== undefined && valor !== "" && Number.isFinite(Number(valor));
-    const temp = Number(lectura.temperatura);
-    const humedad = Number(lectura.humedad);
-    const aire = Number(lectura.calidad_aire);
-    if (valido(lectura.temperatura) && (temp < 0 || temp >= 35)) resultado.push(`Temperatura ${formatearValorSensor(temp)} °C`);
-    if (valido(lectura.humedad) && (humedad < 20 || humedad > 80)) resultado.push(`Humedad ${formatearValorSensor(humedad)} %`);
-    if (valido(lectura.calidad_aire) && (aire < 0 || aire > 100)) resultado.push(`ICA ${formatearValorSensor(aire)}`);
-    return resultado;
+    // No generar alertas automáticas hasta definir rangos verificados para sensores calibrados.
+    return [];
 }
 
 function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
@@ -299,7 +318,7 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
     if (!observaciones.length && !hayReportesDeUsuarios) {
         const vacio = document.createElement("div");
         vacio.className = "alert-empty-state";
-        vacio.innerHTML = `<span aria-hidden="true">✓</span><div><strong>Sin observaciones en este momento</strong><p>${modoDemoSensores ? "Las lecturas mostradas son solo una referencia visual de demostración." : "Las lecturas actuales están dentro de los rangos informativos."}</p></div>`;
+        vacio.innerHTML = `<span aria-hidden="true">✓</span><div><strong>Sin alertas reportadas</strong><p>${modoDemoSensores ? "Las lecturas mostradas son solo una referencia visual de demostración." : "Los valores se muestran sin clasificarlos como seguros o peligrosos; aún no hay umbrales calibrados."}</p></div>`;
         lista.appendChild(vacio);
     }
     observaciones.forEach(({ sensor, valor, metrica }) => {
@@ -371,10 +390,8 @@ function actualizarBadgeAlertasSensores(sensores) {
     if (!badge) return;
     const fueraDeRango = sensores.filter(({ lectura }) => valoresFueraDeRango(lectura).length).length;
     badge.textContent = fueraDeRango > 99 ? "99+" : String(fueraDeRango);
-    badge.setAttribute("aria-label", `${fueraDeRango} ESP32 con lecturas fuera de los rangos informativos configurados`);
-    badge.title = fueraDeRango
-        ? `Lectura del ESP32 para revisar. Umbrales orientativos: 0 a menos de 35 °C, 20–80 % y 0–100 ICA.`
-        : "Todas las lecturas están dentro de los rangos informativos.";
+    badge.setAttribute("aria-label", `${fueraDeRango} lecturas fuera de umbrales configurados`);
+    badge.title = "No hay umbrales calibrados. Las alertas reportadas por usuarios y administradores siguen apareciendo en el centro de alertas.";
     badge.classList.toggle("hidden", fueraDeRango === 0);
 }
 
@@ -395,13 +412,21 @@ function actualizarMetricasDashboard(lecturas) {
             node.classList.remove("skeleton-loading");
         }
     };
+    const fechaLectura = lecturas
+        .filter(lectura => lectura.fecha_hora)
+        .map(lectura => new Date(lectura.fecha_hora))
+        .filter(fecha => Number.isFinite(fecha.getTime()))
+        .sort((a, b) => b - a)[0];
+    const edadLecturaMs = fechaLectura ? Date.now() - fechaLectura.getTime() : 0;
+    const lecturaEsAntigua = Boolean(fechaLectura && (edadLecturaMs < 0 || edadLecturaMs > 10 * 60 * 1000));
     const fuente = (id, disponible) => {
         const source = document.getElementById(id);
         if (!source) return;
         source.textContent = !disponible
             ? "Sin lectura recibida"
-            : modoDemoSensores ? "Demo · valor de referencia" : "ESP32 · dato recibido";
-        source.dataset.source = !disponible ? "missing" : modoDemoSensores ? "demo" : "api";
+            : modoDemoSensores ? "Demo · valor de referencia"
+                : `ESP32 · ${fechaLectura ? describirAntiguedadLectura(fechaLectura) : "hora no disponible"}`;
+        source.dataset.source = !disponible ? "missing" : modoDemoSensores ? "demo" : lecturaEsAntigua ? "stale" : "api";
     };
     const temp = promedio("temperatura");
     const humedad = promedio("humedad");
@@ -434,16 +459,10 @@ function actualizarMetricasDashboard(lecturas) {
     fuente("metric-water-source", agua !== null);
     fuente("metric-tcrt-source", Boolean(tcrt) || reflejo !== null);
 
-    const nivel = (value, good, warning, high) => value === null ? "unknown"
-        : high(value) ? "high" : warning(value) ? "warn" : good(value) ? "good" : "unknown";
-    const estados = {
-        "metric-temp": nivel(temp, value => value >= 0 && value < 29, value => value >= 29 && value < 35, value => value < 0 || value >= 35),
-        "metric-hum": nivel(humedad, value => value >= 30 && value <= 70, value => value >= 20 && value < 30 || value > 70 && value <= 80, value => value < 20 || value > 80),
-        "metric-aire": nivel(aire, value => value >= 0 && value <= 50, value => value > 50 && value <= 100, value => value < 0 || value > 100)
-    };
-    Object.entries(estados).forEach(([id, state]) => {
+    // Evita clasificar valores como seguros o peligrosos sin umbrales calibrados para la maqueta.
+    ["metric-temp", "metric-hum", "metric-aire"].forEach(id => {
         const card = document.getElementById(id)?.closest(".dashboard-metric-card");
-        if (card) card.dataset.readingState = state;
+        if (card) delete card.dataset.readingState;
     });
 }
 
@@ -457,11 +476,16 @@ function mostrarDetalleSensor(sensor) {
     const element = id => document.getElementById(id);
 
     element("sensor-detail-id").textContent = `ESP32 ${sensor.id}`;
-    element("sensor-detail-status").textContent = modoDemoSensores ? "Dato de demostración" : "Dato de API";
-    element("sensor-detail-status").classList.add("has-reading");
+    const detailStatus = element("sensor-detail-status");
+    const fechaDetalleAntigua = fechaValida && Date.now() - fecha.getTime() > 10 * 60 * 1000;
+    detailStatus.textContent = modoDemoSensores ? "Dato de demostración"
+        : `${fechaDetalleAntigua ? "Lectura antigua" : "Dato reciente"} · ${fechaValida ? describirAntiguedadLectura(fecha) : "hora no disponible"}`;
+    detailStatus.classList.toggle("has-reading", !modoDemoSensores && !fechaDetalleAntigua);
+    detailStatus.classList.toggle("stale-reading", !modoDemoSensores && fechaDetalleAntigua);
     element("sensor-detail-message").textContent = modoDemoSensores
         ? "Valores de referencia para un ESP32; no provienen de la maqueta."
-        : "Últimas lecturas reportadas por el ESP32 de la maqueta.";
+        : fechaDetalleAntigua ? "Se conserva el último dato recibido; revisa la conexión del ESP32."
+            : "Últimas lecturas reportadas por el ESP32 de la maqueta.";
     element("sensor-detail-content").classList.remove("hidden");
     element("sensor-detail-temperature").textContent = `${formatearValorSensor(lectura.temperatura)} °C`;
     element("sensor-detail-humidity").textContent = `${formatearValorSensor(lectura.humedad)} %`;

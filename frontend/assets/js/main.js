@@ -790,18 +790,7 @@ function registrarNotificacionesSensores(sensores, esDemo = false) {
         });
     });
 
-    Object.entries(anteriores).forEach(([key, alerta]) => {
-        if (actuales[key]) return;
-        const sensorId = alerta?.sensorId || key.split("::")[0];
-        const metrica = key.split("::")[1] || "Lectura";
-        eventos.push({
-            titulo: "Lectura normalizada",
-            mensaje: `${sensorId}: ${metrica} volvió al rango informativo.`,
-            sensorId,
-            demo: esDemo
-        });
-    });
-
+    // No emitir alertas de normalización mientras no existan umbrales calibrados.
     try {
         localStorage.setItem(estadoKey, JSON.stringify(actuales));
     } catch (error) {

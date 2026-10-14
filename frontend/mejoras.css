@@ -254,6 +254,45 @@ body.high-contrast :is(
     }
 }
 
+/* Lecturas del ESP32 primero: el clima acompaña los datos propios de la maqueta. */
+#vista-dashboard:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+#vista-dashboard:not(.hidden) > * + * { margin-top: 0; }
+#dashboard-overview { order: 0; }
+#vista-dashboard .dashboard-metric-group--primary { order: 1; }
+#vista-dashboard .dashboard-metric-group--secondary { order: 2; }
+#vista-dashboard .dashboard-trends--primary { order: 3; }
+#vista-dashboard #weather-local-panel { order: 4; }
+#vista-dashboard #urban-pulse-strip { order: 5; }
+#vista-dashboard #city-3d-panel { order: 6; }
+#vista-dashboard #sensor-map-section { order: 7; }
+
+#vista-dashboard .dashboard-metric-group--primary {
+    padding: 1.1rem;
+    border: 1px solid color-mix(in srgb, var(--accent) 27%, var(--border-color));
+    border-radius: 1.2rem;
+    background: color-mix(in srgb, var(--bg-card) 78%, transparent);
+}
+#vista-dashboard .dashboard-metric-group--secondary .dashboard-metric-group-note {
+    max-width: 27rem;
+    color: var(--text-secondary);
+    font-size: .74rem;
+    line-height: 1.5;
+}
+#vista-dashboard .dashboard-metric-copy > span[data-source="api"] { color: var(--success); }
+#vista-dashboard .dashboard-metric-copy > span[data-source="demo"] { color: var(--warning); }
+#vista-dashboard .dashboard-metric-copy > span[data-source="stale"] { color: var(--warning); }
+#vista-dashboard .dashboard-metric-copy > span[data-source="missing"] { color: var(--text-secondary); }
+.legend-dot.level-unknown { background: #94a3b8; box-shadow: 0 0 7px rgb(148 163 184 / 42%); }
+
+@media (max-width: 700px) {
+    #vista-dashboard:not(.hidden) { gap: 1rem; }
+    #vista-dashboard .dashboard-metric-group--primary { padding: .85rem; }
+}
+
 /* Identidad visual animada y accesible */
 .brand-cloud-scene { position: relative; perspective: 90px; overflow: hidden; }
 .brand-cloud-icon { width: 1.75rem; height: 1.75rem; filter: drop-shadow(0 3px 6px color-mix(in srgb, var(--accent) 35%, transparent)); transform-style: preserve-3d; animation: brand-cloud-turn 7s ease-in-out infinite; }
@@ -996,4 +1035,136 @@ html[data-theme="light"] .dashboard-trends { box-shadow: 0 12px 30px rgba(15, 23
     .sidebar-section-title,
     .sidebar-tour-button,
     #sidebar-toggle { transition: none !important; }
+}
+
+/* Acceso directo al contenido para teclado y lectores de pantalla. */
+.skip-link {
+    position: fixed;
+    z-index: 1000;
+    top: .65rem;
+    left: .65rem;
+    transform: translateY(calc(-100% - 1rem));
+    padding: .7rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--accent) 55%, white);
+    border-radius: .7rem;
+    color: #fff;
+    background: #10213a;
+    box-shadow: 0 8px 24px rgba(2, 8, 23, .3);
+    font-size: .85rem;
+    font-weight: 750;
+    transition: transform .16s ease;
+}
+.skip-link:focus-visible { transform: translateY(0); outline: 3px solid var(--accent); outline-offset: 3px; }
+.brand-home-button {
+    border: 0;
+    padding: 0;
+    color: inherit;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+.brand-home-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: .85rem; }
+
+/* Jerarquía editorial y motivo gráfico inspirado en el trazado de la maqueta. */
+#dashboard-overview {
+    isolation: isolate;
+    min-height: 12rem;
+    border-color: color-mix(in srgb, var(--accent) 38%, var(--border-color));
+    box-shadow: 0 22px 52px rgba(2, 6, 23, .2), inset 0 1px rgba(255, 255, 255, .08);
+}
+#vista-dashboard .dashboard-eyebrow,
+#vista-dashboard .feature-eyebrow {
+    font-size: .74rem;
+    font-weight: 750;
+    letter-spacing: .025em;
+    line-height: 1.4;
+    text-transform: none;
+}
+#dashboard-overview h2 { max-width: 15ch; text-wrap: balance; }
+#dashboard-overview .dashboard-overview-copy > p:last-child { max-width: 39rem; text-wrap: pretty; }
+#dashboard-overview::after {
+    right: 0;
+    bottom: 0;
+    width: min(43%, 34rem);
+    height: 100%;
+    aspect-ratio: auto;
+    border: 0;
+    border-radius: 0 1.65rem 1.65rem 0;
+    background-image:
+        radial-gradient(circle at 24% 67%, color-mix(in srgb, var(--accent) 88%, white) 0 .2rem, transparent .24rem),
+        radial-gradient(circle at 54% 31%, rgba(125, 211, 252, .9) 0 .2rem, transparent .24rem),
+        radial-gradient(circle at 78% 58%, rgba(52, 211, 153, .85) 0 .2rem, transparent .24rem),
+        linear-gradient(28deg, transparent 48.9%, rgba(125, 211, 252, .2) 49.1% 49.35%, transparent 49.55%),
+        linear-gradient(151deg, transparent 48.9%, rgba(125, 211, 252, .16) 49.1% 49.35%, transparent 49.55%),
+        radial-gradient(circle at 1px 1px, rgba(191, 219, 254, .2) 1px, transparent 1.6px);
+    background-size: auto, auto, auto, auto, auto, 18px 18px;
+    box-shadow: none;
+    opacity: .62;
+    mask-image: linear-gradient(90deg, transparent 0%, #000 34%);
+    pointer-events: none;
+    animation: none;
+}
+#dashboard-overview::before {
+    animation: dashboard-sheen 1.15s cubic-bezier(.2, .8, .2, 1) .12s 1 both;
+}
+#dashboard-overview .dashboard-overview-actions { align-self: center; }
+#vista-dashboard .feature-panel-heading h2,
+#vista-dashboard .weather-forecast-heading h3,
+#vista-dashboard .dashboard-trends-heading h2,
+#vista-dashboard .dashboard-metric-group-heading h2,
+#vista-dashboard .dashboard-map-heading h3 {
+    text-wrap: balance;
+}
+#vista-dashboard .dashboard-metric-copy,
+#vista-dashboard .dashboard-metric-copy > span,
+#vista-dashboard .weather-condition,
+#vista-dashboard .weather-credit { overflow-wrap: anywhere; }
+#vista-dashboard :is(button, a, input, select, [tabindex]):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+#vista-dashboard .weather-city-search input:focus-visible {
+    border-radius: .5rem;
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+#vista-dashboard .weather-city-search button { min-height: 2.5rem; }
+#vista-dashboard .weather-status,
+#vista-dashboard .dashboard-trend-summary,
+#vista-dashboard .urban-pulse-strip time { font-variant-numeric: tabular-nums; }
+#vista-dashboard .dashboard-metric-group-heading { padding-bottom: .2rem; }
+#vista-dashboard .dashboard-trends { border-color: color-mix(in srgb, var(--accent) 25%, var(--border-color)); }
+
+html[data-theme="light"] #dashboard-overview::after {
+    background-image:
+        radial-gradient(circle at 24% 67%, color-mix(in srgb, var(--accent) 88%, #0f172a) 0 .2rem, transparent .24rem),
+        radial-gradient(circle at 54% 31%, rgba(2, 132, 199, .75) 0 .2rem, transparent .24rem),
+        radial-gradient(circle at 78% 58%, rgba(5, 150, 105, .7) 0 .2rem, transparent .24rem),
+        linear-gradient(28deg, transparent 48.9%, rgba(37, 99, 235, .17) 49.1% 49.35%, transparent 49.55%),
+        linear-gradient(151deg, transparent 48.9%, rgba(37, 99, 235, .13) 49.1% 49.35%, transparent 49.55%),
+        radial-gradient(circle at 1px 1px, rgba(30, 64, 175, .18) 1px, transparent 1.6px);
+    background-size: auto, auto, auto, auto, auto, 18px 18px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    #vista-dashboard .dashboard-metric-card:hover { transform: translateY(-2px); }
+}
+@media (max-width: 600px) {
+    #dashboard-overview { min-height: 0; }
+    #dashboard-overview::after { width: 58%; opacity: .3; }
+    #dashboard-overview .dashboard-overview-actions { align-self: stretch; }
+    #dashboard-overview .dashboard-quick-action { width: 100%; }
+    #vista-dashboard .weather-city-search { flex-wrap: wrap; }
+    #vista-dashboard .weather-city-search input { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .skip-link { transition: none; }
+    #dashboard-overview,
+    #dashboard-overview::before,
+    #dashboard-overview::after,
+    #vista-dashboard .dashboard-panel-enter,
+    #vista-dashboard .dashboard-panel-enter :is(.dashboard-metric-card, .weather-card),
+    #vista-dashboard .weather-panel .weather-icon,
+    #vista-dashboard .pulse-dot { animation: none !important; }
+    #vista-dashboard :is(.dashboard-metric-card, .weather-hour-card, .dashboard-quick-action, .weather-city-search button) { transition: none !important; }
+    #vista-dashboard :is(.dashboard-metric-card, .weather-hour-card, .dashboard-quick-action, .weather-city-search button):hover { transform: none; }
 }
