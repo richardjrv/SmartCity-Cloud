@@ -30,6 +30,7 @@ async function cargarUsuariosAdmin() {
         }
 
         window.usuariosAdmin = data;
+        actualizarResumenUsuariosAdmin(data);
         mostrarUsuariosTabla(data);
 
     } catch (error) {
@@ -42,6 +43,15 @@ async function cargarUsuariosAdmin() {
             </tr>
         `;
     }
+}
+
+function actualizarResumenUsuariosAdmin(usuarios = []) {
+    const total = document.getElementById("admin-total-users");
+    const activos = document.getElementById("admin-active-users");
+    const admins = document.getElementById("admin-admin-users");
+    if (total) total.textContent = String(usuarios.length);
+    if (activos) activos.textContent = String(usuarios.filter(usuario => usuario.estado === "activo").length);
+    if (admins) admins.textContent = String(usuarios.filter(usuario => Number(usuario.id_rol) === 1).length);
 }
 
 function mostrarUsuariosTabla(usuarios) {

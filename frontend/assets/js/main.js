@@ -102,8 +102,7 @@ function applyTheme(theme, persist = true) {
     const normalizedTheme = theme === "light" ? "light" : "dark";
     document.documentElement.dataset.theme = normalizedTheme;
     document.documentElement.classList.toggle("dark", normalizedTheme === "dark");
-    const settingsTheme = document.getElementById("config-theme");
-    if (settingsTheme) settingsTheme.value = normalizedTheme;
+    sincronizarAccionTemaPerfil();
 
     if (persist) {
         try {
@@ -112,6 +111,23 @@ function applyTheme(theme, persist = true) {
             console.warn("No se pudo guardar la preferencia de tema.", error);
         }
     }
+}
+
+function alternarTemaDesdePerfil() {
+    const currentTheme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    applyTheme(currentTheme === "dark" ? "light" : "dark");
+}
+
+function sincronizarAccionTemaPerfil() {
+    const button = document.getElementById("account-theme-toggle");
+    const icon = document.getElementById("account-theme-icon");
+    if (!button || !icon) return;
+    const dark = document.documentElement.dataset.theme !== "light";
+    button.setAttribute("aria-label", dark ? "Cambiar a modo claro" : "Cambiar a modo nocturno");
+    button.title = dark ? "Cambiar a modo claro" : "Cambiar a modo nocturno";
+    icon.innerHTML = dark
+        ? '<path d="M20.9 13A8.5 8.5 0 0 1 11 3.1 8.5 8.5 0 1 0 20.9 13Z"></path>'
+        : '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path>';
 }
 
 function applyAccent(color, persist = true) {
@@ -208,12 +224,11 @@ function navegarA(vista) {
         document.getElementById("account-menu-wrap")?.classList.add("hidden");
         document.getElementById("notification-menu-wrap")?.classList.add("hidden");
         document.getElementById("dashboard-header-context")?.classList.add("hidden");
-        document.getElementById("btn-menu-configuracion")?.classList.add("hidden");
         document.getElementById("btn-dashboard-fullscreen")?.classList.add("hidden");
 
         document.getElementById("vista-auth")?.classList.remove("hidden");
         animarEntradaAuth();
-    } else if (["dashboard", "capas", "alertas", "sensores", "reportes"].includes(vista)) {
+    } else if (["dashboard", "capas", "alertas", "sensores", "reportes", "graficas"].includes(vista)) {
         document.getElementById("app-sidebar")?.classList.remove("hidden");
         document.getElementById("vista-dashboard")?.classList.remove("hidden");
         const vistaDashboard = vista === "sensores" ? "dashboard" : vista;
@@ -227,6 +242,8 @@ function navegarA(vista) {
             void cargarAlertasCompartidas();
         }
         if (vistaDashboard === "capas") seleccionarCapaMapa(capaMapaActual || "estado");
+        if (vistaDashboard === "dashboard" && typeof cargarTendenciaInicio === "function") void cargarTendenciaInicio();
+        if (vistaDashboard === "graficas" && typeof cargarGraficasSensores === "function") void cargarGraficasSensores();
         const behavior = document.body.classList.contains("reduce-motion") ? "auto" : "smooth";
         requestAnimationFrame(() => window.scrollTo({ top: 0, behavior }));
     } else if (vista === "perfil") {
@@ -249,7 +266,7 @@ function navegarA(vista) {
 
 function aplicarVistaDashboard(vista) {
     const dashboard = document.getElementById("vista-dashboard");
-    const vistasDisponibles = ["dashboard", "capas", "alertas", "reportes"];
+    const vistasDisponibles = ["dashboard", "capas", "alertas", "reportes", "graficas"];
     const vistaActiva = vistasDisponibles.includes(vista) ? vista : "dashboard";
     dashboard?.setAttribute("data-current-view", vistaActiva);
     document.querySelectorAll("[data-dashboard-panel]").forEach(panel => {
@@ -266,7 +283,6 @@ function mostrarDashboard(nombre, idRol) {
     document.getElementById("account-menu-wrap")?.classList.remove("hidden");
     document.getElementById("notification-menu-wrap")?.classList.remove("hidden");
     document.getElementById("dashboard-header-context")?.classList.remove("hidden");
-    document.getElementById("btn-menu-configuracion")?.classList.remove("hidden");
     document.getElementById("btn-dashboard-fullscreen")?.classList.remove("hidden");
     renderizarNotificaciones();
     if (typeof cargarAlertasCompartidas === "function") void cargarAlertasCompartidas({ silencioso: true });
@@ -398,7 +414,7 @@ function toggleSidebar() {
 }
 
 function actualizarNavegacionLateral(vista) {
-    const vistas = ["dashboard", "capas", "alertas", "reportes", "admin-usuarios"];
+    const vistas = ["dashboard", "capas", "alertas", "reportes", "graficas", "admin-usuarios"];
     const activa = vistas.includes(vista) ? vista : null;
     const nav = document.querySelector(".sidebar-nav");
     document.querySelectorAll("[data-sidebar-view]").forEach(button => {
@@ -513,13 +529,22 @@ document.addEventListener("DOMContentLoaded", () => {
     initAccountMenu();
     initSiteInformation();
     initDashboardSettings();
+    inicializarCursorOrbital();
     inicializarRelojDashboard();
     if (typeof inicializarCentroAlertas === "function") inicializarCentroAlertas();
     const reportPeriod = document.getElementById("sensor-report-period");
     const customRange = document.getElementById("sensor-report-custom-range");
+    const reportPeriodSummary = document.getElementById("report-period-summary");
+    const updateReportPeriodSummary = () => {
+        if (!reportPeriodSummary || !reportPeriod) return;
+        const selected = reportPeriod.selectedOptions[0]?.textContent || "Periodo personalizado";
+        reportPeriodSummary.textContent = selected;
+    };
+    updateReportPeriodSummary();
     reportPeriod?.addEventListener("change", () => {
         customRange?.classList.toggle("hidden", reportPeriod.value !== "custom");
         if (reportPeriod.value === "custom") inicializarPeriodoPersonalizado();
+        updateReportPeriodSummary();
     });
     comprobarSesion();
 });
@@ -840,6 +865,8 @@ async function cargarResumenCuenta() {
         const { ok, data } = await apiFetch("/api/perfil");
         if (!ok) return;
         if (nombre) nombre.textContent = data.nombre || "Usuario";
+        const avatar = document.getElementById("account-menu-avatar");
+        if (avatar) avatar.textContent = (data.nombre || "U").trim().charAt(0).toLocaleUpperCase("es");
         if (email) email.textContent = data.email || "";
         if (rol) rol.textContent = data.rol || "Cuenta activa";
     } catch (error) {
@@ -881,13 +908,13 @@ function configureDashboardRefresh(seconds) {
         const dashboard = document.getElementById("vista-dashboard");
         if (!dashboard?.classList.contains("hidden")) {
             if (typeof cargarMapaSensores === "function") cargarMapaSensores();
+            if (typeof cargarTendenciaInicio === "function") void cargarTendenciaInicio();
         }
     }, seconds * 1000);
 }
 
 function initDashboardSettings() {
     document.getElementById("footer-year").textContent = String(new Date().getFullYear());
-    document.getElementById("config-theme")?.addEventListener("change", event => applyTheme(event.target.value));
     document.querySelectorAll("[data-accent-option]").forEach(button => {
         button.addEventListener("click", () => applyAccent(button.dataset.accentOption));
     });
@@ -895,6 +922,7 @@ function initDashboardSettings() {
     document.getElementById("config-reduce-motion")?.addEventListener("change", event => {
         document.body.classList.toggle("reduce-motion", event.target.checked);
         localStorage.setItem(SETTINGS_KEYS.reducedMotion, String(event.target.checked));
+        sincronizarCursorOrbital();
         mostrarEstadoConfiguracion("Preferencia de animación guardada.");
     });
     document.getElementById("config-sound-feedback")?.addEventListener("change", event => {
@@ -956,6 +984,99 @@ async function togglePantallaCompletaDashboard() {
     } catch (error) {
         if (typeof mostrarNotificacion === "function") mostrarNotificacion("No se pudo activar la pantalla completa en este navegador.", "error");
     }
+}
+
+function inicializarCursorOrbital() {
+    const cursor = document.getElementById("orbital-cursor");
+    if (!cursor) return;
+
+    const ring = cursor.querySelector(".orbital-cursor__ring");
+    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let pointerInside = false;
+    let x = 0;
+    let y = 0;
+    let ringX = 0;
+    let ringY = 0;
+    let animationFrame = 0;
+
+    const sincronizarVisibilidad = () => {
+        const enabled = finePointer.matches && !reducedMotion.matches && !document.body.classList.contains("reduce-motion");
+        document.body.classList.toggle("cursor-orbit-enabled", enabled);
+        cursor.classList.toggle("is-visible", enabled && pointerInside);
+        if (!enabled && animationFrame) {
+            cancelAnimationFrame(animationFrame);
+            animationFrame = 0;
+        }
+    };
+
+    const seguirOrbita = () => {
+        const differenceX = x - ringX;
+        const differenceY = y - ringY;
+        ringX += differenceX * .18;
+        ringY += differenceY * .18;
+        ring.style.left = `${ringX}px`;
+        ring.style.top = `${ringY}px`;
+        if (Math.abs(differenceX) > .2 || Math.abs(differenceY) > .2) {
+            animationFrame = requestAnimationFrame(seguirOrbita);
+        } else {
+            ringX = x;
+            ringY = y;
+            ring.style.left = `${x}px`;
+            ring.style.top = `${y}px`;
+            animationFrame = 0;
+        }
+    };
+
+    document.addEventListener("pointermove", event => {
+        if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
+        x = event.clientX;
+        y = event.clientY;
+        cursor.style.setProperty("--cursor-x", `${x}px`);
+        cursor.style.setProperty("--cursor-y", `${y}px`);
+        if (!pointerInside) {
+            ringX = x;
+            ringY = y;
+            ring.style.left = `${x}px`;
+            ring.style.top = `${y}px`;
+        }
+        pointerInside = true;
+        sincronizarVisibilidad();
+
+        const target = event.target instanceof Element ? event.target : null;
+        cursor.classList.toggle("is-paused", Boolean(target?.closest('input, textarea, select, [contenteditable="true"]')));
+        cursor.classList.toggle("is-hovering", Boolean(target?.closest("a, button, [role='button'], .cursor-pointer")));
+        if (!animationFrame && finePointer.matches && !reducedMotion.matches && !document.body.classList.contains("reduce-motion")) {
+            animationFrame = requestAnimationFrame(seguirOrbita);
+        }
+    }, { passive: true });
+
+    document.addEventListener("pointerdown", event => {
+        if (event.pointerType === "mouse" || event.pointerType === "pen") cursor.classList.add("is-pressed");
+    });
+    document.addEventListener("pointerup", () => cursor.classList.remove("is-pressed"));
+    document.addEventListener("pointerleave", () => {
+        pointerInside = false;
+        cursor.classList.remove("is-visible", "is-hovering", "is-pressed", "is-paused");
+    });
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            pointerInside = false;
+            cursor.classList.remove("is-visible", "is-hovering", "is-pressed", "is-paused");
+        }
+    });
+    finePointer.addEventListener?.("change", sincronizarVisibilidad);
+    reducedMotion.addEventListener?.("change", sincronizarVisibilidad);
+    sincronizarVisibilidad();
+}
+
+function sincronizarCursorOrbital() {
+    const cursor = document.getElementById("orbital-cursor");
+    if (!cursor) return;
+    const reduceMotion = document.body.classList.contains("reduce-motion") || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    document.body.classList.toggle("cursor-orbit-enabled", finePointer && !reduceMotion);
+    if (reduceMotion) cursor.classList.remove("is-visible", "is-hovering", "is-pressed");
 }
 
 function mostrarEstadoConfiguracion(mensaje) {

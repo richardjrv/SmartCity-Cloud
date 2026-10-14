@@ -110,7 +110,7 @@ async function cargarMapaSensores() {
         const edadLectura = Date.now() - fechaUltima.getTime();
         const lecturaReciente = Number.isFinite(fechaUltima.getTime()) && edadLectura >= 0 && edadLectura <= 10 * 60 * 1000;
         lecturaApiReciente = lecturaReciente;
-        actualizarFuenteDatos(lecturaReciente ? "API · LECTURA RECIENTE" : "API · ÚLTIMA LECTURA ANTIGUA", false, !lecturaReciente);
+        actualizarFuenteDatos(lecturaReciente ? "API · LECTURA RECIENTE" : "API · ÚLTIMA LECTURA ANTIGUA", false, !lecturaReciente, fechaUltima);
     } else {
         modoDemoSensores = true;
         lecturaApiReciente = false;
@@ -139,7 +139,18 @@ async function cargarMapaSensores() {
         : `Consulta API · ${new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-function actualizarFuenteDatos(texto, esDemo, esAntigua = false) {
+function describirAntiguedadLectura(fecha) {
+    if (!(fecha instanceof Date) || !Number.isFinite(fecha.getTime())) return "fecha no disponible";
+    const minutos = Math.max(0, Math.floor((Date.now() - fecha.getTime()) / 60000));
+    if (minutos < 1) return "hace menos de 1 min";
+    if (minutos < 60) return `hace ${minutos} min`;
+    const horas = Math.floor(minutos / 60);
+    if (horas < 24) return `hace ${horas} h`;
+    const dias = Math.floor(horas / 24);
+    return `hace ${dias} d`;
+}
+
+function actualizarFuenteDatos(texto, esDemo, esAntigua = false, ultimaLectura = null) {
     const badge = document.getElementById("sensor-data-source");
     if (badge) {
         badge.textContent = texto;
@@ -150,7 +161,14 @@ function actualizarFuenteDatos(texto, esDemo, esAntigua = false) {
     }
     const estadoEsp32 = document.getElementById("esp32-connection-state");
     if (estadoEsp32) {
-        estadoEsp32.textContent = esDemo ? "Demo · ESP32 aún no conectado" : esAntigua ? "API · lectura antigua" : "API · lectura reciente";
+        const antiguedad = ultimaLectura ? describirAntiguedadLectura(ultimaLectura) : "";
+        estadoEsp32.textContent = esDemo ? "Demo · ESP32 aún no conectado"
+            : esAntigua ? `Sin actualizar · ${antiguedad || "lectura antigua"}`
+                : `ESP32 activo · ${antiguedad || "lectura reciente"}`;
+        estadoEsp32.title = ultimaLectura && Number.isFinite(ultimaLectura.getTime())
+            ? `Último dato recibido: ${new Intl.DateTimeFormat("es-EC", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Guayaquil" }).format(ultimaLectura)}`
+            : esDemo ? "Se muestran datos simulados; el ESP32 aún no ha reportado mediciones reales." : "No se dispone de la fecha de la última lectura.";
+        estadoEsp32.setAttribute("aria-label", estadoEsp32.title);
         estadoEsp32.classList.toggle("demo-source", esDemo);
         estadoEsp32.classList.toggle("api-source", !esDemo);
         estadoEsp32.classList.toggle("stale-source", esAntigua);
