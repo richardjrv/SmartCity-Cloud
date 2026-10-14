@@ -5,6 +5,7 @@
 let modoRegistro = false;
 let retoPinActual = null;
 let configurarPinActual = false;
+let cierreSesionEnCurso = false;
 
 function inicializarCamposPin() {
     document.querySelectorAll("[data-pin-group]").forEach(grupo => {
@@ -290,7 +291,7 @@ async function procesarPasoPin(evento) {
                 estado.textContent = "PIN correcto. Acceso verificado.";
             }
             document.querySelectorAll("[data-pin-group='login-pin'] .pin-digit").forEach(campo => campo.classList.add("pin-digit-success"));
-            await new Promise(resolve => window.setTimeout(resolve, 3000));
+            await new Promise(resolve => window.setTimeout(resolve, 2000));
             await completarInicioSesion(data);
             return;
         }
@@ -442,7 +443,9 @@ async function comprobarSesion() {
     }
 }
 
-function cerrarSesion() {
+async function cerrarSesion() {
+    if (cierreSesionEnCurso) return;
+    cierreSesionEnCurso = true;
     if (typeof detenerEscuchaWakeBrunito === "function") detenerEscuchaWakeBrunito();
     localStorage.removeItem("token_cloud");
     localStorage.removeItem("user_role_cloud");
@@ -455,7 +458,28 @@ function cerrarSesion() {
     document.getElementById("form-auth")?.reset();
     document.getElementById("form-pin-step")?.reset();
 
+    const overlay = document.getElementById("auth-loading-overlay");
+    const titulo = overlay?.querySelector(".auth-loading-card strong");
+    const mensaje = overlay?.querySelector(".auth-loading-card p");
+    if (overlay) {
+        overlay.classList.add("auth-loading-overlay--exit");
+        overlay.classList.remove("hidden");
+        overlay.setAttribute("aria-label", "Cerrando sesión");
+        if (titulo) titulo.textContent = "Sesión cerrada";
+        if (mensaje) mensaje.textContent = "Volviendo al acceso de forma segura…";
+        document.body.classList.add("auth-loading-active");
+    }
+    await new Promise(resolve => window.setTimeout(resolve, 600));
     navegarA("auth");
+    if (overlay) {
+        overlay.classList.add("hidden");
+        overlay.classList.remove("auth-loading-overlay--exit");
+        overlay.setAttribute("aria-label", "Cargando SmartCity Cloud");
+        if (titulo) titulo.textContent = "Preparando tu ciudad";
+        if (mensaje) mensaje.textContent = "Cargando sensores, clima y panel…";
+    }
+    document.body.classList.remove("auth-loading-active");
+    cierreSesionEnCurso = false;
 }
 
 inicializarCamposPin();

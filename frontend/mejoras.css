@@ -218,6 +218,8 @@ body.high-contrast .brunito-action-card :is(h3, p) {
 @keyframes pin-success-pop { 50% { transform: scale(1.025); } }
 .auth-loading-active { overflow: hidden; }
 .auth-loading-overlay { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 1rem; background: rgb(2 6 23 / 82%); backdrop-filter: blur(14px); animation: auth-overlay-in .2s ease-out both; }
+.auth-loading-overlay--exit { animation: auth-overlay-out .6s ease-in both; }
+.auth-loading-overlay--exit .auth-loading-card { animation: auth-exit-card .6s cubic-bezier(.4, 0, 1, 1) both; }
 .auth-loading-overlay.hidden { display: none; }
 .auth-loading-card { display: grid; justify-items: center; width: min(100%, 23rem); gap: .85rem; padding: 2rem; border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border-color)); border-radius: 1.5rem; color: var(--text-primary); background: color-mix(in srgb, var(--bg-card) 92%, transparent); box-shadow: 0 24px 80px rgb(0 0 0 / 35%); text-align: center; }
 .auth-loading-card strong { font-size: 1.05rem; }
@@ -226,6 +228,8 @@ body.high-contrast .brunito-action-card :is(h3, p) {
 .auth-loading-progress { overflow: hidden; width: 100%; height: .28rem; margin-top: .3rem; border-radius: 1rem; background: color-mix(in srgb, var(--accent) 13%, var(--bg-input)); }
 .auth-loading-progress span { display: block; width: 38%; height: 100%; border-radius: inherit; background: var(--accent); animation: auth-loading-progress 2.8s ease-in-out infinite; }
 @keyframes auth-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes auth-overlay-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes auth-exit-card { to { opacity: 0; transform: translateY(12px) scale(.97); } }
 @keyframes auth-loading-progress { from { transform: translateX(-110%); } to { transform: translateX(275%); } }
 @media (max-width: 640px) { .admin-user-filters { flex: 1 1 100%; } .admin-user-filters label { flex: 1; } .admin-user-filters select { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .report-download-spinner, .auth-loading-spinner, .auth-loading-progress span, .auth-loading-overlay, #pin-step-submit.pin-verification-success { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
