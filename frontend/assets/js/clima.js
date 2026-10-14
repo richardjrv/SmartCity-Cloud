@@ -24,7 +24,8 @@
         try {
             const guardada = JSON.parse(localStorage.getItem("smartcity_weather_city") || "null");
             if (guardada && Number.isFinite(Number(guardada.latitude)) && Number.isFinite(Number(guardada.longitude))
-                && typeof guardada.label === "string" && typeof guardada.name === "string") {
+                && typeof guardada.label === "string" && typeof guardada.name === "string"
+                && (guardada.country_code === "EC" || guardada.country === "Ecuador" || guardada.label.endsWith(", Ecuador"))) {
                 return { ...UBICACION_INICIAL, ...guardada };
             }
         } catch (error) {
@@ -233,12 +234,12 @@
         if (button) { button.disabled = true; button.textContent = "Buscando…"; }
         if (status) { status.textContent = `Buscando ${texto}…`; status.classList.remove("weather-status--live"); }
         try {
-            const params = new URLSearchParams({ name: texto, count: "5", language: "es", format: "json" });
+            const params = new URLSearchParams({ name: texto, count: "10", language: "es", format: "json", countryCode: "EC" });
             const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params}`, { headers: { Accept: "application/json" }, cache: "no-store" });
             const data = await response.json();
             if (!response.ok) throw new Error("No se pudo consultar el buscador de ciudades.");
-            const place = data.results?.[0];
-            if (!place) throw new Error(`No encontramos «${texto}». Revisa el nombre e inténtalo de nuevo.`);
+            const place = data.results?.find(resultado => resultado.country_code === "EC");
+            if (!place) throw new Error(`No encontramos «${texto}» entre las ciudades de Ecuador. Revisa el nombre e inténtalo de nuevo.`);
             const parts = [place.name, place.admin1, place.country].filter((part, index, all) => part && all.indexOf(part) === index);
             ubicacionActual = {
                 name: place.name,
@@ -246,7 +247,8 @@
                 latitude: Number(place.latitude),
                 longitude: Number(place.longitude),
                 timezone: place.timezone || "auto",
-                country: place.country || ""
+                country: place.country || "Ecuador",
+                country_code: place.country_code
             };
             try { localStorage.setItem("smartcity_weather_city", JSON.stringify(ubicacionActual)); } catch (error) { /* La consulta sigue funcionando sin guardar preferencia. */ }
             controladorClima?.abort();

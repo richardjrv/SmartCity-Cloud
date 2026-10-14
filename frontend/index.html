@@ -48,6 +48,9 @@
     </div>
 <!-- Contenedor de Notificaciones Toast Flotantes -->
 <div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
+    <div id="auth-loading-overlay" class="auth-loading-overlay hidden" role="status" aria-live="polite" aria-label="Cargando SmartCity Cloud">
+        <div class="auth-loading-card"><span class="auth-loading-spinner" aria-hidden="true"></span><strong>Preparando tu ciudad</strong><p>Cargando sensores, clima y panel…</p><div class="auth-loading-progress"><span></span></div></div>
+    </div>
     <!-- ============================================================ -->
     <!-- 1. BARRA DE NAVEGACIÓN SUPERIOR (HEADER)                     -->
     <!-- ============================================================ -->
@@ -297,11 +300,6 @@
                     <h2 id="dashboard-title">Resumen de la ciudad</h2>
                     <p id="dashboard-source-summary">Métricas y estado de las lecturas disponibles.</p>
                 </div>
-                <div class="dashboard-overview-actions">
-                    <button type="button" class="dashboard-quick-action" onclick="navegarA('alertas')">
-                        <span aria-hidden="true">⚑</span> Ver alertas
-                    </button>
-                </div>
             </section>
 
             <section id="weather-local-panel" data-dashboard-panel="dashboard" class="dashboard-feature-panel weather-panel" aria-labelledby="weather-title">
@@ -313,7 +311,7 @@
                     <div class="weather-heading-actions">
                         <form id="weather-city-search" class="weather-city-search" role="search" aria-label="Consultar clima de otra ciudad">
                             <label class="sr-only" for="weather-city-input">Buscar otra ciudad para consultar el clima</label>
-                            <input id="weather-city-input" name="ciudad" type="search" maxlength="100" placeholder="Buscar otra ciudad…" autocomplete="off">
+                            <input id="weather-city-input" name="ciudad" type="search" maxlength="100" placeholder="Buscar ciudad en Ecuador…" autocomplete="off">
                             <button id="weather-city-submit" type="submit" aria-label="Buscar clima de la ciudad">Buscar</button>
                             <button id="weather-city-reset" type="button" aria-label="Volver al clima de Puerto Francisco de Orellana" title="Volver a Puerto Francisco de Orellana">Orellana</button>
                         </form>
@@ -327,6 +325,7 @@
                         <div>
                             <p id="wx-temperature" class="weather-temperature skeleton-loading">—°</p>
                             <p id="wx-condition" class="weather-condition">Consultando el estado del cielo…</p>
+                            <p class="weather-apparent-line">Sensación térmica <strong id="wx-apparent-temperature" class="skeleton-loading">—</strong> °C</p>
                         </div>
                     </div>
                     <div class="weather-grid" aria-label="Condiciones meteorológicas actuales">
@@ -344,11 +343,6 @@
                             <h3>💧 Humedad</h3>
                             <strong id="wx-humidity" class="weather-value skeleton-loading">—</strong>
                             <span class="weather-unit">%</span>
-                        </article>
-                        <article class="weather-card">
-                            <h3>🌡️ Sensación térmica</h3>
-                            <strong id="wx-apparent-temperature" class="weather-value skeleton-loading">—</strong>
-                            <span class="weather-unit">°C</span>
                         </article>
                         <article class="weather-card">
                             <h3>☔ Probabilidad de lluvia ahora</h3>
@@ -600,7 +594,7 @@
                     <p class="text-sm text-slate-400 mt-1">Descarga directamente un CSV o PDF del periodo que elijas.</p>
                 </div>
                 <div id="sensor-report-toolbar" class="flex flex-wrap items-center gap-2">
-                    <button type="button" onclick="exportarSensoresCSV()" class="px-3.5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 border border-slate-600 text-sm font-medium text-slate-100 transition flex items-center gap-1.5">
+                    <button id="sensor-report-csv" type="button" onclick="exportarSensoresCSV()" class="px-3.5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 border border-slate-600 text-sm font-medium text-slate-100 transition flex items-center gap-1.5">
                         📊 Exportar CSV
                     </button>
                     <label for="sensor-report-period" class="sr-only">Periodo del reporte</label>
@@ -618,6 +612,10 @@
                     <div><label for="sensor-report-start" class="block text-xs text-slate-400 mb-1">Desde</label><input id="sensor-report-start" type="datetime-local" class="rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100"></div>
                     <div><label for="sensor-report-end" class="block text-xs text-slate-400 mb-1">Hasta</label><input id="sensor-report-end" type="datetime-local" class="rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100"></div>
                 </div>
+                <section class="download-history" aria-labelledby="download-history-title">
+                    <div class="download-history-heading"><div><h3 id="download-history-title">Historial de descargas</h3><p>Se guarda en este navegador para tu cuenta.</p></div><button id="clear-download-history" type="button" class="download-history-clear">Borrar historial</button></div>
+                    <ul id="download-history-list" class="download-history-list" aria-live="polite"></ul>
+                </section>
                 <div class="report-overview-grid" aria-label="Resumen del reporte">
                     <article class="report-overview-card"><span class="report-overview-icon" aria-hidden="true">◷</span><div><span>Periodo seleccionado</span><strong id="report-period-summary">Últimas 24 horas</strong></div></article>
                     <article class="report-overview-card"><span class="report-overview-icon" aria-hidden="true">⌁</span><div><span>Datos del dispositivo</span><strong id="report-data-summary">Consulta el historial para exportar</strong></div></article>
@@ -628,20 +626,26 @@
 
             <section id="charts-panel" data-dashboard-panel="graficas" class="charts-panel hidden" aria-labelledby="charts-title">
                 <div class="charts-heading">
-                    <div><p class="feature-eyebrow">HISTORIAL DEL ESP32</p><h2 id="charts-title">Gráficas de mediciones</h2><p>Explora las lecturas registradas en Supabase para el periodo seleccionado.</p></div>
+                    <div><p class="feature-eyebrow">HISTORIAL DEL ESP32</p><h2 id="charts-title">Gráficas de mediciones</h2><p>Consulta la actividad general y la evolución de cada sensor de la maqueta.</p></div>
                     <div class="charts-controls">
                         <label for="chart-period">Periodo</label><select id="chart-period"><option value="1">Última hora</option><option value="10">Últimas 10 horas</option><option value="24" selected>Últimas 24 horas</option><option value="168">Últimos 7 días</option></select>
                         <button id="chart-refresh" type="button" class="chart-refresh-button">Actualizar</button>
                     </div>
                 </div>
-                <div class="chart-metric-row" role="group" aria-label="Variable de la gráfica">
-                    <button type="button" class="chart-metric-button is-active" data-chart-metric="temperatura" aria-pressed="true">🌡️ Temperatura</button>
-                    <button type="button" class="chart-metric-button" data-chart-metric="humedad" aria-pressed="false">💧 Humedad</button>
-                    <button type="button" class="chart-metric-button" data-chart-metric="calidad_aire" aria-pressed="false">🍃 Calidad del aire</button>
-                    <button type="button" class="chart-metric-button" data-chart-metric="distancia_cm" aria-pressed="false">📏 Distancia HC-SR04</button>
+                <div class="chart-summary-strip" aria-label="Resumen del periodo">
+                    <article class="chart-summary-item"><span>Registros recibidos</span><strong id="chart-total-readings">—</strong></article>
+                    <article class="chart-summary-item"><span>Sensores con datos</span><strong id="chart-active-sensors">—</strong></article>
+                    <article class="chart-summary-item"><span>Última lectura</span><strong id="chart-last-reading">—</strong></article>
                 </div>
-                <div class="chart-canvas-wrap"><canvas id="sensor-history-chart" role="img" aria-label="Gráfica histórica de lecturas de sensores"></canvas><div id="chart-empty-state" class="chart-empty-state" role="status">Cargando historial de sensores…</div></div>
-                <div class="chart-footer"><span id="chart-data-summary">Los datos se consultan desde el backend.</span><span id="chart-updated-at">—</span></div>
+                <section class="chart-overview-panel" aria-labelledby="chart-overview-title">
+                    <div class="chart-section-heading"><div><h3 id="chart-overview-title">Actividad general</h3><p>Registros guardados por intervalo. Sirve para ver cuándo el ESP32 envió datos.</p></div><span class="chart-legend-dot" aria-hidden="true"></span></div>
+                    <div class="chart-canvas-wrap"><canvas id="chart-overview-canvas" role="img" aria-label="Cantidad de registros recibidos del ESP32 a lo largo del periodo"></canvas><div id="chart-overview-empty" class="chart-empty-state" role="status">Consultando historial…</div></div>
+                    <div class="chart-footer"><span id="chart-data-summary">Los datos se consultan desde el backend.</span><span id="chart-updated-at">—</span></div>
+                </section>
+                <section class="chart-sensors-section" aria-labelledby="chart-sensors-title">
+                    <div class="chart-section-heading"><div><h3 id="chart-sensors-title">Mediciones por sensor</h3><p>Cada gráfica conserva su propia escala y unidad. Los valores sin calibrar se muestran como lecturas crudas.</p></div></div>
+                    <div id="chart-sensor-grid" class="chart-sensor-grid" aria-live="polite"></div>
+                </section>
             </section>
         </section>
 
@@ -789,6 +793,10 @@
                     <div class="relative min-w-[260px]">
                         <input type="text" id="buscar-usuario" onkeyup="filtrarUsuarios()" placeholder="🔎 Buscar por nombre o correo..." class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 transition">
                     </div>
+                    <div class="admin-user-filters" role="group" aria-label="Filtrar usuarios">
+                        <label>Rol<select id="admin-filter-role" onchange="filtrarUsuarios()"><option value="todos">Todos</option><option value="1">Administradores</option><option value="2">Usuarios</option></select></label>
+                        <label>Estado<select id="admin-filter-state" onchange="filtrarUsuarios()"><option value="todos">Todos</option><option value="activo">Activos</option><option value="inactivo">Inactivos</option></select></label>
+                    </div>
                 </div>
 
                 <div class="admin-summary-grid" aria-label="Resumen de cuentas">
@@ -797,6 +805,7 @@
                     <article class="admin-summary-card"><span aria-hidden="true">👑</span><div><strong id="admin-admin-users">—</strong><small>Administradores</small></div></article>
                     <p class="admin-summary-note">Gestiona roles y estados desde las acciones de cada cuenta. Los cambios de permisos también deben validarse en el backend.</p>
                 </div>
+                <p id="admin-filter-results" class="admin-filter-results" aria-live="polite"></p>
 
                 <!-- Tabla de Usuarios -->
                 <div class="overflow-x-auto rounded-2xl border border-slate-700/50">

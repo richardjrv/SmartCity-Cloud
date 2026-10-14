@@ -32,6 +32,8 @@ async function cargarUsuariosAdmin() {
         window.usuariosAdmin = data;
         actualizarResumenUsuariosAdmin(data);
         mostrarUsuariosTabla(data);
+        const resumen = document.getElementById("admin-filter-results");
+        if (resumen) resumen.textContent = `Mostrando ${data.length} de ${data.length} cuentas`;
 
     } catch (error) {
         console.error("❌ Error admin usuarios:", error);
@@ -146,19 +148,26 @@ function mostrarUsuariosTabla(usuarios) {
 
 function filtrarUsuarios() {
     const texto = (document.getElementById("buscar-usuario")?.value || "").toLowerCase().trim();
+    const rolSeleccionado = document.getElementById("admin-filter-role")?.value || "todos";
+    const estadoSeleccionado = document.getElementById("admin-filter-state")?.value || "todos";
     if (!window.usuariosAdmin) return;
 
     const filtrados = window.usuariosAdmin.filter(usuario => {
-        return (
+        const coincideTexto = (
             String(usuario.id).includes(texto) ||
             (usuario.nombre || "").toLowerCase().includes(texto) ||
             (usuario.email || "").toLowerCase().includes(texto) ||
             (usuario.username || "").toLowerCase().includes(texto) ||
             (usuario.rol || "").toLowerCase().includes(texto)
         );
+        const coincideRol = rolSeleccionado === "todos" || Number(usuario.id_rol) === Number(rolSeleccionado);
+        const coincideEstado = estadoSeleccionado === "todos" || usuario.estado === estadoSeleccionado;
+        return coincideTexto && coincideRol && coincideEstado;
     });
 
     mostrarUsuariosTabla(filtrados);
+    const resumen = document.getElementById("admin-filter-results");
+    if (resumen) resumen.textContent = `Mostrando ${filtrados.length} de ${window.usuariosAdmin.length} cuentas`;
 }
 
 async function cambiarRolUsuario(usuarioId, rolActual) {

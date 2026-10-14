@@ -529,6 +529,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initTextSizeControls();
     initAccountMenu();
     initSiteInformation();
+    inicializarHistorialDescargas();
     initDashboardSettings();
     inicializarCursorOrbital();
     inicializarRelojDashboard();
@@ -1205,6 +1206,13 @@ function enviarConsultaContacto(event) {
 // ============================================================
 
 async function exportarSensoresCSV() {
+    const boton = document.getElementById("sensor-report-csv");
+    const htmlOriginal = boton?.innerHTML;
+    if (boton) {
+        boton.disabled = true;
+        boton.setAttribute("aria-busy", "true");
+        boton.innerHTML = '<span class="report-download-spinner" aria-hidden="true"></span> Preparando CSV…';
+    }
     try {
         let sensores = typeof obtenerSensoresActivos === "function" ? obtenerSensoresActivos() : [];
         const demo = typeof obtenerModoDemoSensores === "function" && obtenerModoDemoSensores();
@@ -1250,11 +1258,78 @@ async function exportarSensoresCSV() {
         link.click();
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(url), 1000);
+        registrarDescargaReporte("CSV", link.download, "Lecturas más recientes");
 
         mostrarNotificacion(demo ? "CSV demostrativo descargado; sus datos están marcados como simulados." : "CSV generado exitosamente.", "exito");
     } catch (err) {
         mostrarNotificacion("Error al exportar CSV", "error");
+    } finally {
+        if (boton) {
+            boton.disabled = false;
+            boton.removeAttribute("aria-busy");
+            boton.innerHTML = htmlOriginal;
+        }
     }
+}
+
+const DOWNLOAD_HISTORY_BASE_KEY = "smartcity_report_downloads_v1";
+
+function claveHistorialDescargas() {
+    const usuario = localStorage.getItem("user_id_cloud") || localStorage.getItem("user_name_cloud") || "anonimo";
+    return `${DOWNLOAD_HISTORY_BASE_KEY}:${usuario}`;
+}
+
+function obtenerHistorialDescargas() {
+    try {
+        const entries = JSON.parse(localStorage.getItem(claveHistorialDescargas()) || "[]");
+        return Array.isArray(entries) ? entries.slice(0, 20) : [];
+    } catch { return []; }
+}
+
+function registrarDescargaReporte(formato, archivo, periodoPersonalizado = "") {
+    const periodo = periodoPersonalizado || document.getElementById("sensor-report-period")?.selectedOptions?.[0]?.textContent || "Periodo seleccionado";
+    const historial = [{ formato, archivo, periodo, fecha: new Date().toISOString() }, ...obtenerHistorialDescargas()].slice(0, 20);
+    try { localStorage.setItem(claveHistorialDescargas(), JSON.stringify(historial)); } catch { /* La descarga no depende del historial local. */ }
+    renderizarHistorialDescargas(historial);
+}
+
+function renderizarHistorialDescargas(historial = obtenerHistorialDescargas()) {
+    const lista = document.getElementById("download-history-list");
+    if (!lista) return;
+    lista.replaceChildren();
+    if (!historial.length) {
+        const vacio = document.createElement("li");
+        vacio.className = "download-history-empty";
+        vacio.textContent = "Todavía no hay reportes descargados.";
+        lista.append(vacio);
+        return;
+    }
+    historial.forEach(item => {
+        const fila = document.createElement("li");
+        fila.className = "download-history-item";
+        const icono = document.createElement("span");
+        icono.className = "download-history-icon";
+        icono.textContent = item.formato === "PDF" ? "📄" : "📊";
+        icono.setAttribute("aria-hidden", "true");
+        const detalle = document.createElement("span");
+        detalle.className = "download-history-detail";
+        const nombre = document.createElement("strong");
+        nombre.textContent = item.archivo || `Reporte ${item.formato}`;
+        const meta = document.createElement("small");
+        const fecha = new Date(item.fecha);
+        meta.textContent = `${item.periodo || "Periodo seleccionado"} · ${Number.isNaN(fecha.getTime()) ? "Fecha desconocida" : new Intl.DateTimeFormat("es-EC", { dateStyle: "medium", timeStyle: "short" }).format(fecha)}`;
+        detalle.append(nombre, meta);
+        fila.append(icono, detalle);
+        lista.append(fila);
+    });
+}
+
+function inicializarHistorialDescargas() {
+    renderizarHistorialDescargas();
+    document.getElementById("clear-download-history")?.addEventListener("click", () => {
+        try { localStorage.removeItem(claveHistorialDescargas()); } catch { /* El control sigue siendo usable sin persistencia local. */ }
+        renderizarHistorialDescargas([]);
+    });
 }
 
 function fechaParaInputLocal(fecha) {
@@ -1429,7 +1504,7 @@ async function exportarSensoresPDF() {
     if (boton) {
         boton.disabled = true;
         boton.setAttribute("aria-busy", "true");
-        boton.textContent = "Preparando PDF…";
+        boton.innerHTML = '<span class="report-download-spinner" aria-hidden="true"></span> Generando PDF…';
     }
     if (estado) estado.textContent = "Consultando las lecturas del periodo…";
     try {
@@ -1477,6 +1552,7 @@ async function exportarSensoresPDF() {
         data.sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
         const jsPDF = await cargarJsPDF();
         generarPdfLecturas(jsPDF, { data, desde, hasta, generado: ahora, demo, limitation });
+        registrarDescargaReporte("PDF", `SmartCity_${demo ? "DEMO_SIMULADA_" : ""}Reporte_${ahora.toISOString().slice(0, 10)}.pdf`);
         if (estado) estado.textContent = demo
             ? "PDF demostrativo descargado. El archivo identifica claramente las lecturas simuladas."
             : limitation

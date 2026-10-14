@@ -237,12 +237,15 @@ function mostrarPasoPin(nombre) {
             : "Ingresa tu PIN de cuatro cifras para completar el inicio de sesión.";
     }
     if (boton) boton.textContent = configurarPinActual ? "Guardar PIN y continuar" : "Verificar PIN";
+    boton?.classList.remove("pin-verification-success");
+    boton?.removeAttribute("aria-label");
     confirmacion?.classList.toggle("hidden", !configurarPinActual);
     botonRestablecer?.classList.toggle("hidden", configurarPinActual);
     establecerCamposObligatorios("[data-pin-group='login-pin-confirmacion']", configurarPinActual);
     limpiarPin("login-pin");
     limpiarPin("login-pin-confirmacion");
-    if (estado) estado.textContent = "";
+    if (estado) { estado.textContent = ""; estado.classList.remove("pin-status-success"); }
+    document.querySelectorAll("[data-pin-group='login-pin'] .pin-digit").forEach(campo => campo.classList.remove("pin-digit-success"));
     document.querySelector("[data-pin-group='login-pin'] .pin-digit")?.focus();
 }
 
@@ -277,7 +280,18 @@ async function procesarPasoPin(evento) {
         });
 
         if (ok) {
-            completarInicioSesion(data);
+            if (boton) {
+                boton.classList.add("pin-verification-success");
+                boton.textContent = "✓ PIN verificado";
+                boton.setAttribute("aria-label", "PIN verificado correctamente");
+            }
+            if (estado) {
+                estado.classList.add("pin-status-success");
+                estado.textContent = "PIN correcto. Acceso verificado.";
+            }
+            document.querySelectorAll("[data-pin-group='login-pin'] .pin-digit").forEach(campo => campo.classList.add("pin-digit-success"));
+            await new Promise(resolve => window.setTimeout(resolve, 3000));
+            await completarInicioSesion(data);
             return;
         }
 
@@ -299,17 +313,25 @@ async function procesarPasoPin(evento) {
     }
 }
 
-function completarInicioSesion(data) {
+async function completarInicioSesion(data) {
     retoPinActual = null;
     configurarPinActual = false;
     localStorage.setItem("token_cloud", data.access_token);
     localStorage.setItem("user_role_cloud", data.id_rol);
     localStorage.setItem("user_name_cloud", data.nombre);
     localStorage.setItem("user_id_cloud", data.user_id);
+    if (typeof renderizarHistorialDescargas === "function") renderizarHistorialDescargas();
     limpiarPin("login-pin");
     limpiarPin("login-pin-confirmacion");
     document.getElementById("form-pin-reset")?.reset();
+    const overlay = document.getElementById("auth-loading-overlay");
+    const inicioCarga = Date.now();
+    overlay?.classList.remove("hidden");
+    document.body.classList.add("auth-loading-active");
     mostrarDashboard(data.nombre, data.id_rol);
+    await new Promise(resolve => window.setTimeout(resolve, Math.max(0, 4000 - (Date.now() - inicioCarga))));
+    overlay?.classList.add("hidden");
+    document.body.classList.remove("auth-loading-active");
 }
 
 function cancelarPasoPin(mensaje = "") {
