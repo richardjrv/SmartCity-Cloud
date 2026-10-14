@@ -337,6 +337,7 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
         };
         const item = document.createElement("article");
         item.className = `alert-item alert-item--${alerta.estado}`;
+        if (alerta.id) item.dataset.alertaId = String(alerta.id);
         if (typeof prepararAnimacionAlerta === "function") {
             prepararAnimacionAlerta(item, `sensor:${sensor.id}:${metrica}`, alerta);
         }
@@ -348,13 +349,16 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
         const detail = document.createElement("p");
         detail.textContent = valor;
         texto.append(sensorLabel, detail);
+        if (guardada && typeof crearHistorialVisualAlerta === "function") {
+            texto.appendChild(crearHistorialVisualAlerta(guardada));
+        }
         main.appendChild(texto);
 
         const controls = document.createElement("div");
         controls.className = "alert-item-controls";
         const statusControl = typeof crearControlEstadoAlerta === "function"
-            ? crearControlEstadoAlerta(alerta, (estado, select) => {
-                void cambiarEstadoAlerta(alerta, estado, select);
+            ? crearControlEstadoAlerta(alerta, (estado, observacion, button, select, observation, feedback) => {
+                void cambiarEstadoAlerta(alerta, estado, observacion, button, select, observation, feedback);
             })
             : document.createTextNode("Pendiente");
 
@@ -391,7 +395,7 @@ function actualizarBadgeAlertasSensores(sensores) {
     const fueraDeRango = sensores.filter(({ lectura }) => valoresFueraDeRango(lectura).length).length;
     badge.textContent = fueraDeRango > 99 ? "99+" : String(fueraDeRango);
     badge.setAttribute("aria-label", `${fueraDeRango} lecturas fuera de umbrales configurados`);
-    badge.title = "No hay umbrales calibrados. Las alertas reportadas por usuarios y administradores siguen apareciendo en el centro de alertas.";
+    badge.title = "No hay umbrales calibrados. Los avisos los reportan los usuarios; el administrador actualiza su estado.";
     badge.classList.toggle("hidden", fueraDeRango === 0);
 }
 

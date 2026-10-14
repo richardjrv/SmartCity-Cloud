@@ -189,6 +189,38 @@ body.high-contrast .brunito-action-card :is(h3, p) {
     }
 }
 
+/* Seguimiento administrativo: evita que la nota y el botón se compriman. */
+.alert-admin-followup {
+    grid-template-columns: minmax(9rem, .72fr) minmax(0, 1.6fr);
+    align-items: end;
+}
+
+.alert-observation-label,
+.alert-observation-input {
+    min-width: 0;
+}
+
+.alert-observation-input {
+    min-height: 3.4rem;
+    line-height: 1.45;
+}
+
+.alert-followup-save {
+    grid-column: 2;
+    justify-self: end;
+}
+
+@media (max-width: 640px) {
+    .alert-admin-followup {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .alert-followup-save {
+        grid-column: 1;
+        justify-self: stretch;
+    }
+}
+
 /* Alto contraste: adapta superficies con fondos definidos directamente. */
 body.high-contrast :is(
     .dashboard-overview,
@@ -1167,4 +1199,85 @@ html[data-theme="light"] #dashboard-overview::after {
     #vista-dashboard .pulse-dot { animation: none !important; }
     #vista-dashboard :is(.dashboard-metric-card, .weather-hour-card, .dashboard-quick-action, .weather-city-search button) { transition: none !important; }
     #vista-dashboard :is(.dashboard-metric-card, .weather-hour-card, .dashboard-quick-action, .weather-city-search button):hover { transform: none; }
+}
+
+/* El menú acompaña el área de trabajo y deja libre el pie del documento. */
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+.app-layout {
+    position: relative;
+    flex: 1 0 auto;
+    min-height: 0;
+}
+
+body.sidebar-fixed-layout #app-layout {
+    gap: 1.4rem;
+    padding: .7rem;
+}
+
+body.sidebar-fixed-layout.sidebar-collapsed #app-layout {
+    padding-left: .7rem;
+}
+
+.app-sidebar,
+body.sidebar-collapsed .app-sidebar {
+    position: sticky;
+    top: 4.7rem;
+    left: auto;
+    bottom: auto;
+    align-self: flex-start;
+    flex: 0 0 248px;
+    width: 248px;
+    height: calc(100vh - 5.4rem);
+    height: calc(100dvh - 5.4rem);
+    max-height: calc(100dvh - 5.4rem);
+    margin: 0;
+}
+
+body.sidebar-collapsed .app-sidebar {
+    flex-basis: 76px;
+    width: 76px;
+}
+
+.main-content {
+    flex: 1 1 0%;
+    min-width: 0;
+}
+
+#site-footer {
+    position: relative;
+    z-index: 36;
+    flex: 0 0 auto;
+    margin-top: 0;
+}
+
+@media (max-width: 767px) {
+    body.sidebar-fixed-layout #app-layout,
+    body.sidebar-fixed-layout.sidebar-collapsed #app-layout {
+        gap: 0;
+        padding: 0;
+    }
+
+    .app-sidebar,
+    body.sidebar-collapsed .app-sidebar {
+        position: fixed;
+        top: 4rem;
+        right: auto;
+        bottom: 0;
+        left: 0;
+        align-self: auto;
+        width: min(290px, 86vw);
+        height: auto;
+        max-height: none;
+        margin: 0;
+        flex-basis: auto;
+    }
+
+    .app-layout {
+        min-height: calc(100vh - 4rem);
+        min-height: calc(100dvh - 4rem);
+    }
 }

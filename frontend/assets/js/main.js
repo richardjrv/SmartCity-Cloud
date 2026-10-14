@@ -285,6 +285,7 @@ function mostrarDashboard(nombre, idRol) {
     document.getElementById("dashboard-header-context")?.classList.remove("hidden");
     document.getElementById("btn-dashboard-fullscreen")?.classList.remove("hidden");
     renderizarNotificaciones();
+    if (typeof configurarCentroAlertasPorRol === "function") configurarCentroAlertasPorRol(idRol);
     if (typeof cargarAlertasCompartidas === "function") void cargarAlertasCompartidas({ silencioso: true });
 
     const navNombre = document.getElementById("nav-usuario-nombre");
@@ -462,11 +463,11 @@ function inicializarBarraLateral() {
 }
 
 const PASOS_RECORRIDO = [
-    { vista: "dashboard", destino: "city-3d-panel", titulo: "Pulso de la ciudad", texto: "El modelo 3D es la vista central. Si el ESP32 aún no está conectado, la pantalla lo indicará y usará lecturas simuladas." },
-    { vista: "capas", destino: "map-layer-toolbar", titulo: "Explora las capas", texto: "Cambia entre temperatura, humedad, calidad del aire y estado general. Los colores orientan la lectura del mapa." },
-    { vista: "dashboard", destino: "urban-pulse-strip", titulo: "Revisa el pulso urbano", texto: "Aquí ves cuántos sensores aparecen, cuántas lecturas requieren revisión y de dónde vienen los datos." },
-    { vista: "alertas", destino: "alert-center-panel", titulo: "Revisa observaciones", texto: "Los rangos son orientativos para la demostración y ayudan a ubicar lecturas que merecen revisión." },
-    { vista: "reportes", destino: "reportes-panel", titulo: "Descarga tus reportes", texto: "Descarga directamente un CSV o un PDF del periodo elegido. Los datos demo quedan etiquetados como simulados." }
+    { vista: "dashboard", destino: "urban-sensors-title", titulo: "1. Sensores de la maqueta", texto: "Presenta el único ESP32 y sus sensores: proximidad, lluvia, luminosidad, nivel de agua, temperatura, humedad y detección infrarroja. Si una lectura no llega, el panel lo indica." },
+    { vista: "dashboard", destino: "environment-metrics-title", titulo: "2. Datos en el dashboard", texto: "Explica cómo las lecturas recibidas aparecen en las tarjetas y muestran su estado y última actualización. Distingue siempre los datos reales de los valores de demostración." },
+    { vista: "graficas", destino: "charts-panel", titulo: "3. Tendencias en gráficas", texto: "Elige una variable y un periodo para revisar el historial guardado. Si aún no hay lecturas almacenadas, la gráfica lo indicará sin inventar datos." },
+    { vista: "alertas", destino: "alert-report-form", titulo: "4. Reporte de una alerta", texto: "Un usuario elige el tipo de aviso, describe lo observado y lo envía para que el administrador lo revise. La cuenta administradora no puede crear reportes." },
+    { vista: "alertas", destino: "alert-center-list", titulo: "5. Seguimiento del administrador", texto: "El administrador cambia el estado a Pendiente, En proceso o Resuelto y registra una nota breve. El autor, la hora y cada cambio quedan en el historial y en las notificaciones." }
 ];
 let pasoRecorridoActual = 0;
 
@@ -666,6 +667,61 @@ function guardarNotificacionesUsuario(notificaciones) {
     }
 }
 
+function claveHistorialAlertasVisto() {
+    const usuarioId = localStorage.getItem("user_id_cloud") || localStorage.getItem("user_name_cloud") || "usuario";
+    return `smartcity_historial_alertas_visto_${usuarioId}`;
+}
+
+function registrarNotificacionesCambiosAlertas(alertas) {
+    if (!Array.isArray(alertas) || !alertas.length) return;
+    const vistoKey = claveHistorialAlertasVisto();
+    let idsVistos = [];
+    let primeraCarga = false;
+    try {
+        const stored = localStorage.getItem(vistoKey);
+        primeraCarga = stored === null;
+        idsVistos = stored ? JSON.parse(stored) : [];
+        if (!Array.isArray(idsVistos)) idsVistos = [];
+    } catch (error) {
+        idsVistos = [];
+    }
+
+    const vistoSet = new Set(idsVistos.map(String));
+    const eventos = alertas.flatMap(alerta => (Array.isArray(alerta.historial) ? alerta.historial : [])
+        .filter(evento => evento.estado_anterior && evento.id !== undefined && evento.id !== null)
+        .map(evento => ({ alerta, evento })))
+        .sort((a, b) => new Date(a.evento.creado_en) - new Date(b.evento.creado_en));
+    const notificacionesNuevas = [];
+    const limiteInicial = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    eventos.forEach(({ alerta, evento }) => {
+        const id = String(evento.id);
+        if (vistoSet.has(id)) return;
+        vistoSet.add(id);
+        const fecha = evento.creado_en ? new Date(evento.creado_en) : new Date();
+        if (primeraCarga && (Number.isNaN(fecha.getTime()) || fecha.getTime() < limiteInicial)) return;
+        const nota = evento.observacion ? ` Nota: ${evento.observacion}` : "";
+        notificacionesNuevas.push({
+            id: `alerta-${id}`,
+            type: "alerta_estado",
+            alertId: alerta.id,
+            titulo: `Actualización: ${alerta.titulo || "Aviso"}`,
+            mensaje: `${evento.actor || "El administrador"} cambió el estado a ${etiquetaEstadoAlerta(evento.estado_nuevo)}.${nota}`,
+            fecha: evento.creado_en || new Date().toISOString(),
+            leida: false
+        });
+    });
+
+    try {
+        localStorage.setItem(vistoKey, JSON.stringify(Array.from(vistoSet).slice(-1500)));
+    } catch (error) {
+        console.warn("No se pudo guardar el registro de cambios de alertas vistos.", error);
+    }
+    if (notificacionesNuevas.length) {
+        guardarNotificacionesUsuario([...notificacionesNuevas.reverse(), ...leerNotificacionesUsuario()]);
+        renderizarNotificaciones();
+    }
+}
+
 function renderizarNotificaciones() {
     const list = document.getElementById("notification-list");
     const badge = document.getElementById("notification-unread-count");
@@ -724,7 +780,7 @@ function renderizarNotificaciones() {
         }
         const action = document.createElement("span");
         action.className = "notification-open-hint";
-        action.textContent = "Abrir sensor →";
+        action.textContent = item.type === "alerta_estado" ? "Ver alerta →" : "Abrir sensor →";
         tags.append(action);
         row.appendChild(tags);
         list.appendChild(row);
@@ -758,6 +814,17 @@ function abrirNotificacion(id) {
     guardarNotificacionesUsuario(notificaciones.map(item => item.id === id ? { ...item, leida: true } : item));
     renderizarNotificaciones();
     cerrarMenuNotificaciones();
+    if (seleccionada.alertId !== undefined && seleccionada.alertId !== null) {
+        navegarA("alertas");
+        window.setTimeout(() => {
+            const alerta = Array.from(document.querySelectorAll("[data-alerta-id]"))
+                .find(element => element.dataset.alertaId === String(seleccionada.alertId));
+            alerta?.scrollIntoView({ behavior: document.body.classList.contains("reduce-motion") ? "auto" : "smooth", block: "center" });
+            const historial = alerta?.querySelector(".alert-history");
+            if (historial) historial.open = true;
+        }, 100);
+        return;
+    }
     if (seleccionada.sensorId) {
         navegarA("dashboard");
         const sensor = typeof sensoresEnMapa !== "undefined"

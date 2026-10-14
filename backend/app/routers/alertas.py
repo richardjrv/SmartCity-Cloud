@@ -38,6 +38,40 @@ def serializar_alerta(fila):
     }
 
 
+def cargar_historial(cursor, alerta_ids):
+    if not alerta_ids:
+        return {}
+    cursor.execute(
+        """
+        SELECT h.alerta_id, h.id, h.actor_id, COALESCE(u.nombre, 'Usuario'),
+               h.estado_anterior, h.estado_nuevo, h.observacion, h.creado_en
+        FROM public.alerta_historial AS h
+        LEFT JOIN public.usuarios AS u ON u.id = h.actor_id
+        WHERE h.alerta_id = ANY(%s)
+        ORDER BY h.creado_en, h.id
+        """,
+        (alerta_ids,),
+    )
+    historial = {alerta_id: [] for alerta_id in alerta_ids}
+    for fila in cursor.fetchall():
+        historial[fila[0]].append({
+            "id": fila[1],
+            "actor_id": fila[2],
+            "actor": fila[3],
+            "estado_anterior": fila[4],
+            "estado_nuevo": fila[5],
+            "observacion": fila[6],
+            "creado_en": fila[7].isoformat() if fila[7] else None,
+        })
+    return historial
+
+
+def serializar_con_historial(cursor, fila):
+    alerta = serializar_alerta(fila)
+    alerta["historial"] = cargar_historial(cursor, [alerta["id"]]).get(alerta["id"], [])
+    return alerta
+
+
 def cerrar_recursos(cursor, conn):
     if cursor:
         cursor.close()
@@ -66,6 +100,27 @@ def usuario_activo(usuario: dict = Depends(obtener_usuario_actual)):
         cerrar_recursos(cursor, conn)
 
 
+def usuario_comun(usuario: dict = Depends(usuario_activo)):
+    """Permite enviar reportes a cuentas ciudadanas, no a administradores."""
+    conn = cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id_rol FROM public.usuarios WHERE id = %s", (usuario["user_id"],))
+        fila = cursor.fetchone()
+        if not fila:
+            raise HTTPException(status_code=403, detail="La cuenta ya no está disponible.")
+        if fila[0] != 2:
+            raise HTTPException(status_code=403, detail="Solo las cuentas de usuario pueden enviar avisos.")
+        return usuario
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise HTTPException(status_code=503, detail="No se pudo validar el permiso para reportar.") from error
+    finally:
+        cerrar_recursos(cursor, conn)
+
+
 @router.get("")
 def listar_alertas(usuario: dict = Depends(usuario_activo)):
     """Usuarios autenticados pueden consultar los reportes y sus cambios de estado."""
@@ -74,7 +129,12 @@ def listar_alertas(usuario: dict = Depends(usuario_activo)):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(SELECT_ALERTA + " ORDER BY a.creado_en DESC, a.id DESC LIMIT 100")
-        return [serializar_alerta(fila) for fila in cursor.fetchall()]
+        filas = cursor.fetchall()
+        alertas = [serializar_alerta(fila) for fila in filas]
+        historial = cargar_historial(cursor, [alerta["id"] for alerta in alertas])
+        for alerta in alertas:
+            alerta["historial"] = historial.get(alerta["id"], [])
+        return alertas
     except Exception as error:
         raise HTTPException(status_code=503, detail="No se pudieron consultar las alertas.") from error
     finally:
@@ -82,8 +142,8 @@ def listar_alertas(usuario: dict = Depends(usuario_activo)):
 
 
 @router.post("", status_code=201)
-def reportar_alerta(datos: ReporteAlertaData, usuario: dict = Depends(usuario_activo)):
-    """Cualquier usuario con sesión puede informar un incidente al administrador."""
+def reportar_alerta(datos: ReporteAlertaData, usuario: dict = Depends(usuario_comun)):
+    """Las cuentas ciudadanas pueden informar incidentes al administrador."""
     titulo = datos.titulo.strip()
     descripcion = datos.descripcion.strip()
     if len(titulo) < 3 or len(descripcion) < 3:
@@ -102,9 +162,17 @@ def reportar_alerta(datos: ReporteAlertaData, usuario: dict = Depends(usuario_ac
             (titulo, descripcion, (datos.sensor_id or "").strip() or None, usuario["user_id"]),
         )
         alerta_id = cursor.fetchone()[0]
+        cursor.execute(
+            """
+            INSERT INTO public.alerta_historial
+                (alerta_id, actor_id, estado_anterior, estado_nuevo, observacion)
+            VALUES (%s, %s, NULL, 'pendiente', 'Aviso reportado')
+            """,
+            (alerta_id, usuario["user_id"]),
+        )
         conn.commit()
         cursor.execute(SELECT_ALERTA + " WHERE a.id = %s", (alerta_id,))
-        return serializar_alerta(cursor.fetchone())
+        return serializar_con_historial(cursor, cursor.fetchone())
     except HTTPException:
         raise
     except Exception as error:
@@ -126,21 +194,32 @@ def cambiar_estado_alerta(
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        cursor.execute("SELECT estado FROM public.alertas WHERE id = %s FOR UPDATE", (alerta_id,))
+        anterior = cursor.fetchone()
+        if not anterior:
+            raise HTTPException(status_code=404, detail="No se encontró esa alerta.")
+        observacion = datos.observacion.strip()
+        if not observacion:
+            raise HTTPException(status_code=422, detail="Escribe una nota breve antes de guardar.")
         cursor.execute(
             """
             UPDATE public.alertas
             SET estado = %s, actualizado_por = %s, actualizado_en = now()
             WHERE id = %s
-            RETURNING id
             """,
             (datos.estado, admin["user_id"], alerta_id),
         )
-        fila = cursor.fetchone()
-        if not fila:
-            raise HTTPException(status_code=404, detail="No se encontró esa alerta.")
+        cursor.execute(
+            """
+            INSERT INTO public.alerta_historial
+                (alerta_id, actor_id, estado_anterior, estado_nuevo, observacion)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (alerta_id, admin["user_id"], anterior[0], datos.estado, observacion),
+        )
         conn.commit()
         cursor.execute(SELECT_ALERTA + " WHERE a.id = %s", (alerta_id,))
-        return serializar_alerta(cursor.fetchone())
+        return serializar_con_historial(cursor, cursor.fetchone())
     except HTTPException:
         if conn:
             conn.rollback()
@@ -158,47 +237,60 @@ def guardar_estado_alerta_sensor(
     datos: EstadoAlertaSensorData,
     admin: dict = Depends(requerir_admin),
 ):
-    """Persiste el estado administrativo de una alerta asociada al ESP32."""
+    """El administrador solo cambia estado y deja una nota sobre un reporte ya existente."""
     if not datos.sensor_id.strip() or not datos.metrica.strip():
         raise HTTPException(status_code=422, detail="El ESP32 y la variable de la alerta son obligatorios.")
-    if len(datos.titulo.strip()) < 3 or len(datos.descripcion.strip()) < 3:
-        raise HTTPException(status_code=422, detail="Escribe un título y una descripción válidos.")
     conn = cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO public.alertas (
-                origen, titulo, descripcion, sensor_id, metrica,
-                estado, creado_por, actualizado_por
-            )
-            VALUES ('sensor', %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (sensor_id, metrica) WHERE origen = 'sensor'
-            DO UPDATE SET titulo = EXCLUDED.titulo,
-                          descripcion = EXCLUDED.descripcion,
-                          estado = EXCLUDED.estado,
-                          actualizado_por = EXCLUDED.actualizado_por,
-                          actualizado_en = now()
-            RETURNING id
+            SELECT id, estado FROM public.alertas
+            WHERE sensor_id = %s AND metrica = %s AND origen = 'sensor'
+            FOR UPDATE
+            """,
+            (datos.sensor_id.strip(), datos.metrica.strip()),
+        )
+        estado_anterior = cursor.fetchone()
+        if not estado_anterior:
+            raise HTTPException(status_code=404, detail="No existe un reporte de sensor para actualizar.")
+        alerta_id, estado_actual = estado_anterior
+        observacion = datos.observacion.strip()
+        if not observacion:
+            raise HTTPException(status_code=422, detail="Escribe una nota breve antes de guardar.")
+        cursor.execute(
+            """
+            UPDATE public.alertas
+            SET estado = %s, actualizado_por = %s, actualizado_en = now()
+            WHERE id = %s
+            """,
+            (datos.estado, admin["user_id"], alerta_id),
+        )
+        cursor.execute(
+            """
+            INSERT INTO public.alerta_historial
+                (alerta_id, actor_id, estado_anterior, estado_nuevo, observacion)
+            VALUES (%s, %s, %s, %s, %s)
             """,
             (
-                datos.titulo.strip(),
-                datos.descripcion.strip(),
-                datos.sensor_id.strip(),
-                datos.metrica.strip(),
+                alerta_id,
+                admin["user_id"],
+                estado_actual,
                 datos.estado,
-                admin["user_id"],
-                admin["user_id"],
+                observacion,
             ),
         )
-        alerta_id = cursor.fetchone()[0]
         conn.commit()
         cursor.execute(SELECT_ALERTA + " WHERE a.id = %s", (alerta_id,))
-        return serializar_alerta(cursor.fetchone())
+        return serializar_con_historial(cursor, cursor.fetchone())
+    except HTTPException:
+        if conn:
+            conn.rollback()
+        raise
     except Exception as error:
         if conn:
             conn.rollback()
-        raise HTTPException(status_code=503, detail="No se pudo guardar el estado de la alerta del sensor.") from error
+        raise HTTPException(status_code=503, detail="No se pudo actualizar el estado de la alerta del sensor.") from error
     finally:
         cerrar_recursos(cursor, conn)

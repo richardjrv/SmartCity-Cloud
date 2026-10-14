@@ -80,7 +80,7 @@
                     </button>
                     <section id="notification-menu" class="notification-menu hidden" aria-label="Notificaciones recientes">
                         <div class="notification-menu-heading">
-                            <div><h2>Notificaciones</h2><p>Avisos de tus sensores</p></div>
+                            <div><h2>Notificaciones</h2><p>Cambios de alertas y avisos de sensores</p></div>
                             <button id="notification-mark-all" type="button" onclick="marcarTodasNotificacionesLeidas()">Marcar todo leído</button>
                         </div>
                         <div id="notification-list" class="notification-list" role="list" aria-live="polite" aria-relevant="additions text"></div>
@@ -568,17 +568,22 @@
                         <button id="alert-center-refresh" type="button" class="alert-view-button">Actualizar</button>
                     </div>
                 </div>
-                <p id="alert-center-note" class="feature-panel-note">Todos pueden consultar y reportar alertas. Solo el administrador puede cambiar su estado.</p>
+                <p id="alert-center-note" class="feature-panel-note">Los usuarios registrados pueden reportar avisos. El administrador cambia su estado y deja una nota breve.</p>
                 <form id="alert-report-form" class="alert-report-form">
                     <div class="alert-report-fields">
-                        <label class="alert-report-field">Título del aviso
-                            <input id="alert-report-title" name="titulo" type="text" minlength="3" maxlength="120" required placeholder="Ej.: Nivel de agua elevado">
+                        <label class="alert-report-field">Tipo de aviso
+                            <select id="alert-report-title" name="titulo" required>
+                                <option value="" selected disabled>Selecciona el motivo</option>
+                                <option value="Sensor con falla">Sensor con falla</option>
+                                <option value="Lectura inusual">Lectura inusual</option>
+                                <option value="Riesgo de inundación">Riesgo de inundación</option>
+                                <option value="Problema con luminaria">Problema con luminaria</option>
+                                <option value="Solicitud de mantenimiento">Solicitud de mantenimiento</option>
+                                <option value="Otro aviso">Otro aviso</option>
+                            </select>
                         </label>
                         <label class="alert-report-field">Descripción
                             <textarea id="alert-report-description" name="descripcion" minlength="3" maxlength="1500" required rows="2" placeholder="Describe qué observaste y dónde."></textarea>
-                        </label>
-                        <label class="alert-report-field alert-report-sensor-field">ESP32 relacionado (opcional)
-                            <input id="alert-report-sensor" name="sensor_id" type="text" maxlength="100" placeholder="ESP32-MAQUETA">
                         </label>
                     </div>
                     <div class="alert-report-submit-row">
@@ -951,7 +956,7 @@
     <div id="tour-overlay" class="guided-tour-overlay hidden" aria-hidden="true">
         <section class="guided-tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-step-title" aria-describedby="tour-step-description">
             <div class="flex items-start justify-between gap-4">
-                <div><p id="tour-step-counter" class="tour-step-counter">1 de 7</p><h2 id="tour-step-title" class="text-lg font-bold text-white">Pulso de la ciudad</h2></div>
+                <div><p id="tour-step-counter" class="tour-step-counter">1 de 5</p><h2 id="tour-step-title" class="text-lg font-bold text-white">Sensores de la maqueta</h2></div>
                 <button type="button" class="tour-close" onclick="cerrarRecorridoGuiado()" aria-label="Cerrar recorrido">✕</button>
             </div>
             <p id="tour-step-description" class="mt-2 text-sm leading-6 text-slate-300"></p>
