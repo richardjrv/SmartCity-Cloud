@@ -221,13 +221,23 @@ def chat_brunito_ai(req: ChatRequest, usuario: dict = Depends(obtener_usuario_ac
             "model": "openai/gpt-oss-120b",
             "messages": messages,
             "temperature": 0.3,
-            "max_completion_tokens": 2048,
-            "reasoning_effort": "low",
-            "stream": False,
         }
+        if requiere_busqueda:
+            # GPT-OSS necesita margen para el razonamiento y browser_search.
+            parametros_completion.update({
+                "max_completion_tokens": 2048,
+                "reasoning_effort": "low",
+                "stream": False,
+            })
+        else:
+            # Mantener el payload de chat simple que funcionaba antes para
+            # preguntas generales y llamadas de función locales.
+            parametros_completion["max_tokens"] = 500
         if tools:
             parametros_completion["tools"] = tools
-            parametros_completion["tool_choice"] = "required"
+            parametros_completion["tool_choice"] = "required" if requiere_busqueda else "auto"
+            if not requiere_busqueda:
+                parametros_completion["parallel_tool_calls"] = False
 
         completion = client.chat.completions.create(
             **parametros_completion,
