@@ -81,7 +81,9 @@ def chat_brunito_ai(req: ChatRequest, usuario: dict = Depends(obtener_usuario_ac
         raise HTTPException(status_code=500, detail="GROQ_API_KEY no configurada.")
 
     try:
-        client = Groq(api_key=groq_api_key)
+        # La búsqueda web puede tardar más que una respuesta normal; dale margen
+        # antes de que el SDK la corte y el frontend reporte una falla de conexión.
+        client = Groq(api_key=groq_api_key, timeout=90.0, max_retries=1)
         datos_supabase = obtener_contexto_ciudad_supabase()
         fecha_actual = datetime.now(timezone.utc).date().isoformat()
         requiere_busqueda = _requiere_busqueda_actual(req.message)
@@ -175,10 +177,11 @@ def chat_brunito_ai(req: ChatRequest, usuario: dict = Depends(obtener_usuario_ac
             model="openai/gpt-oss-120b",
             messages=messages,
             temperature=0.3,
-            max_tokens=500,
+            max_completion_tokens=2048,
+            reasoning_effort="low",
+            stream=False,
             tools=tools,
             tool_choice="required" if requiere_busqueda else "auto",
-            parallel_tool_calls=False,
         )
 
         respuesta_modelo = completion.choices[0].message
