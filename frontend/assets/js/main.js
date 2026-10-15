@@ -1170,7 +1170,7 @@ function abrirInfoSitio(tipo) {
     const content = document.getElementById("site-info-content");
     const textos = tipo === "acerca"
         ? ["SmartCity Cloud es una plataforma demostrativa de monitoreo urbano e IoT.", "El panel presenta lecturas de sensores y una escena 3D con luminarias simuladas para explorar cómo podría visualizarse una ciudad conectada.", "El modelo no representa dispositivos instalados ni mediciones tomadas directamente en una calle."]
-        : ["La plataforma utiliza los datos de cuenta necesarios para iniciar sesión y mostrar el perfil de cada usuario.", "Las lecturas de sensores se utilizan para mostrar métricas y generar reportes dentro de SmartCity Cloud.", "Evita incluir contraseñas u otra información sensible en los mensajes de contacto o en los reportes descargados."];
+        : ["La plataforma utiliza los datos de cuenta necesarios para iniciar sesión y mostrar el perfil de cada usuario.", "Cuando usas Brunito, el mensaje y las lecturas de sensores pertinentes se envían a Google Gemini para generar la respuesta. En el nivel gratuito, Google puede usar el contenido enviado para mejorar sus productos, según sus condiciones.", "Evita incluir contraseñas u otra información sensible en tus mensajes a Brunito, en los mensajes de contacto o en los reportes descargados."];
     title.textContent = tipo === "acerca" ? "Acerca del proyecto" : "Privacidad";
     content.replaceChildren(...textos.map(texto => {
         const parrafo = document.createElement("p");

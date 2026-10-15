@@ -4,4 +4,4 @@ psycopg2-binary
 python-jose
 pydantic
 email-validator
-groq
+google-genai==2.31.0

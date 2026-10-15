@@ -19,7 +19,8 @@ class Settings:
     ALGORITHM: str = "HS256"
     
     # Claves de APIs Externas
-    GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
+    GEMINI_API_KEY: str = os.environ.get("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 
     # Lista separada por comas de orígenes frontend permitidos por CORS.
     # En local se aceptan Live Server y localhost; producción debe definir FRONTEND_ORIGINS.

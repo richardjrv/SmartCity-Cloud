@@ -40,7 +40,8 @@ docs/
 - `FRONTEND_ORIGINS` define los orígenes CORS permitidos, separados por comas. En producción se debe configurar con el dominio exacto del frontend.
 - Operaciones de administración y seguimiento de alertas verifican rol en el servidor. El módulo de alertas valida además que las cuentas ciudadanas solo creen avisos.
 - Los endpoints GET de sensores ahora exigen un JWT válido. La ingesta POST del ESP32 todavía no exige clave de dispositivo: antes de cerrar ese acceso hay que provisionar una credencial en el firmware y desplegarla como secreto; el firmware no está en este repositorio.
-- Mantener `DATABASE_URL`, `SECRET_KEY`, `GROQ_API_KEY` y futuros secretos solamente en variables de entorno del backend.
+- Mantener `DATABASE_URL`, `SECRET_KEY` y `GEMINI_API_KEY` solamente en variables de entorno del backend. La clave de Gemini se crea en Google AI Studio; nunca debe añadirse al frontend ni al repositorio.
+- El asistente usa el modelo `gemini-3.8-flash` por defecto, configurable con `GEMINI_MODEL`. La API ofrece un nivel gratuito con límites; la búsqueda fundamentada con Google Search puede requerir facturación, así que no se activa automáticamente.
 
 ## Reglas para cambios futuros
 

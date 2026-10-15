@@ -2168,7 +2168,7 @@ async function enviarMensajeBrunito(e) {
                 data.respuesta
             );
 
-            // Groq espera "assistant"
+            // El historial del chat usa "assistant"; el backend lo adapta al formato del proveedor.
             brunitoHistory.push({
                 role: "user",
                 content: texto
