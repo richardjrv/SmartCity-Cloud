@@ -1,50 +1,41 @@
-import re
-from typing import Optional
-
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, EmailStr, Field
 
 
 class LoginData(BaseModel):
-    email: str
-    password: str
-
-
-class PinChallengeData(BaseModel):
-    challenge_token: str = Field(min_length=20, max_length=4096)
-    pin: str = Field(min_length=4, max_length=4)
-
-    @validator("pin")
-    def pin_debe_ser_numerico(cls, value):
-        if not re.fullmatch(r"[0-9]{4}", value):
-            raise ValueError("El PIN debe tener exactamente cuatro números.")
-        return value
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
 
 
 class RegisterData(BaseModel):
-    nombre: str
-    email: str
-    password: str
-    pin: str = Field(min_length=4, max_length=4)
-
-    @validator("pin")
-    def pin_debe_ser_numerico(cls, value):
-        if not re.fullmatch(r"[0-9]{4}", value):
-            raise ValueError("El PIN debe tener exactamente cuatro números.")
-        return value
-    # id_rol se excluye para impedir crear administradores desde el registro público.
+    nombre: str = Field(min_length=1, max_length=120)
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
 
 
-class ActualizarPerfilData(BaseModel):
-    nombre: Optional[str] = None
-    username: Optional[str] = None
-    avatar: Optional[str] = None
+class RefreshData(BaseModel):
+    refresh_token: str = Field(min_length=20, max_length=4096)
 
 
 class CambiarPasswordData(BaseModel):
-    password_actual: str
-    password_nueva: str
+    password_actual: str = Field(min_length=1, max_length=128)
+    password_nueva: str = Field(min_length=8, max_length=128)
+
+
+class RecuperarPasswordData(BaseModel):
+    email: EmailStr
+
+
+class EstablecerPasswordData(BaseModel):
+    access_token: str = Field(min_length=20, max_length=8192)
+    password_nueva: str = Field(min_length=8, max_length=128)
 
 
 class ModificarUsuarioAdminData(BaseModel):
-    id_rol: Optional[int] = None
-    estado: Optional[str] = None
+    id_rol: int | None = None
+    estado: str | None = None
+
+
+class ActualizarPerfilData(BaseModel):
+    nombre: str | None = Field(default=None, min_length=1, max_length=120)
+    username: str | None = Field(default=None, min_length=1, max_length=60)
+    avatar: str | None = Field(default=None, max_length=2048)

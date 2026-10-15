@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.core.security import requerir_admin
 from app.db.database import get_db_connection
 from app.models.auth import ModificarUsuarioAdminData
+from app.services.supabase_auth import SupabaseAuthError, delete_user, public_auth_error
 from app.utils.auditoria_helper import registrar_auditoria
 
 router = APIRouter(prefix="/api/admin", tags=["Administración"])
@@ -14,7 +15,7 @@ def listar_usuarios_admin(admin: dict = Depends(requerir_admin)):
         cursor.execute(
             """
             SELECT id, nombre, email, username, id_rol, COALESCE(estado, 'activo'), fecha_registro, ultimo_acceso 
-            FROM usuarios ORDER BY id ASC
+            FROM usuarios WHERE auth_user_id IS NOT NULL ORDER BY id ASC
             """
         )
         filas = cursor.fetchall()
@@ -63,16 +64,31 @@ def eliminar_usuario_admin(usuario_id: int, admin: dict = Depends(requerir_admin
     if usuario_id == admin["user_id"]:
         raise HTTPException(status_code=400, detail="No puedes eliminar tu propia cuenta.")
 
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM usuarios WHERE id = %s", (usuario_id,))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        cursor.execute("SELECT auth_user_id FROM usuarios WHERE id = %s", (usuario_id,))
+        cuenta = cursor.fetchone()
+    except Exception as error:
+        raise HTTPException(status_code=503, detail="No se pudo consultar la cuenta.") from error
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
+    if not cuenta or not cuenta[0]:
+        raise HTTPException(status_code=404, detail="No se encontró una cuenta vinculada a Supabase Auth.")
+    try:
+        delete_user(str(cuenta[0]))
         registrar_auditoria(admin["user_id"], "ELIMINAR_USUARIO", "usuarios", f"Eliminó al usuario #{usuario_id}", usuario_id)
         return {"mensaje": f"Usuario #{usuario_id} eliminado 🗑️"}
+    except SupabaseAuthError as error:
+        raise public_auth_error(error) from error
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error eliminando usuario: {str(e)}")
 

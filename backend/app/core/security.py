@@ -1,49 +1,66 @@
-from fastapi import Depends, HTTPException, Header
-from passlib.context import CryptContext
-from jose import jwt
-from app.core.config import settings
+from fastapi import Depends, Header, HTTPException
+
 from app.db.database import get_db_connection
+from app.services.supabase_auth import SupabaseAuthError, get_user, public_auth_error
 
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
-
-def verificar_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifica si una contraseña en texto plano coincide con su hash."""
-    return pwd_context.verify(plain_password, hashed_password)
-
-def generar_hash_password(password: str) -> str:
-    """Genera el hash pbkdf2_sha256 de una contraseña."""
-    return pwd_context.hash(password)
 
 def obtener_usuario_actual(authorization: str = Header(...)) -> dict:
-    """Valida el token JWT enviado en el encabezado Authorization."""
+    """Verifies the Supabase access token, then loads current app roles from Postgres."""
     if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Formato de token inválido")
-    
-    token = authorization.split(" ")[1]
+        raise HTTPException(status_code=401, detail="Formato de token inválido.")
+
+    access_token = authorization.removeprefix("Bearer ").strip()
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Sesión inválida.")
+
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        return payload  # Contiene user_id, nombre, id_rol
-    except Exception:
-        raise HTTPException(status_code=401, detail="Token expirado o inválido")
+        auth_user = get_user(access_token)
+    except SupabaseAuthError as error:
+        raise public_auth_error(error, login=True) from error
+
+    auth_user_id = auth_user.get("id")
+    if not auth_user_id:
+        raise HTTPException(status_code=401, detail="Supabase Auth no devolvió un usuario válido.")
+
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT id, nombre, email, id_rol, COALESCE(estado, 'activo')
+            FROM public.usuarios
+            WHERE auth_user_id = %s
+            """,
+            (auth_user_id,),
+        )
+        row = cursor.fetchone()
+    except Exception as error:
+        raise HTTPException(status_code=503, detail="No se pudo cargar el perfil de la cuenta.") from error
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+    if not row:
+        raise HTTPException(status_code=403, detail="Confirma tu correo y vuelve a iniciar sesión.")
+    if row[4] != "activo":
+        raise HTTPException(status_code=403, detail="Tu cuenta está desactivada.")
+
+    return {
+        "user_id": row[0],
+        "nombre": row[1],
+        "email": row[2] or auth_user.get("email", ""),
+        "id_rol": row[3],
+        "auth_user_id": auth_user_id,
+        "access_token": access_token,
+    }
+
 
 def requerir_admin(usuario: dict = Depends(obtener_usuario_actual)) -> dict:
-    """🔍 Consulta el rol y estado EN VIVO en Supabase para evitar vulnerabilidades de JWT obsoleto."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id_rol, COALESCE(estado, 'activo') FROM usuarios WHERE id = %s", (usuario["user_id"],))
-        data = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if not data or data[1] != "activo":
-            raise HTTPException(status_code=403, detail="Cuenta inactiva o inexistente.")
-        
-        if data[0] != 1:  # 1 = Administrador
-            raise HTTPException(status_code=403, detail="Acceso denegado: Se requieren permisos de Administrador.")
-
-        return usuario
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error verificando permisos: {str(e)}")
+    """Authorization always comes from the current database row, never user metadata."""
+    if usuario.get("id_rol") != 1:
+        raise HTTPException(status_code=403, detail="Acceso denegado: se requieren permisos de administrador.")
+    return usuario

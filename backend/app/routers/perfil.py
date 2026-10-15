@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
-from app.core.security import obtener_usuario_actual, pwd_context, verificar_password, generar_hash_password
+from app.core.security import obtener_usuario_actual
 from app.db.database import get_db_connection
 from app.models.auth import ActualizarPerfilData, CambiarPasswordData
+from app.services.supabase_auth import SupabaseAuthError, public_auth_error, update_password
 from app.utils.auditoria_helper import registrar_auditoria
 
 router = APIRouter(prefix="/api/perfil", tags=["Perfil de Usuario"])
@@ -65,24 +66,14 @@ def editar_perfil(datos: ActualizarPerfilData, usuario: dict = Depends(obtener_u
 @router.put("/cambiar-password")
 def cambiar_password(datos: CambiarPasswordData, usuario: dict = Depends(obtener_usuario_actual)):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT password_hash FROM usuarios WHERE id = %s", (usuario["user_id"],))
-        pass_hash = cursor.fetchone()[0]
-
-        if not verificar_password(datos.password_actual, pass_hash):
-            cursor.close()
-            conn.close()
-            raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
-
-        nuevo_hash = generar_hash_password(datos.password_nueva)
-        cursor.execute("UPDATE usuarios SET password_hash = %s WHERE id = %s", (nuevo_hash, usuario["user_id"]))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        update_password(usuario["access_token"], datos.password_nueva, datos.password_actual)
 
         registrar_auditoria(usuario["user_id"], "CAMBIAR_PASSWORD", "perfil", "Cambió su contraseña de acceso")
         return {"mensaje": "Contraseña actualizada exitosamente 🔒"}
+    except SupabaseAuthError as error:
+        if error.status in (400, 401, 403):
+            raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta.") from error
+        raise public_auth_error(error) from error
     except HTTPException as he:
         raise he
     except Exception as e:

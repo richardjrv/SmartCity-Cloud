@@ -159,8 +159,8 @@ async function guardarNuevaPassword(e) {
     const password_actual = document.getElementById("pass-actual")?.value;
     const password_nueva = document.getElementById("pass-nueva")?.value;
 
-    if (!password_nueva || password_nueva.length < 6) {
-        alert("❌ La nueva contraseña debe tener al menos 6 caracteres.");
+    if (!password_nueva || password_nueva.length < 8) {
+        alert("❌ La nueva contraseña debe tener al menos 8 caracteres.");
         return;
     }
 

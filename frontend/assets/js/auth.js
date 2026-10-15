@@ -1,123 +1,35 @@
-// ============================================================
-// AUTENTICACIÓN Y SESIÓN
-// ============================================================
-
+// Supabase Auth is proxied through FastAPI; only user access tokens reach the API.
 let modoRegistro = false;
-let retoPinActual = null;
-let configurarPinActual = false;
 let cierreSesionEnCurso = false;
-
-function inicializarCamposPin() {
-    document.querySelectorAll("[data-pin-group]").forEach(grupo => {
-        const campos = Array.from(grupo.querySelectorAll(".pin-digit"));
-
-        campos.forEach((campo, indice) => {
-            campo.addEventListener("input", () => {
-                const valor = campo.value.replace(/\D/g, "");
-                if (valor.length > 1) {
-                    distribuirPin(grupo, valor, indice);
-                    return;
-                }
-
-                campo.value = valor;
-                if (valor && indice < campos.length - 1) campos[indice + 1].focus();
-            });
-
-            campo.addEventListener("keydown", evento => {
-                if (evento.key === "Backspace" && !campo.value && indice > 0) {
-                    campos[indice - 1].focus();
-                }
-            });
-
-            campo.addEventListener("paste", evento => {
-                const texto = evento.clipboardData?.getData("text") || "";
-                const digitos = texto.replace(/\D/g, "");
-                if (!digitos) return;
-                evento.preventDefault();
-                distribuirPin(grupo, digitos, indice);
-            });
-        });
-    });
-
-    establecerCamposObligatorios("[data-pin-group='registro-pin']", false);
-    establecerCamposObligatorios("[data-pin-group='registro-pin-confirmacion']", false);
-    establecerCamposObligatorios("[data-pin-group='login-pin-confirmacion']", false);
-}
-
-function distribuirPin(grupo, valor, inicio) {
-    const campos = Array.from(grupo.querySelectorAll(".pin-digit"));
-    const digitos = valor.replace(/\D/g, "");
-    campos.slice(inicio).forEach((campo, indice) => {
-        campo.value = digitos[indice] || "";
-    });
-
-    const indiceEnfoque = Math.min(inicio + digitos.length, campos.length - 1);
-    campos[indiceEnfoque]?.focus();
-}
-
-function obtenerPin(nombreGrupo) {
-    const grupo = document.querySelector(`[data-pin-group="${nombreGrupo}"]`);
-    return grupo
-        ? Array.from(grupo.querySelectorAll(".pin-digit")).map(campo => campo.value).join("")
-        : "";
-}
-
-function limpiarPin(nombreGrupo) {
-    const grupo = document.querySelector(`[data-pin-group="${nombreGrupo}"]`);
-    grupo?.querySelectorAll(".pin-digit").forEach(campo => {
-        campo.value = "";
-    });
-}
-
-function establecerCamposObligatorios(selector, obligatorios) {
-    document.querySelectorAll(`${selector} .pin-digit`).forEach(campo => {
-        campo.required = obligatorios;
-    });
-}
+let recoveryAccessToken = null;
 
 function toggleModoAuth() {
     modoRegistro = !modoRegistro;
+    const nameField = document.getElementById("campo-nombre");
+    const title = document.getElementById("auth-titulo");
+    const subtitle = document.getElementById("auth-subtitulo");
+    const submit = document.getElementById("auth-btn-submit");
+    const toggleText = document.getElementById("auth-toggle-texto");
+    const toggleButton = document.getElementById("auth-toggle-btn");
+    const password = document.getElementById("auth-password");
+
+    nameField?.classList.toggle("hidden", !modoRegistro);
+    const nameInput = document.getElementById("auth-nombre");
+    if (nameInput) nameInput.required = modoRegistro;
+    if (password) {
+        password.autocomplete = modoRegistro ? "new-password" : "current-password";
+        password.minLength = modoRegistro ? 8 : 1;
+    }
+    if (title) title.textContent = modoRegistro ? "Crear Cuenta" : "SmartCity Cloud";
+    if (subtitle) subtitle.textContent = modoRegistro ? "Regístrate en SmartCity Cloud" : "Monitoreo Urbano e IoT en la Nube";
+    if (submit) submit.textContent = modoRegistro ? "Crear Cuenta ➔" : "Iniciar Sesión ➔";
+    if (toggleText) toggleText.textContent = modoRegistro ? "¿Ya tienes una cuenta?" : "¿No tienes cuenta?";
+    if (toggleButton) toggleButton.textContent = modoRegistro ? "Iniciar Sesión" : "Crear una cuenta";
+    document.getElementById("auth-forgot-password")?.classList.toggle("hidden", modoRegistro);
+    mostrarFormularioAuth("form-auth");
     ocultarPasswordAuth();
-
-    const campoNombre = document.getElementById("campo-nombre");
-    const campoPin = document.getElementById("campo-pin");
-    const authTitulo = document.getElementById("auth-titulo");
-    const authSubtitulo = document.getElementById("auth-subtitulo");
-    const authBtnSubmit = document.getElementById("auth-btn-submit");
-    const authToggleTexto = document.getElementById("auth-toggle-texto");
-    const authToggleBtn = document.getElementById("auth-toggle-btn");
-    const passwordInput = document.getElementById("auth-password");
-
-    if (passwordInput) passwordInput.autocomplete = modoRegistro ? "new-password" : "current-password";
-
-    campoNombre?.classList.toggle("hidden", !modoRegistro);
-    campoPin?.classList.toggle("hidden", !modoRegistro);
-    establecerCamposObligatorios("[data-pin-group='registro-pin']", modoRegistro);
-    establecerCamposObligatorios("[data-pin-group='registro-pin-confirmacion']", modoRegistro);
-    limpiarPin("registro-pin");
-    limpiarPin("registro-pin-confirmacion");
-
-    if (modoRegistro) {
-        if (authTitulo) authTitulo.innerText = "Crear Cuenta";
-        if (authSubtitulo) authSubtitulo.innerText = "Regístrate en SmartCity Cloud";
-        if (authBtnSubmit) authBtnSubmit.innerText = "Crear Cuenta ➔";
-        if (authToggleTexto) authToggleTexto.innerText = "¿Ya tienes una cuenta?";
-        if (authToggleBtn) authToggleBtn.innerText = "Iniciar Sesión";
-    } else {
-        if (authTitulo) authTitulo.innerText = "SmartCity Cloud";
-        if (authSubtitulo) authSubtitulo.innerText = "Monitoreo Urbano e IoT en la Nube";
-        if (authBtnSubmit) authBtnSubmit.innerText = "Iniciar Sesión ➔";
-        if (authToggleTexto) authToggleTexto.innerText = "¿No tienes cuenta?";
-        if (authToggleBtn) authToggleBtn.innerText = "Crear una cuenta";
-    }
-
-    const authCard = document.querySelector(".auth-card");
-    if (authCard && !document.body.classList.contains("reduce-motion")) {
-        authCard.classList.remove("auth-mode-animate");
-        void authCard.offsetWidth;
-        authCard.classList.add("auth-mode-animate");
-        window.setTimeout(() => authCard.classList.remove("auth-mode-animate"), 700);
-    }
+    document.getElementById("form-auth")?.reset();
+    limpiarMensajeAuth();
 }
 
 function togglePasswordVisibility() {
@@ -125,14 +37,13 @@ function togglePasswordVisibility() {
     const button = document.getElementById("toggle-password-visibility");
     const label = button?.querySelector("[data-password-toggle-label]");
     if (!input || !button) return;
-
-    const mostrar = input.type === "password";
-    input.type = mostrar ? "text" : "password";
-    const accessibleName = mostrar ? "Ocultar contraseña" : "Mostrar contraseña";
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    const accessibleName = show ? "Ocultar contraseña" : "Mostrar contraseña";
     button.setAttribute("aria-label", accessibleName);
     button.setAttribute("title", accessibleName);
-    button.setAttribute("aria-pressed", String(mostrar));
-    if (label) label.textContent = mostrar ? "Ocultar" : "Mostrar";
+    button.setAttribute("aria-pressed", String(show));
+    if (label) label.textContent = show ? "Ocultar" : "Mostrar";
 }
 
 function ocultarPasswordAuth() {
@@ -147,259 +58,158 @@ function ocultarPasswordAuth() {
     if (label) label.textContent = "Mostrar";
 }
 
-async function procesarAuth(e) {
-    e.preventDefault();
+function mostrarFormularioAuth(id) {
+    ["form-auth", "form-recovery-request", "form-recovery-password"].forEach(formId => {
+        document.getElementById(formId)?.classList.toggle("hidden", formId !== id);
+    });
+    document.getElementById("auth-toggle-container")?.classList.toggle("hidden", id !== "form-auth");
+}
 
-    const email = document.getElementById("auth-email").value.trim();
-    const password = document.getElementById("auth-password").value;
-    ocultarPasswordAuth();
-
-    if (modoRegistro) {
-        const nombre = document.getElementById("auth-nombre").value.trim();
-        const pin = obtenerPin("registro-pin");
-        const pinConfirmacion = obtenerPin("registro-pin-confirmacion");
-        if (!nombre) {
-            mostrarMensajeAuth("Por favor ingresa tu nombre.", "error");
-            return;
-        }
-        if (!/^[0-9]{4}$/.test(pin)) {
-            mostrarMensajeAuth("El PIN debe tener exactamente cuatro números.", "error");
-            return;
-        }
-        if (pin !== pinConfirmacion) {
-            mostrarMensajeAuth("Los PIN no coinciden.", "error");
-            return;
-        }
-
-        try {
-            const { ok, data } = await apiFetch("/registro", {
-                method: "POST",
-                body: JSON.stringify({ nombre, email, password, pin })
-            });
-
-            if (ok) {
-                mostrarMensajeAuth("✅ Cuenta creada correctamente. Ahora puedes iniciar sesión.", "success");
-                document.getElementById("form-auth")?.reset();
-                limpiarPin("registro-pin");
-                limpiarPin("registro-pin-confirmacion");
-                setTimeout(() => toggleModoAuth(), 1500);
-            } else {
-                mostrarMensajeAuth(data.detail || "Error al registrar.", "error");
-            }
-        } catch (error) {
-            mostrarMensajeAuth("❌ No se pudo conectar con el servidor.", "error");
-        }
+async function procesarAuth(event) {
+    event.preventDefault();
+    const email = document.getElementById("auth-email")?.value.trim();
+    const password = document.getElementById("auth-password")?.value;
+    const button = document.getElementById("auth-btn-submit");
+    if (!email || !password) return;
+    if (modoRegistro && password.length < 8) {
+        mostrarMensajeAuth("La contraseña debe tener al menos 8 caracteres.", "error");
         return;
     }
 
+    button.disabled = true;
+    button.textContent = modoRegistro ? "Creando cuenta…" : "Verificando…";
     try {
+        if (modoRegistro) {
+            const nombre = document.getElementById("auth-nombre")?.value.trim();
+            if (!nombre) {
+                mostrarMensajeAuth("Ingresa tu nombre.", "error");
+                return;
+            }
+            const { ok, data } = await apiFetch("/registro", {
+                method: "POST",
+                body: JSON.stringify({ nombre, email, password })
+            });
+            if (!ok) {
+                mostrarMensajeAuth(data.detail || "No se pudo crear la cuenta.", "error");
+                return;
+            }
+            mostrarMensajeAuth(data.mensaje || "Cuenta creada. Revisa tu correo para confirmarla.", "success");
+            document.getElementById("form-auth")?.reset();
+            window.setTimeout(() => {
+                if (modoRegistro) toggleModoAuth();
+            }, 1800);
+            return;
+        }
+
         const { ok, data } = await apiFetch("/login", {
             method: "POST",
             body: JSON.stringify({ email, password })
         });
-
         if (!ok) {
-            mostrarMensajeAuth(data.detail || "Credenciales incorrectas.", "error");
+            mostrarMensajeAuth(data.detail || "No se pudo iniciar sesión.", "error");
             return;
         }
-
-        if (!data.requiere_pin || typeof data.challenge_token !== "string") {
-            mostrarMensajeAuth("El servidor no inició la verificación del PIN. Inténtalo de nuevo.", "error");
-            return;
-        }
-
-        retoPinActual = data.challenge_token;
-        configurarPinActual = Boolean(data.configurar_pin);
+        guardarSesionSupabase(data);
         document.getElementById("auth-password").value = "";
-        mostrarPasoPin(data.nombre);
+        await entrarAlDashboard(data.nombre, data.id_rol);
     } catch (error) {
-        mostrarMensajeAuth("❌ Error de conexión con el servidor.", "error");
-    }
-}
-
-function mostrarPasoPin(nombre) {
-    const formularioAuth = document.getElementById("form-auth");
-    const formularioPin = document.getElementById("form-pin-step");
-    const contenedorToggle = document.getElementById("auth-toggle-container");
-    const titulo = document.getElementById("pin-step-title");
-    const descripcion = document.getElementById("pin-step-description");
-    const boton = document.getElementById("pin-step-submit");
-    const confirmacion = document.getElementById("pin-confirmation-fields");
-    const botonRestablecer = document.getElementById("pin-reset-open");
-    const estado = document.getElementById("pin-step-status");
-
-    formularioAuth?.classList.add("hidden");
-    formularioPin?.classList.remove("hidden");
-    contenedorToggle?.classList.add("hidden");
-    if (titulo) titulo.textContent = configurarPinActual ? "Crea tu PIN de acceso" : "Verifica tu acceso";
-    if (descripcion) {
-        descripcion.textContent = configurarPinActual
-            ? `Hola${nombre ? `, ${nombre}` : ""}. Elige un PIN de cuatro cifras para proteger tu cuenta.`
-            : "Ingresa tu PIN de cuatro cifras para completar el inicio de sesión.";
-    }
-    if (boton) boton.textContent = configurarPinActual ? "Guardar PIN y continuar" : "Verificar PIN";
-    boton?.classList.remove("pin-verification-success");
-    boton?.removeAttribute("aria-label");
-    confirmacion?.classList.toggle("hidden", !configurarPinActual);
-    botonRestablecer?.classList.toggle("hidden", configurarPinActual);
-    establecerCamposObligatorios("[data-pin-group='login-pin-confirmacion']", configurarPinActual);
-    limpiarPin("login-pin");
-    limpiarPin("login-pin-confirmacion");
-    if (estado) { estado.textContent = ""; estado.classList.remove("pin-status-success"); }
-    document.querySelectorAll("[data-pin-group='login-pin'] .pin-digit").forEach(campo => campo.classList.remove("pin-digit-success"));
-    document.querySelector("[data-pin-group='login-pin'] .pin-digit")?.focus();
-}
-
-async function procesarPasoPin(evento) {
-    evento.preventDefault();
-    if (!retoPinActual) {
-        cancelarPasoPin("La verificación venció. Inicia sesión nuevamente.");
-        return;
-    }
-
-    const pin = obtenerPin("login-pin");
-    const pinConfirmacion = obtenerPin("login-pin-confirmacion");
-    const estado = document.getElementById("pin-step-status");
-    const boton = document.getElementById("pin-step-submit");
-    if (!/^[0-9]{4}$/.test(pin)) {
-        if (estado) estado.textContent = "Ingresa los cuatro números de tu PIN.";
-        return;
-    }
-    if (configurarPinActual && pin !== pinConfirmacion) {
-        if (estado) estado.textContent = "Los PIN no coinciden.";
-        return;
-    }
-
-    const endpoint = configurarPinActual ? "/login/establecer-pin" : "/login/verificar-pin";
-    if (boton) boton.disabled = true;
-    if (estado) estado.textContent = "";
-
-    try {
-        const { ok, status, data } = await apiFetch(endpoint, {
-            method: "POST",
-            body: JSON.stringify({ challenge_token: retoPinActual, pin })
-        });
-
-        if (ok) {
-            if (boton) {
-                boton.classList.add("pin-verification-success");
-                boton.textContent = "✓ PIN verificado";
-                boton.setAttribute("aria-label", "PIN verificado correctamente");
-            }
-            if (estado) {
-                estado.classList.add("pin-status-success");
-                estado.textContent = "PIN correcto. Acceso verificado.";
-            }
-            document.querySelectorAll("[data-pin-group='login-pin'] .pin-digit").forEach(campo => campo.classList.add("pin-digit-success"));
-            await new Promise(resolve => window.setTimeout(resolve, 2000));
-            await completarInicioSesion(data);
-            return;
-        }
-
-        if (status === 401 && !String(data.detail || "").startsWith("PIN incorrecto")) {
-            cancelarPasoPin(data.detail || "La verificación venció. Inicia sesión nuevamente.");
-            return;
-        }
-        if (status === 429) {
-            cancelarPasoPin(data.detail || "Se alcanzó el límite de intentos. Vuelve a iniciar sesión más tarde.");
-            return;
-        }
-        if (estado) estado.textContent = data.detail || "No se pudo verificar el PIN.";
-        limpiarPin("login-pin");
-        document.querySelector("[data-pin-group='login-pin'] .pin-digit")?.focus();
-    } catch (error) {
-        if (estado) estado.textContent = "No se pudo conectar con el servidor. Inténtalo nuevamente.";
+        mostrarMensajeAuth("No se pudo conectar con el servidor. Inténtalo otra vez.", "error");
     } finally {
-        if (boton?.isConnected) boton.disabled = false;
+        button.disabled = false;
+        button.textContent = modoRegistro ? "Crear Cuenta ➔" : "Iniciar Sesión ➔";
     }
 }
 
-async function completarInicioSesion(data) {
-    retoPinActual = null;
-    configurarPinActual = false;
+function guardarSesionSupabase(data) {
+    if (!data?.access_token || !data?.refresh_token) throw new Error("Respuesta de sesión incompleta.");
     localStorage.setItem("token_cloud", data.access_token);
-    localStorage.setItem("user_role_cloud", data.id_rol);
-    localStorage.setItem("user_name_cloud", data.nombre);
-    localStorage.setItem("user_id_cloud", data.user_id);
-    if (typeof renderizarHistorialDescargas === "function") renderizarHistorialDescargas();
-    limpiarPin("login-pin");
-    limpiarPin("login-pin-confirmacion");
-    document.getElementById("form-pin-reset")?.reset();
+    localStorage.setItem("refresh_token_cloud", data.refresh_token);
+    localStorage.setItem("token_expires_cloud", String(Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600)));
+    localStorage.setItem("user_role_cloud", String(data.id_rol));
+    localStorage.setItem("user_name_cloud", data.nombre || "Usuario");
+    localStorage.setItem("user_id_cloud", String(data.id));
+}
+
+async function entrarAlDashboard(nombre, role) {
     const overlay = document.getElementById("auth-loading-overlay");
-    const inicioCarga = Date.now();
     overlay?.classList.remove("hidden");
     document.body.classList.add("auth-loading-active");
-    mostrarDashboard(data.nombre, data.id_rol);
-    await new Promise(resolve => window.setTimeout(resolve, Math.max(0, 4000 - (Date.now() - inicioCarga))));
+    mostrarDashboard(nombre, role);
+    await new Promise(resolve => window.setTimeout(resolve, 700));
     overlay?.classList.add("hidden");
     document.body.classList.remove("auth-loading-active");
 }
 
-function cancelarPasoPin(mensaje = "") {
-    retoPinActual = null;
-    configurarPinActual = false;
-    limpiarPin("login-pin");
-    limpiarPin("login-pin-confirmacion");
-    document.getElementById("form-pin-step")?.classList.add("hidden");
-    document.getElementById("form-pin-reset")?.classList.add("hidden");
-    document.getElementById("form-pin-reset")?.reset();
-    document.getElementById("form-auth")?.classList.remove("hidden");
-    document.getElementById("auth-toggle-container")?.classList.remove("hidden");
-    establecerCamposObligatorios("[data-pin-group='login-pin-confirmacion']", false);
-    const clave = document.getElementById("auth-password");
-    if (clave) clave.value = "";
-    ocultarPasswordAuth();
-    if (mensaje) mostrarMensajeAuth(mensaje, "error");
+function mostrarRecuperarPassword() {
+    document.getElementById("recovery-email").value = document.getElementById("auth-email")?.value.trim() || "";
+    document.getElementById("recovery-status").textContent = "";
+    mostrarFormularioAuth("form-recovery-request");
 }
 
-function mostrarRestablecerPin() {
-    document.getElementById("form-pin-step")?.classList.add("hidden");
-    document.getElementById("form-pin-reset")?.classList.remove("hidden");
-    document.getElementById("pin-reset-email").value = document.getElementById("auth-email").value.trim();
-    document.getElementById("pin-reset-password").value = "";
-    document.getElementById("pin-reset-status").textContent = "";
-    document.getElementById("pin-reset-email")?.focus();
+function volverAlAcceso() {
+    mostrarFormularioAuth("form-auth");
 }
 
-function volverAVerificarPin() {
-    document.getElementById("form-pin-reset")?.classList.add("hidden");
-    document.getElementById("form-pin-step")?.classList.remove("hidden");
-}
-
-async function procesarRestablecerPin(evento) {
-    evento.preventDefault();
-    const estado = document.getElementById("pin-reset-status");
-    const boton = document.getElementById("pin-reset-submit");
-    estado.textContent = "";
-    boton.disabled = true;
-    boton.textContent = "Validando…";
-
+async function procesarSolicitudRecuperacion(event) {
+    event.preventDefault();
+    const status = document.getElementById("recovery-status");
+    status.textContent = "Enviando…";
+    status.className = "min-h-5 text-center text-sm text-slate-300";
     try {
-        const { ok, data } = await apiFetch("/login/recuperar-pin", {
+        const { ok, data } = await apiFetch("/recuperar-password", {
             method: "POST",
-            body: JSON.stringify({
-                email: document.getElementById("pin-reset-email").value.trim(),
-                password: document.getElementById("pin-reset-password").value
-            })
+            body: JSON.stringify({ email: document.getElementById("recovery-email").value.trim() })
         });
-        if (!ok) {
-            estado.textContent = data.detail || "No se pudo validar la cuenta.";
-            return;
-        }
-
-        document.getElementById("pin-reset-password").value = "";
-        retoPinActual = data.challenge_token;
-        configurarPinActual = true;
-        document.getElementById("form-pin-reset")?.classList.add("hidden");
-        mostrarPasoPin("");
-        const descripcion = document.getElementById("pin-step-description");
-        if (descripcion) descripcion.textContent = "Contraseña validada. Elige y confirma tu PIN nuevo.";
-    } catch (error) {
-        estado.textContent = "No se pudo conectar con el servidor. Inténtalo otra vez.";
-    } finally {
-        boton.disabled = false;
-        boton.textContent = "Validar y continuar";
+        status.textContent = ok ? data.mensaje : (data.detail || "No se pudo enviar el enlace.");
+        status.className = `min-h-5 text-center text-sm ${ok ? "text-emerald-400" : "text-rose-400"}`;
+    } catch {
+        status.textContent = "No se pudo conectar con el servidor.";
+        status.className = "min-h-5 text-center text-sm text-rose-400";
     }
+}
+
+async function procesarNuevaPassword(event) {
+    event.preventDefault();
+    const status = document.getElementById("recovery-new-status");
+    const password = document.getElementById("recovery-new-password").value;
+    if (!recoveryAccessToken) {
+        status.textContent = "El enlace venció o no es válido. Solicita otro.";
+        return;
+    }
+    status.textContent = "Guardando…";
+    try {
+        const { ok, data } = await apiFetch("/establecer-password", {
+            method: "POST",
+            body: JSON.stringify({ access_token: recoveryAccessToken, password_nueva: password })
+        });
+        status.textContent = ok ? data.mensaje : (data.detail || "No se pudo cambiar la contraseña.");
+        status.className = `min-h-5 text-center text-sm ${ok ? "text-emerald-400" : "text-rose-400"}`;
+        if (ok) {
+            recoveryAccessToken = null;
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+            document.getElementById("form-recovery-password")?.reset();
+            window.setTimeout(() => {
+                mostrarFormularioAuth("form-auth");
+                status.textContent = "";
+            }, 1800);
+        }
+    } catch {
+        status.textContent = "No se pudo conectar con el servidor.";
+        status.className = "min-h-5 text-center text-sm text-rose-400";
+    }
+}
+
+function prepararRecuperacionAuth() {
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const token = hash.get("access_token");
+    if (hash.get("type") !== "recovery" || !token) return false;
+    recoveryAccessToken = token;
+    localStorage.removeItem("token_cloud");
+    localStorage.removeItem("refresh_token_cloud");
+    localStorage.removeItem("token_expires_cloud");
+    mostrarFormularioAuth("form-recovery-password");
+    navegarA("auth");
+    return true;
 }
 
 function mostrarMensajeAuth(texto, tipo) {
@@ -410,76 +220,68 @@ function mostrarMensajeAuth(texto, tipo) {
         msg.className = "mt-4 text-center text-sm";
         document.getElementById("form-auth")?.appendChild(msg);
     }
-
-    msg.innerText = texto;
+    msg.textContent = texto;
     msg.className = tipo === "success"
         ? "mt-4 text-center text-sm text-emerald-400"
         : "mt-4 text-center text-sm text-rose-400";
 }
 
+function limpiarMensajeAuth() {
+    document.getElementById("auth-mensaje")?.remove();
+}
+
 async function comprobarSesion() {
-    const token = obtenerToken();
-    if (!token) {
+    if (prepararRecuperacionAuth()) return;
+    if (!obtenerToken()) {
         navegarA("auth");
         void precalentarAPI();
         return;
     }
-
     try {
         const { ok, data } = await apiFetch("/api/perfil");
         if (!ok) {
-            cerrarSesion();
+            await cerrarSesion();
             return;
         }
-
-        localStorage.setItem("user_role_cloud", data.id_rol);
+        localStorage.setItem("user_role_cloud", String(data.id_rol));
         localStorage.setItem("user_name_cloud", data.nombre);
-        localStorage.setItem("user_id_cloud", data.id);
-
+        localStorage.setItem("user_id_cloud", String(data.id));
         mostrarDashboard(data.nombre, data.id_rol);
     } catch (error) {
-        console.error("No se pudo comprobar sesión:", error);
-        cerrarSesion();
+        console.error("No se pudo comprobar la sesión:", error);
+        await cerrarSesion(false);
     }
 }
 
-async function cerrarSesion() {
+async function cerrarSesion(notifyServer = true) {
     if (cierreSesionEnCurso) return;
     cierreSesionEnCurso = true;
+    if (notifyServer && obtenerToken()) {
+        try {
+            await fetch(`${API_URL}/logout`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${obtenerToken()}` }
+            });
+        } catch { /* La sesión local se limpia aunque el servidor no responda. */ }
+    }
     if (typeof detenerEscuchaWakeBrunito === "function") detenerEscuchaWakeBrunito();
-    localStorage.removeItem("token_cloud");
-    localStorage.removeItem("user_role_cloud");
-    localStorage.removeItem("user_name_cloud");
-    localStorage.removeItem("user_id_cloud");
-
-    if (retoPinActual) cancelarPasoPin();
+    ["token_cloud", "refresh_token_cloud", "token_expires_cloud", "user_role_cloud", "user_name_cloud", "user_id_cloud"].forEach(key => localStorage.removeItem(key));
+    recoveryAccessToken = null;
     if (modoRegistro) toggleModoAuth();
     ocultarPasswordAuth();
     document.getElementById("form-auth")?.reset();
-    document.getElementById("form-pin-step")?.reset();
-
     const overlay = document.getElementById("auth-loading-overlay");
-    const titulo = overlay?.querySelector(".auth-loading-card strong");
-    const mensaje = overlay?.querySelector(".auth-loading-card p");
+    const title = overlay?.querySelector(".auth-loading-card strong");
+    const message = overlay?.querySelector(".auth-loading-card p");
     if (overlay) {
-        overlay.classList.add("auth-loading-overlay--exit");
         overlay.classList.remove("hidden");
-        overlay.setAttribute("aria-label", "Cerrando sesión");
-        if (titulo) titulo.textContent = "Sesión cerrada";
-        if (mensaje) mensaje.textContent = "Volviendo al acceso de forma segura…";
+        if (title) title.textContent = "Sesión cerrada";
+        if (message) message.textContent = "Volviendo al acceso de forma segura…";
         document.body.classList.add("auth-loading-active");
     }
-    await new Promise(resolve => window.setTimeout(resolve, 600));
+    await new Promise(resolve => window.setTimeout(resolve, 450));
     navegarA("auth");
-    if (overlay) {
-        overlay.classList.add("hidden");
-        overlay.classList.remove("auth-loading-overlay--exit");
-        overlay.setAttribute("aria-label", "Cargando SmartCity Cloud");
-        if (titulo) titulo.textContent = "Preparando tu ciudad";
-        if (mensaje) mensaje.textContent = "Cargando sensores, clima y panel…";
-    }
+    overlay?.classList.add("hidden");
     document.body.classList.remove("auth-loading-active");
     cierreSesionEnCurso = false;
 }
-
-inicializarCamposPin();

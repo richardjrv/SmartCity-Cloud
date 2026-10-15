@@ -6,11 +6,14 @@ class Settings:
     
     # Claves de Seguridad JWT
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "clave_secreta_smartcity_cloud_2026")
+    # Supabase Auth: usa la clave publishable/anon aquí; nunca pongas la secret/service_role en el frontend.
+    SUPABASE_URL: str = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    SUPABASE_ANON_KEY: str = os.environ.get("SUPABASE_ANON_KEY", "")
+    SUPABASE_SERVICE_ROLE_KEY: str = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    FRONTEND_URL: str = os.environ.get("FRONTEND_URL", "")
     # Clave separada para firmar propuestas de actuador. Si no se configura,
     # mantiene compatibilidad con instalaciones existentes usando SECRET_KEY.
     BRUNITO_ACTION_SECRET: str = os.environ.get("BRUNITO_ACTION_SECRET", "")
-    # Mantén esta clave estable: se usa como pepper adicional para el hash de PIN.
-    PIN_PEPPER: str = os.environ.get("PIN_PEPPER", "")
     ALGORITHM: str = "HS256"
     
     # Claves de APIs Externas
