@@ -10,6 +10,12 @@ document.addEventListener("keydown", event => {
     }
 });
 
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll('input[name="admin-role-choice"]').forEach(input => {
+        input.addEventListener("change", actualizarResumenCambioRol);
+    });
+});
+
 async function cargarUsuariosAdmin() {
     const tabla = document.getElementById("tabla-usuarios-body");
     if (!tabla) return;
@@ -97,22 +103,24 @@ function mostrarUsuariosTabla(usuarios) {
         tr.className = "hover:bg-slate-700/30 transition border-b border-slate-700/30";
 
         tr.innerHTML = `
-            <td class="px-4 py-3 font-mono text-slate-500">#${usuario.id}</td>
+            <td class="px-4 py-3 font-mono text-slate-500" data-label="ID">#${usuario.id}</td>
 
-            <td class="px-4 py-3">
-                <div class="font-semibold text-white">${escapeHTML(usuario.nombre)}</div>
-                <div class="text-xs text-slate-500">@${escapeHTML(usuario.username)}</div>
+            <td class="px-4 py-3" data-label="Usuario">
+                <div class="admin-user-identity">
+                    <div class="font-semibold text-white">${escapeHTML(usuario.nombre)}</div>
+                    <div class="text-xs text-slate-500">@${escapeHTML(usuario.username)}</div>
+                </div>
             </td>
 
-            <td class="px-4 py-3 text-slate-300">${escapeHTML(usuario.email)}</td>
+            <td class="px-4 py-3 text-slate-300" data-label="Correo">${escapeHTML(usuario.email)}</td>
 
-            <td class="px-4 py-3">
+            <td class="px-4 py-3" data-label="Rol">
                 <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${estiloRol}">
                     ${escapeHTML(usuario.rol)}
                 </span>
             </td>
 
-            <td class="px-4 py-3">
+            <td class="px-4 py-3" data-label="Estado">
                 <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
                     activo
                         ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
@@ -122,11 +130,11 @@ function mostrarUsuariosTabla(usuarios) {
                 </span>
             </td>
 
-            <td class="px-4 py-3 text-xs text-slate-400">
+            <td class="px-4 py-3 text-xs text-slate-400" data-label="Último acceso">
                 ${formatearFecha(usuario.ultimo_acceso)}
             </td>
 
-            <td class="px-4 py-3">
+            <td class="px-4 py-3" data-label="Acciones">
                 <div class="flex justify-center gap-2">
                     ${Number(usuario.id) !== idUsuarioActual ? `<button onclick="cambiarRolUsuario(${usuario.id})"
                             class="admin-change-role-button"
@@ -137,7 +145,7 @@ function mostrarUsuariosTabla(usuarios) {
 
                     <button onclick="cambiarEstadoUsuario(${usuario.id}, '${usuario.estado}')"
                             class="px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white transition text-xs"
-                            title="Activar/Desactivar">
+                            title="Activar/Desactivar" aria-label="${activo ? "Desactivar" : "Activar"} cuenta de ${escapeHTML(usuario.nombre || usuario.email || `usuario ${usuario.id}`)}">
                         ${activo ? "🔴" : "🟢"}
                     </button>
 
@@ -145,7 +153,7 @@ function mostrarUsuariosTabla(usuarios) {
                         Number(usuario.id) !== idUsuarioActual
                             ? `<button onclick="eliminarUsuario(${usuario.id})"
                                        class="px-2.5 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition text-xs"
-                                       title="Eliminar usuario">
+                                       title="Eliminar usuario" aria-label="Eliminar cuenta de ${escapeHTML(usuario.nombre || usuario.email || `usuario ${usuario.id}`)}">
                                     🗑️
                                </button>`
                             : ""
@@ -198,6 +206,7 @@ function cambiarRolUsuario(usuarioId) {
     if (feedback) feedback.textContent = "";
     const guardar = document.getElementById("admin-role-save");
     if (guardar) { guardar.disabled = false; guardar.textContent = "Guardar cambios"; }
+    actualizarResumenCambioRol();
     modal.classList.remove("hidden");
     modal.classList.add("flex");
     modal.setAttribute("aria-hidden", "false");
@@ -206,6 +215,31 @@ function cambiarRolUsuario(usuarioId) {
 
 function nombreRolAdmin(rolId) {
     return ({ 1: "Administrador", 2: "Usuario", 3: "Operador" })[Number(rolId)] || "Sin rol";
+}
+
+function actualizarResumenCambioRol() {
+    const id = Number(document.getElementById("admin-role-user-id")?.value);
+    const rolId = Number(document.querySelector('#admin-role-dialog input[name="admin-role-choice"]:checked')?.value);
+    const usuario = (window.usuariosAdmin || []).find(item => Number(item.id) === id);
+    const summary = document.getElementById("admin-role-change-summary");
+    const boton = document.getElementById("admin-role-save");
+    if (!summary || !usuario || !boton) return;
+    const rolActual = Number(usuario.id_rol);
+    if (rolActual === rolId) {
+        summary.textContent = `Esta cuenta ya tiene el rol ${nombreRolAdmin(rolId)}. Selecciona otro para aplicar un cambio.`;
+        boton.disabled = true;
+        boton.textContent = "Sin cambios";
+        return;
+    }
+    const permisos = {
+        1: "gestionar cuentas, permisos y actuadores",
+        2: "consultar el monitoreo y enviar reportes",
+        3: "atender alertas y registrar su seguimiento"
+    };
+    const nombre = usuario.nombre || usuario.username || usuario.email || `Usuario #${usuario.id}`;
+    summary.textContent = `Vas a asignar el rol ${nombreRolAdmin(rolId)} a ${nombre}. Tendrá permisos para ${permisos[rolId]}. Confirma para guardar.`;
+    boton.disabled = false;
+    boton.textContent = `Confirmar: ${nombreRolAdmin(rolId)}`;
 }
 
 function cerrarSelectorRol() {
@@ -232,7 +266,10 @@ async function guardarRolSeleccionado(event) {
     boton.textContent = "Guardando…";
     if (feedback) feedback.textContent = "Aplicando el nuevo rol…";
     const actualizado = await modificarUsuarioAdmin(id, { id_rol: rolId }, { silencioso: true });
-    if (actualizado) cerrarSelectorRol();
+    if (actualizado) {
+        cerrarSelectorRol();
+        mostrarNotificacion(`Rol de ${usuario.nombre || usuario.email} actualizado a ${nombreRolAdmin(rolId)}.`, "exito");
+    }
     else {
         boton.disabled = false;
         boton.textContent = "Guardar cambios";
@@ -242,8 +279,10 @@ async function guardarRolSeleccionado(event) {
 
 async function cambiarEstadoUsuario(usuarioId, estadoActual) {
     const nuevoEstado = estadoActual === "activo" ? "inactivo" : "activo";
+    const usuario = (window.usuariosAdmin || []).find(item => Number(item.id) === Number(usuarioId));
+    const nombre = usuario?.nombre || usuario?.email || `usuario #${usuarioId}`;
 
-    if (!confirm(`¿Cambiar el estado del usuario #${usuarioId} a ${nuevoEstado}?`)) return;
+    if (!confirm(`¿${nuevoEstado === "activo" ? "Activar" : "Desactivar"} la cuenta de ${nombre}?`)) return;
 
     await modificarUsuarioAdmin(usuarioId, { estado: nuevoEstado });
 }
@@ -260,12 +299,12 @@ async function modificarUsuarioAdmin(usuarioId, cambios, opciones = {}) {
             return false;
         }
 
-        if (!opciones.silencioso) alert("✅ " + data.mensaje);
+        if (!opciones.silencioso) mostrarNotificacion(data.mensaje || "Cambios guardados.", "exito");
         cargarUsuariosAdmin();
         return true;
     } catch (error) {
         console.error("❌ Error modificando usuario:", error);
-        alert("❌ No se pudo conectar con el servidor para guardar el cambio.");
+        mostrarNotificacion("No se pudo conectar con el servidor para guardar el cambio.", "error");
         return false;
     }
 }

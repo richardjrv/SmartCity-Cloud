@@ -54,6 +54,77 @@ const SIDEBAR_STORAGE_KEY = "smartcity_sidebar_collapsed";
 let dashboardSensorDataRequested = false;
 let sidebarTooltipNode = null;
 let sidebarTooltipTarget = null;
+let pasosRecorridoActual = [];
+let vistaAntesDelRecorrido = "dashboard";
+
+const INICIO_POR_ROL = {
+    1: {
+        eyebrow: "VISTA DE ADMINISTRACIÓN",
+        titulo: "Tu ciudad, bajo control",
+        descripcion: "Revisa alertas, gestiona cuentas y consulta el estado de los dispositivos desde un solo lugar.",
+        primary: ["Gestionar cuentas", "admin-usuarios"], secondary: ["Atender alertas", "alertas"],
+        bienvenida: "Administra las cuentas y revisa primero las alertas que requieren atención."
+    },
+    2: {
+        eyebrow: "TU ESPACIO DE MONITOREO",
+        titulo: "Entérate de lo que pasa",
+        descripcion: "Consulta las lecturas de la maqueta, revisa el clima y avisa al equipo si observas un problema.",
+        primary: ["Reportar observación", "alertas"], secondary: ["Ver sensores", "capas"],
+        bienvenida: "Consulta las mediciones y envía un reporte cuando notes algo que el equipo deba revisar."
+    },
+    3: {
+        eyebrow: "CENTRO DE OPERACIONES",
+        titulo: "Alertas listas para atender",
+        descripcion: "Da seguimiento a los avisos, deja una nota en cada cambio y comprueba las lecturas de los sensores.",
+        primary: ["Atender alertas", "alertas"], secondary: ["Consultar sensores", "capas"],
+        bienvenida: "Empieza por las alertas pendientes; cada actualización queda registrada para el equipo."
+    }
+};
+
+function configurarInicioPorRol(nombre, idRol) {
+    const rol = Number(idRol);
+    const experiencia = INICIO_POR_ROL[rol] || INICIO_POR_ROL[2];
+    const nombreCorto = String(nombre || "").trim().split(/\s+/)[0];
+    const eyebrow = document.getElementById("dashboard-eyebrow");
+    const title = document.getElementById("dashboard-title");
+    const description = document.getElementById("dashboard-source-summary");
+    if (eyebrow) eyebrow.textContent = `${experiencia.eyebrow}${nombreCorto ? ` · HOLA, ${nombreCorto.toLocaleUpperCase("es-EC")}` : ""}`;
+    if (title) title.textContent = experiencia.titulo;
+    if (description) description.textContent = experiencia.descripcion;
+    [["role-home-primary", experiencia.primary], ["role-home-secondary", experiencia.secondary]].forEach(([id, [label, view]]) => {
+        const button = document.getElementById(id);
+        if (!button) return;
+        button.textContent = label;
+        button.onclick = () => navegarA(view);
+    });
+
+    const welcome = document.getElementById("dashboard-welcome");
+    const welcomeText = document.getElementById("dashboard-welcome-text");
+    const storageKey = claveBienvenidaUsuario();
+    let yaVioBienvenida = false;
+    try { yaVioBienvenida = localStorage.getItem(storageKey) === "true"; }
+    catch (error) { console.warn("No se pudo consultar el estado de bienvenida.", error); }
+    if (welcomeText) welcomeText.textContent = experiencia.bienvenida;
+    welcome?.classList.toggle("hidden", yaVioBienvenida);
+}
+
+function claveBienvenidaUsuario() {
+    return `smartcity_welcome_seen_v1_${localStorage.getItem("user_id_cloud") || "usuario"}`;
+}
+
+function descartarBienvenida() {
+    try { localStorage.setItem(claveBienvenidaUsuario(), "true"); }
+    catch (error) { console.warn("No se pudo guardar la preferencia de bienvenida.", error); }
+    document.getElementById("dashboard-welcome")?.classList.add("hidden");
+}
+
+function inicializarBienvenidaDashboard() {
+    document.getElementById("dashboard-welcome-dismiss")?.addEventListener("click", descartarBienvenida);
+    document.getElementById("dashboard-welcome-tour")?.addEventListener("click", () => {
+        descartarBienvenida();
+        iniciarRecorridoGuiado();
+    });
+}
 
 function initTextSizeControls() {
     let savedScale = 1;
@@ -262,6 +333,7 @@ function navegarA(vista) {
         document.getElementById("vista-admin-usuarios")?.classList.remove("hidden");
         cargarUsuariosAdmin();
     }
+    if (vista !== "auth") document.getElementById("main-content")?.focus({ preventScroll: true });
 }
 
 function aplicarVistaDashboard(vista) {
@@ -285,6 +357,7 @@ function mostrarDashboard(nombre, idRol) {
     document.getElementById("dashboard-header-context")?.classList.remove("hidden");
     document.getElementById("btn-dashboard-fullscreen")?.classList.remove("hidden");
     renderizarNotificaciones();
+    configurarInicioPorRol(nombre, idRol);
     if (typeof configurarCentroAlertasPorRol === "function") configurarCentroAlertasPorRol(idRol);
     if (typeof cargarAlertasCompartidas === "function") void cargarAlertasCompartidas({ silencioso: true });
 
@@ -325,13 +398,16 @@ function toggleMobileNav() {
     backdrop?.classList.toggle("hidden", !opening);
     button?.setAttribute("aria-expanded", String(opening));
     button?.setAttribute("aria-label", opening ? "Cerrar navegación" : "Abrir navegación");
+    if (opening) requestAnimationFrame(() => sidebar?.querySelector(".sidebar-link:not(.hidden)")?.focus());
+    else button?.focus({ preventScroll: true });
 }
 
-function cerrarMobileNav() {
+function cerrarMobileNav({ devolverFoco = false } = {}) {
     document.body.classList.remove("mobile-sidebar-open");
     document.getElementById("sidebar-backdrop")?.classList.add("hidden");
     document.getElementById("btn-mobile-nav")?.setAttribute("aria-expanded", "false");
     document.getElementById("btn-mobile-nav")?.setAttribute("aria-label", "Abrir navegación");
+    if (devolverFoco) document.getElementById("btn-mobile-nav")?.focus({ preventScroll: true });
 }
 
 function ocultarTooltipBarraLateral() {
@@ -465,27 +541,48 @@ function inicializarBarraLateral() {
     window.addEventListener("resize", () => actualizarIndicadorNavegacionLateral(), { passive: true });
     document.addEventListener("keydown", event => {
         if (event.key === "Escape") {
-            cerrarMobileNav();
+            cerrarMobileNav({ devolverFoco: document.body.classList.contains("mobile-sidebar-open") });
             cerrarRecorridoGuiado();
         }
     });
 }
 
-const PASOS_RECORRIDO = [
-    { vista: "dashboard", destino: "urban-sensors-title", titulo: "1. Sensores de la maqueta", texto: "Presenta el único ESP32 y sus sensores: proximidad, lluvia, luminosidad, nivel de agua, temperatura, humedad y detección infrarroja. Si una lectura no llega, el panel lo indica." },
-    { vista: "dashboard", destino: "environment-metrics-title", titulo: "2. Datos en el dashboard", texto: "Explica cómo las lecturas recibidas aparecen en las tarjetas y muestran su estado y última actualización. Distingue siempre los datos reales de los valores de demostración." },
-    { vista: "graficas", destino: "charts-panel", titulo: "3. Tendencias en gráficas", texto: "Elige una variable y un periodo para revisar el historial guardado. Si aún no hay lecturas almacenadas, la gráfica lo indicará sin inventar datos." },
-    { vista: "alertas", destino: "alert-report-form", titulo: "4. Reporte de una alerta", texto: "Un usuario elige el tipo de aviso, describe lo observado y lo envía para que el administrador lo revise. La cuenta administradora no puede crear reportes." },
-    { vista: "alertas", destino: "alert-center-list", titulo: "5. Seguimiento del administrador", texto: "El administrador cambia el estado a Pendiente, En proceso o Resuelto y registra una nota breve. El autor, la hora y cada cambio quedan en el historial y en las notificaciones." }
-];
+const PASOS_RECORRIDO_POR_ROL = {
+    1: [
+        { vista: "dashboard", destino: "dashboard-overview", titulo: "1. Resumen para administración", texto: "Este inicio reúne accesos a la gestión de cuentas y al centro de alertas. Las acciones disponibles dependen de tu rol." },
+        { vista: "dashboard", destino: "urban-sensors-title", titulo: "2. Estado de los sensores", texto: "Consulta las lecturas del ESP32 y su última actualización. El sitio distingue las mediciones reales de los datos de demostración." },
+        { vista: "alertas", destino: "alert-center-list", titulo: "3. Seguimiento de alertas", texto: "Revisa los avisos pendientes, registra una nota al cambiar el estado y consulta el historial de cada caso." },
+        { vista: "graficas", destino: "charts-panel", titulo: "4. Tendencias", texto: "Filtra las lecturas por variable y periodo para analizar los cambios guardados." },
+        { vista: "admin-usuarios", destino: "admin-summary-grid", titulo: "5. Gestión de cuentas", texto: "Consulta el resumen de cuentas y cambia el rol desde la ficha correspondiente. Cada rol tiene permisos distintos." }
+    ],
+    2: [
+        { vista: "dashboard", destino: "dashboard-overview", titulo: "1. Tu inicio", texto: "Desde aquí puedes abrir tus mediciones y enviar un aviso al equipo cuando notes un problema." },
+        { vista: "dashboard", destino: "urban-sensors-title", titulo: "2. Sensores", texto: "Revisa las lecturas disponibles y cuándo se recibió el último dato del ESP32." },
+        { vista: "alertas", destino: "alert-report-form", titulo: "3. Enviar un reporte", texto: "Elige el tipo de incidencia y describe qué pasó, dónde y cuándo. No incluyas datos sensibles." },
+        { vista: "alertas", destino: "alert-center-list", titulo: "4. Ver el seguimiento", texto: "Tus reportes aparecen aquí. Consulta su estado, las notas y las actualizaciones del equipo." },
+        { vista: "graficas", destino: "charts-panel", titulo: "5. Revisar tendencias", texto: "Elige una variable y un periodo para ver las lecturas registradas." }
+    ],
+    3: [
+        { vista: "dashboard", destino: "dashboard-overview", titulo: "1. Tu inicio de operación", texto: "El acceso principal te lleva a las alertas. También puedes consultar sensores y sus lecturas." },
+        { vista: "alertas", destino: "alert-status-filter-wrap", titulo: "2. Priorizar avisos", texto: "Usa estos filtros para concentrarte en pendientes o revisar casos que ya están en proceso o resueltos." },
+        { vista: "alertas", destino: "alert-center-list", titulo: "3. Registrar seguimiento", texto: "Al cambiar un estado, agrega una nota breve. El historial guarda quién realizó el cambio y cuándo." },
+        { vista: "dashboard", destino: "urban-sensors-title", titulo: "4. Consultar sensores", texto: "Verifica la última lectura del ESP32 para entender mejor cada aviso." },
+        { vista: "graficas", destino: "charts-panel", titulo: "5. Ver tendencias", texto: "Consulta el historial para observar cómo cambian las mediciones con el tiempo." }
+    ]
+};
 let pasoRecorridoActual = 0;
+let recorridoGuiadoAbierto = false;
 
 function iniciarRecorridoGuiado() {
     if (!obtenerToken()) { navegarA("auth"); return; }
-    if (document.getElementById("vista-dashboard")?.classList.contains("hidden")) navegarA("dashboard");
+    vistaAntesDelRecorrido = document.querySelector('.sidebar-link[aria-current="page"]')?.dataset.sidebarView
+        || document.getElementById("vista-dashboard")?.dataset.currentView || "dashboard";
+    if (!["dashboard", "capas", "alertas", "reportes", "graficas", "admin-usuarios"].includes(vistaAntesDelRecorrido)) vistaAntesDelRecorrido = "dashboard";
+    pasosRecorridoActual = PASOS_RECORRIDO_POR_ROL[Number(localStorage.getItem("user_role_cloud"))] || PASOS_RECORRIDO_POR_ROL[2];
     cerrarMobileNav();
     pasoRecorridoActual = 0;
     const overlay = document.getElementById("tour-overlay");
+    recorridoGuiadoAbierto = true;
     overlay?.classList.remove("hidden");
     overlay?.setAttribute("aria-hidden", "false");
     mostrarPasoRecorrido();
@@ -493,8 +590,13 @@ function iniciarRecorridoGuiado() {
 }
 
 function mostrarPasoRecorrido() {
-    const paso = PASOS_RECORRIDO[pasoRecorridoActual];
-    aplicarVistaDashboard(paso.vista);
+    const paso = pasosRecorridoActual[pasoRecorridoActual];
+    if (paso.vista === "admin-usuarios") navegarA("admin-usuarios");
+    else {
+        if (document.getElementById("vista-dashboard")?.classList.contains("hidden")
+            || !document.getElementById("vista-admin-usuarios")?.classList.contains("hidden")) navegarA("dashboard");
+        aplicarVistaDashboard(paso.vista);
+    }
     document.querySelectorAll(".tour-highlight").forEach(element => element.classList.remove("tour-highlight"));
     const target = document.getElementById(paso.destino);
     target?.classList.add("tour-highlight");
@@ -509,24 +611,29 @@ function mostrarPasoRecorrido() {
     const next = document.getElementById("tour-next");
     if (title) title.textContent = paso.titulo;
     if (description) description.textContent = paso.texto;
-    if (counter) counter.textContent = `${pasoRecorridoActual + 1} de ${PASOS_RECORRIDO.length}`;
+    if (counter) counter.textContent = `${pasoRecorridoActual + 1} de ${pasosRecorridoActual.length}`;
     if (previous) previous.disabled = pasoRecorridoActual === 0;
-    if (next) next.textContent = pasoRecorridoActual === PASOS_RECORRIDO.length - 1 ? "Finalizar" : "Siguiente →";
+    if (next) next.textContent = pasoRecorridoActual === pasosRecorridoActual.length - 1 ? "Finalizar" : "Siguiente →";
+    document.getElementById("tour-next")?.focus({ preventScroll: true });
 }
 
 function avanzarRecorridoGuiado(direccion) {
     const siguiente = pasoRecorridoActual + direccion;
     if (siguiente < 0) return;
-    if (siguiente >= PASOS_RECORRIDO.length) { cerrarRecorridoGuiado(); return; }
+    if (siguiente >= pasosRecorridoActual.length) { cerrarRecorridoGuiado(); return; }
     pasoRecorridoActual = siguiente;
     mostrarPasoRecorrido();
 }
 
 function cerrarRecorridoGuiado() {
     const overlay = document.getElementById("tour-overlay");
-    overlay?.classList.add("hidden");
-    overlay?.setAttribute("aria-hidden", "true");
+    if (!recorridoGuiadoAbierto || !overlay) return;
+    recorridoGuiadoAbierto = false;
+    overlay.classList.add("hidden");
+    overlay.setAttribute("aria-hidden", "true");
     document.querySelectorAll(".tour-highlight").forEach(element => element.classList.remove("tour-highlight"));
+    if (vistaAntesDelRecorrido === "admin-usuarios") navegarA("dashboard");
+    else if (["dashboard", "capas", "alertas", "reportes", "graficas"].includes(vistaAntesDelRecorrido)) navegarA(vistaAntesDelRecorrido);
 }
 
 // Inicialización de la aplicación al cargar el DOM
@@ -542,6 +649,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initDashboardSettings();
     inicializarCursorOrbital();
     inicializarRelojDashboard();
+    inicializarBienvenidaDashboard();
     if (typeof inicializarCentroAlertas === "function") inicializarCentroAlertas();
     const reportPeriod = document.getElementById("sensor-report-period");
     const customRange = document.getElementById("sensor-report-custom-range");

@@ -267,11 +267,21 @@
         <section id="vista-dashboard" class="hidden space-y-6">
             <section id="dashboard-overview" data-dashboard-panel="dashboard" class="dashboard-overview" aria-labelledby="dashboard-title">
                 <div class="dashboard-overview-copy">
-                    <p class="dashboard-eyebrow">Monitoreo de la maqueta</p>
+                    <p id="dashboard-eyebrow" class="dashboard-eyebrow">Monitoreo de la maqueta</p>
                     <h2 id="dashboard-title">Resumen de la ciudad</h2>
                     <p id="dashboard-source-summary">Métricas y estado de las lecturas disponibles.</p>
                 </div>
+                <div class="dashboard-overview-actions" aria-label="Acciones recomendadas">
+                    <button id="role-home-primary" type="button" class="dashboard-quick-action dashboard-quick-action--primary">Abrir alertas</button>
+                    <button id="role-home-secondary" type="button" class="dashboard-quick-action">Ver sensores</button>
+                </div>
             </section>
+
+            <aside id="dashboard-welcome" data-dashboard-panel="dashboard" class="dashboard-welcome hidden" aria-labelledby="dashboard-welcome-title">
+                <span class="dashboard-welcome-icon" aria-hidden="true">✦</span>
+                <div class="dashboard-welcome-copy"><h2 id="dashboard-welcome-title">Tu espacio está listo</h2><p id="dashboard-welcome-text">Aquí encontrarás tus herramientas principales.</p></div>
+                <div class="dashboard-welcome-actions"><button id="dashboard-welcome-tour" type="button">Ver guía rápida</button><button id="dashboard-welcome-dismiss" type="button" aria-label="Cerrar bienvenida">Ahora no</button></div>
+            </aside>
 
             <section id="weather-local-panel" data-dashboard-panel="dashboard" class="dashboard-feature-panel weather-panel" aria-labelledby="weather-title">
                 <div class="feature-panel-heading">
@@ -529,7 +539,7 @@
                 <div class="feature-panel-heading">
                     <div><p class="feature-eyebrow">CENTRO DE OPERACIONES</p><h2 id="alert-center-title">⚑ Alertas y observaciones</h2></div>
                     <div class="alert-center-actions">
-                        <span id="alert-center-count" class="feature-count">0 por revisar</span>
+                        <span id="alert-center-count" class="feature-count" aria-live="polite">0 por revisar</span>
                         <button id="alert-center-refresh" type="button" class="alert-view-button">Actualizar</button>
                     </div>
                 </div>
@@ -537,6 +547,7 @@
                 <form id="alert-report-form" class="alert-report-form">
                     <div class="alert-report-fields">
                         <label class="alert-report-field">Tipo de aviso
+                            <span id="alert-report-title-hint" class="alert-report-hint">Elige la categoría que mejor describa lo ocurrido.</span>
                             <select id="alert-report-title" name="titulo" required>
                                 <option value="" selected disabled>Selecciona el motivo</option>
                                 <option value="Sensor con falla">Sensor con falla</option>
@@ -548,14 +559,24 @@
                             </select>
                         </label>
                         <label class="alert-report-field">Descripción
-                            <textarea id="alert-report-description" name="descripcion" minlength="3" maxlength="1500" required rows="2" placeholder="Describe qué observaste y dónde."></textarea>
+                            <span id="alert-report-description-hint" class="alert-report-hint">Incluye qué pasó, dónde y cuándo. No agregues contraseñas ni datos sensibles.</span>
+                            <textarea id="alert-report-description" name="descripcion" minlength="3" maxlength="1500" required rows="3" aria-describedby="alert-report-description-hint alert-report-char-count" placeholder="Ej.: La luminaria junto al acceso no enciende desde esta mañana."></textarea>
+                            <span id="alert-report-char-count" class="alert-report-char-count">0 / 1500</span>
                         </label>
                     </div>
                     <div class="alert-report-submit-row">
                         <p id="alert-report-feedback" role="status" aria-live="polite"></p>
-                        <button id="alert-report-submit" type="submit" class="alert-view-button">Notificar al administrador</button>
+                        <button id="alert-report-submit" type="submit" class="alert-view-button">Enviar reporte</button>
                     </div>
                 </form>
+                <div id="alert-status-filter-wrap" class="alert-status-filter-wrap" role="group" aria-label="Filtrar alertas por estado">
+                    <span>Ver:</span>
+                    <button type="button" class="alert-status-filter is-active" data-alert-filter="todos" aria-pressed="true">Todas <span data-alert-filter-count="todos">0</span></button>
+                    <button type="button" class="alert-status-filter" data-alert-filter="pendiente" aria-pressed="false">Pendientes <span data-alert-filter-count="pendiente">0</span></button>
+                    <button type="button" class="alert-status-filter" data-alert-filter="en_proceso" aria-pressed="false">En proceso <span data-alert-filter-count="en_proceso">0</span></button>
+                    <button type="button" class="alert-status-filter" data-alert-filter="resuelto" aria-pressed="false">Resueltas <span data-alert-filter-count="resuelto">0</span></button>
+                </div>
+                <p id="alert-filter-empty" class="alert-filter-empty hidden" role="status">No hay alertas con este estado.</p>
                 <div id="alert-center-list" class="alert-center-list" aria-live="polite"></div>
             </section>
 
@@ -757,7 +778,7 @@
                         <h2 class="text-2xl font-bold text-white flex items-center gap-2">
                             👑 Gestión de Usuarios
                         </h2>
-                        <p class="text-sm text-slate-400 mt-1">Panel exclusivo de administración y permisos en Supabase</p>
+                        <p class="text-sm text-slate-400 mt-1">Administra cuentas y asigna permisos de forma segura.</p>
                     </div>
 
                     <!-- Buscador de usuarios -->
@@ -770,17 +791,17 @@
                     </div>
                 </div>
 
-                <div class="admin-summary-grid" aria-label="Resumen de cuentas">
+                <div id="admin-summary-grid" class="admin-summary-grid" aria-label="Resumen de cuentas">
                     <article class="admin-summary-card"><span aria-hidden="true">♙</span><div><strong id="admin-total-users">—</strong><small>Usuarios registrados</small></div></article>
                     <article class="admin-summary-card"><span aria-hidden="true">●</span><div><strong id="admin-active-users">—</strong><small>Cuentas activas</small></div></article>
                     <article class="admin-summary-card"><span aria-hidden="true">👑</span><div><strong id="admin-admin-users">—</strong><small>Administradores</small></div></article>
                     <article class="admin-summary-card"><span aria-hidden="true">🛠️</span><div><strong id="admin-operator-users">—</strong><small>Operadores</small></div></article>
-                    <p class="admin-summary-note">Gestiona roles y estados desde las acciones de cada cuenta. Los cambios de permisos también deben validarse en el backend.</p>
+                    <p class="admin-summary-note">Los administradores gestionan cuentas y dispositivos. Los operadores atienden alertas. Los usuarios consultan el monitoreo y envían reportes.</p>
                 </div>
                 <p id="admin-filter-results" class="admin-filter-results" aria-live="polite"></p>
 
                 <!-- Tabla de Usuarios -->
-                <div class="overflow-x-auto rounded-2xl border border-slate-700/50">
+                <div id="admin-users-table" class="overflow-x-auto rounded-2xl border border-slate-700/50">
                     <table class="w-full text-left text-sm text-slate-300">
                         <thead class="bg-slate-900/90 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-700/60">
                             <tr>
@@ -839,26 +860,27 @@
                 <label class="admin-role-option">
                     <input type="radio" name="admin-role-choice" value="1" required>
                     <span class="admin-role-option-icon admin-role-admin" aria-hidden="true">♛</span>
-                    <span class="admin-role-option-copy"><strong>Administrador</strong><small>Gestiona cuentas, permisos y dispositivos.</small></span>
+                    <span class="admin-role-option-copy"><strong>Administrador</strong><small>Gestiona cuentas, permisos y actuadores.</small></span>
                     <span class="admin-role-radio" aria-hidden="true"></span>
                 </label>
                 <label class="admin-role-option">
                     <input type="radio" name="admin-role-choice" value="3">
                     <span class="admin-role-option-icon admin-role-operator" aria-hidden="true">⚙</span>
-                    <span class="admin-role-option-copy"><strong>Operador</strong><small>Revisa alertas y actualiza su seguimiento.</small></span>
+                    <span class="admin-role-option-copy"><strong>Operador</strong><small>Atiende alertas y registra su seguimiento.</small></span>
                     <span class="admin-role-radio" aria-hidden="true"></span>
                 </label>
                 <label class="admin-role-option">
                     <input type="radio" name="admin-role-choice" value="2">
                     <span class="admin-role-option-icon admin-role-user" aria-hidden="true">♙</span>
-                    <span class="admin-role-option-copy"><strong>Usuario</strong><small>Consulta el panel y envía reportes.</small></span>
+                    <span class="admin-role-option-copy"><strong>Usuario</strong><small>Consulta mediciones y reporta incidencias.</small></span>
                     <span class="admin-role-radio" aria-hidden="true"></span>
                 </label>
             </fieldset>
+            <p id="admin-role-change-summary" class="admin-role-change-summary" aria-live="polite"></p>
             <p id="admin-role-feedback" class="admin-role-feedback" role="status" aria-live="polite"></p>
             <div class="admin-role-actions">
                 <button type="button" class="admin-role-cancel" onclick="cerrarSelectorRol()">Cancelar</button>
-                <button id="admin-role-save" type="submit" class="admin-role-save">Guardar cambios</button>
+                <button id="admin-role-save" type="submit" class="admin-role-save">Confirmar cambio</button>
             </div>
         </form>
     </div>

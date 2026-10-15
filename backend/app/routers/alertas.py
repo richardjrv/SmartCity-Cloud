@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.core.security import ROLE_USER, obtener_usuario_actual, requerir_gestor_alertas
+from app.core.security import ROLE_ADMIN, ROLE_OPERATOR, ROLE_USER, obtener_usuario_actual, requerir_gestor_alertas
 from app.db.database import get_db_connection
 from app.models.alertas import (
     CambioEstadoAlertaData,
@@ -62,9 +62,10 @@ def usuario_comun(usuario: dict = Depends(usuario_activo)):
 
 @router.get("")
 def listar_alertas(usuario: dict = Depends(usuario_activo)):
-    """Usuarios autenticados pueden consultar los reportes y sus cambios de estado."""
+    """Ciudadanos ven sus reportes; administradores y operadores pueden ver todos."""
     try:
-        return servicio_alertas.listar_alertas()
+        puede_ver_todos = usuario.get("id_rol") in (ROLE_ADMIN, ROLE_OPERATOR)
+        return servicio_alertas.listar_alertas(usuario["user_id"], incluir_reportes_de_todos=puede_ver_todos)
     except Exception as error:
         raise HTTPException(status_code=503, detail="No se pudieron consultar las alertas.") from error
 

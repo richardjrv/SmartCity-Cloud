@@ -61,12 +61,22 @@ def _cerrar(cursor, conn):
         conn.close()
 
 
-def listar_alertas():
+def listar_alertas(usuario_id, incluir_reportes_de_todos=False):
     conn = cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute(SELECT_ALERTA + " ORDER BY a.creado_en DESC, a.id DESC LIMIT 100")
+        consulta = SELECT_ALERTA
+        parametros = None
+        if not incluir_reportes_de_todos:
+            # Las cuentas ciudadanas ven avisos de sensores y sus propios reportes.
+            consulta += " WHERE (a.origen <> 'usuario' OR a.creado_por = %s)"
+            parametros = (usuario_id,)
+        consulta += " ORDER BY a.creado_en DESC, a.id DESC LIMIT 100"
+        if parametros:
+            cursor.execute(consulta, parametros)
+        else:
+            cursor.execute(consulta)
         filas = cursor.fetchall()
         alertas = [serializar_alerta(fila) for fila in filas]
         historial = _cargar_historial(cursor, [alerta["id"] for alerta in alertas])

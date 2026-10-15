@@ -8,6 +8,7 @@ const ESTADOS_ALERTA = [
     ["en_proceso", "En proceso"],
     ["resuelto", "Resuelto"]
 ];
+let filtroEstadoAlertas = "todos";
 
 function puedeGestionarAlertas() {
     return [1, 3].includes(Number(localStorage.getItem("user_role_cloud")));
@@ -158,6 +159,33 @@ function crearHistorialVisualAlerta(alerta) {
     return history;
 }
 
+function actualizarFiltrosAlertas() {
+    const lista = document.getElementById("alert-center-list");
+    if (!lista) return;
+    const items = Array.from(lista.querySelectorAll(".alert-item"));
+    const conteos = { todos: items.length, pendiente: 0, en_proceso: 0, resuelto: 0 };
+    items.forEach(item => { if (Object.hasOwn(conteos, item.dataset.alertStatus)) conteos[item.dataset.alertStatus] += 1; });
+    document.querySelectorAll("[data-alert-filter-count]").forEach(badge => {
+        badge.textContent = String(conteos[badge.dataset.alertFilterCount] ?? 0);
+    });
+    const visibles = items.filter(item => filtroEstadoAlertas === "todos" || item.dataset.alertStatus === filtroEstadoAlertas).length;
+    items.forEach(item => { item.hidden = filtroEstadoAlertas !== "todos" && item.dataset.alertStatus !== filtroEstadoAlertas; });
+    document.getElementById("alert-filter-empty")?.classList.toggle("hidden", filtroEstadoAlertas === "todos" || visibles > 0);
+    const emptyState = lista.querySelector(".alert-empty-state");
+    if (emptyState) emptyState.classList.toggle("hidden", items.length > 0 || filtroEstadoAlertas !== "todos");
+}
+
+function seleccionarFiltroAlertas(estado) {
+    if (!["todos", ...ESTADOS_ALERTA.map(([valor]) => valor)].includes(estado)) return;
+    filtroEstadoAlertas = estado;
+    document.querySelectorAll("[data-alert-filter]").forEach(button => {
+        const seleccionado = button.dataset.alertFilter === estado;
+        button.classList.toggle("is-active", seleccionado);
+        button.setAttribute("aria-pressed", String(seleccionado));
+    });
+    actualizarFiltrosAlertas();
+}
+
 async function cambiarEstadoAlerta(alerta, estado, observacion, button, select, observation, feedback) {
     const estadoAnterior = alerta.estado;
     if (!observacion) {
@@ -201,6 +229,7 @@ async function cambiarEstadoAlerta(alerta, estado, observacion, button, select, 
             registrarNotificacionesCambiosAlertas([respuesta.data]);
         }
         reemplazarAlertaCompartida(respuesta.data);
+        seleccionarFiltroAlertas("todos");
         if (typeof actualizarVistaSensores === "function" && alerta.origen === "sensor") {
             actualizarVistaSensores({ fechaTexto: "Estado de alerta actualizado" });
         } else {
@@ -263,6 +292,7 @@ function renderizarAlertasReportadas(destino = document.getElementById("alert-ce
     reportadas.forEach(alerta => {
         const item = document.createElement("article");
         item.className = `alert-item alert-item--${alerta.estado}`;
+        item.dataset.alertStatus = alerta.estado;
         item.dataset.alertaReportada = String(alerta.id);
         item.dataset.alertaId = String(alerta.id);
         prepararAnimacionAlerta(item, `usuario:${alerta.id}`, alerta);
@@ -332,7 +362,7 @@ async function enviarReporteAlerta(event) {
     const feedback = document.getElementById("alert-report-feedback");
     const titulo = document.getElementById("alert-report-title")?.value.trim();
     const descripcion = document.getElementById("alert-report-description")?.value.trim();
-    if (submit) submit.disabled = true;
+    if (submit) { submit.disabled = true; submit.textContent = "Enviando…"; }
     form.classList.add("is-submitting");
     form.setAttribute("aria-busy", "true");
     if (feedback) feedback.textContent = "Enviando reporte…";
@@ -345,17 +375,26 @@ async function enviarReporteAlerta(event) {
         if (!respuesta.ok) throw new Error(respuesta.data?.detail || "No se pudo enviar el reporte.");
         reemplazarAlertaCompartida(respuesta.data);
         form.reset();
+        const contador = document.getElementById("alert-report-char-count");
+        if (contador) contador.textContent = `0 / ${document.getElementById("alert-report-description")?.maxLength || 1500}`;
         form.classList.remove("is-submitting", "is-success");
         void form.offsetWidth;
         form.classList.add("is-success");
         window.setTimeout(() => form.classList.remove("is-success"), 1400);
-        if (feedback) feedback.textContent = "Aviso enviado al administrador. Podrás consultar aquí el estado.";
+        if (feedback) feedback.textContent = "Reporte enviado. Puedes seguir su estado en esta lista y en tus notificaciones.";
         renderizarAlertasReportadas();
+        seleccionarFiltroAlertas("pendiente");
         actualizarResumenEstadosAlertas();
+        mostrarNotificacion("Reporte enviado. Te avisaremos cuando cambie su estado.", "exito");
+        const reporteNuevo = document.querySelector(`[data-alerta-reportada="${respuesta.data.id}"]`);
+        reporteNuevo?.setAttribute("tabindex", "-1");
+        reporteNuevo?.focus({ preventScroll: true });
+        reporteNuevo?.scrollIntoView({ behavior: document.body.classList.contains("reduce-motion") ? "auto" : "smooth", block: "nearest" });
     } catch (error) {
         if (feedback) feedback.textContent = error.message || "No se pudo enviar el reporte.";
+        mostrarNotificacion(error.message || "No se pudo enviar el reporte. Revisa tu conexión e inténtalo otra vez.", "error");
     } finally {
-        if (submit) submit.disabled = false;
+        if (submit) { submit.disabled = false; submit.textContent = "Enviar reporte"; }
         form.classList.remove("is-submitting");
         form.removeAttribute("aria-busy");
     }
@@ -366,6 +405,14 @@ function inicializarCentroAlertas() {
     alertasInicializadas = true;
     configurarCentroAlertasPorRol();
     document.getElementById("alert-report-form")?.addEventListener("submit", enviarReporteAlerta);
+    document.querySelectorAll("[data-alert-filter]").forEach(button => {
+        button.addEventListener("click", () => seleccionarFiltroAlertas(button.dataset.alertFilter));
+    });
+    const descripcion = document.getElementById("alert-report-description");
+    const contador = document.getElementById("alert-report-char-count");
+    const actualizarContador = () => { if (contador && descripcion) contador.textContent = `${descripcion.value.length} / ${descripcion.maxLength}`; };
+    descripcion?.addEventListener("input", actualizarContador);
+    actualizarContador();
     document.getElementById("alert-center-refresh")?.addEventListener("click", () => {
         void cargarAlertasCompartidas();
     });

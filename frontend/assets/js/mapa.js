@@ -318,7 +318,8 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
     if (!observaciones.length && !hayReportesDeUsuarios) {
         const vacio = document.createElement("div");
         vacio.className = "alert-empty-state";
-        vacio.innerHTML = `<span aria-hidden="true">✓</span><div><strong>Sin alertas reportadas</strong><p>${modoDemoSensores ? "Las lecturas mostradas son solo una referencia visual de demostración." : "Los valores se muestran sin clasificarlos como seguros o peligrosos; aún no hay umbrales calibrados."}</p></div>`;
+        const puedeAtender = typeof puedeGestionarAlertas === "function" && puedeGestionarAlertas();
+        vacio.innerHTML = `<span aria-hidden="true">✓</span><div><strong>${puedeAtender ? "Todo al día" : "Sin novedades por ahora"}</strong><p>${modoDemoSensores ? "Las lecturas mostradas son una referencia de demostración; aquí aparecerán tus reportes." : puedeAtender ? "No hay avisos pendientes. Las lecturas no se clasifican como seguras o peligrosas hasta calibrar sus umbrales." : "Aquí aparecerán tus reportes y los cambios de estado. Los datos de sensores se muestran sin umbrales calibrados."}</p></div>`;
         lista.appendChild(vacio);
     }
     observaciones.forEach(({ sensor, valor, metrica }) => {
@@ -337,6 +338,7 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
         };
         const item = document.createElement("article");
         item.className = `alert-item alert-item--${alerta.estado}`;
+        item.dataset.alertStatus = alerta.estado;
         if (alerta.id) item.dataset.alertaId = String(alerta.id);
         if (typeof prepararAnimacionAlerta === "function") {
             prepararAnimacionAlerta(item, `sensor:${sensor.id}:${metrica}`, alerta);
@@ -387,6 +389,7 @@ function actualizarResumenEstadosAlertas() {
     const enProceso = estados.filter(estado => estado === "en_proceso").length;
     const resueltas = estados.filter(estado => estado === "resuelto").length;
     total.textContent = `${estados.length} ${estados.length === 1 ? "alerta" : "alertas"} · ${pendientes} pendientes · ${enProceso} en proceso · ${resueltas} resueltas`;
+    if (typeof actualizarFiltrosAlertas === "function") actualizarFiltrosAlertas();
 }
 
 function actualizarBadgeAlertasSensores(sensores) {
