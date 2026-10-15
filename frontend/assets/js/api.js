@@ -49,9 +49,11 @@ function esRutaPublicaAuth(endpoint) {
 }
 
 async function enviarApi(endpoint, options, token) {
-    const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+    const { timeoutMs, ...fetchOptions } = options;
+    const headers = { "Content-Type": "application/json", ...(fetchOptions.headers || {}) };
     if (token) headers.Authorization = `Bearer ${token}`;
-    return fetch(`${API_URL}${endpoint}`, { ...options, headers });
+    const signal = fetchOptions.signal || (timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined);
+    return fetch(`${API_URL}${endpoint}`, { ...fetchOptions, headers, signal });
 }
 
 async function apiFetch(endpoint, options = {}) {

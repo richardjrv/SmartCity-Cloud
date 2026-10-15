@@ -112,7 +112,12 @@ def chat_brunito_ai(req: ChatRequest, usuario: dict = Depends(obtener_usuario_ac
         )
 
     try:
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        # Bound the upstream request so a stalled Gemini call cannot leave the
+        # chat indicator spinning indefinitely. The SDK timeout is in ms.
+        client = genai.Client(
+            api_key=settings.GEMINI_API_KEY,
+            http_options=types.HttpOptions(timeout=25000),
+        )
         fecha_actual = datetime.now(timezone.utc).date().isoformat()
         consulta_sensor = _es_consulta_sensor(req.message)
         requiere_busqueda = _requiere_busqueda_actual(req.message) and not consulta_sensor

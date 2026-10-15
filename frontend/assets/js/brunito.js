@@ -626,6 +626,7 @@ async function procesarMensajeBrunito(texto) {
     try {
         const { ok, data } = await apiFetch("/api/ia/chat", {
             method: "POST",
+            timeoutMs: 45000,
             body: JSON.stringify({
                 message: texto,
                 history: brunitoHistory
@@ -656,7 +657,10 @@ async function procesarMensajeBrunito(texto) {
     } catch (error) {
         console.error("❌ Error en Brunito AI:", error);
         typing.remove();
-        agregarMensajeBrunito("model", "⚠️ Error de conexión con el servidor.");
+        const mensaje = error.name === "TimeoutError" || error.name === "AbortError"
+            ? "⚠️ Brunito tardó demasiado en responder. Revisa la conexión de Gemini en Render e inténtalo otra vez."
+            : "⚠️ Error de conexión con el servidor.";
+        agregarMensajeBrunito("model", mensaje);
     }
 }
 
