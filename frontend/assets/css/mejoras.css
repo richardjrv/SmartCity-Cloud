@@ -1387,3 +1387,78 @@ body.sidebar-collapsed .app-sidebar {
         min-height: calc(100dvh - 4rem);
     }
 }
+
+/* Mobile layout: keep navigation reachable and let the dashboard breathe on phones. */
+@media (max-width: 767px) {
+    #btn-mobile-nav {
+        display: inline-flex !important;
+        width: 2.75rem;
+        height: 2.75rem;
+        flex: 0 0 2.75rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border-color: color-mix(in srgb, var(--accent) 35%, var(--border-color));
+        border-radius: .85rem;
+        color: var(--text-primary);
+        background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+        font-size: 1.2rem;
+        line-height: 1;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    header { padding-top: env(safe-area-inset-top, 0px); }
+    header > div.max-w-7xl { min-height: calc(4rem + env(safe-area-inset-top, 0px)); height: auto; }
+    .main-content { padding: .7rem !important; }
+    #vista-dashboard { gap: .85rem; }
+    .dashboard-feature-panel,
+    #sensor-map-section,
+    #city-3d-panel,
+    #reportes-panel { padding: 1rem; border-radius: 1.15rem; }
+    .weather-current-summary { gap: .75rem; padding: 1rem; }
+    .weather-grid { gap: .5rem; }
+    .weather-card { min-height: 5.25rem; padding: .65rem .4rem; border-radius: .85rem; }
+    .dashboard-metric-group-heading { align-items: flex-start; flex-direction: column; gap: .55rem; }
+    .dashboard-metric-group-note {
+        align-self: flex-start;
+        padding: .3rem .55rem;
+        border: 1px solid color-mix(in srgb, #f59e0b 34%, var(--border-color));
+        border-radius: 999px;
+        color: #fbbf24;
+        background: color-mix(in srgb, #f59e0b 10%, var(--bg-card));
+        font-size: .68rem;
+        line-height: 1.35;
+    }
+    .dashboard-metric-card--light .dashboard-metric-unit,
+    .dashboard-metric-card--water .dashboard-metric-unit {
+        max-width: 100%;
+        padding: .24rem .4rem;
+        border: 1px solid color-mix(in srgb, #f59e0b 34%, var(--border-color));
+        border-radius: 999px;
+        color: #fbbf24;
+        background: color-mix(in srgb, #f59e0b 10%, var(--bg-card));
+        font-size: .56rem;
+        white-space: normal;
+    }
+    .sensor-map-canvas { height: min(58svh, 27rem) !important; min-height: 19rem; }
+    #sensor-detail-content:not(.hidden) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .map-layer-toolbar { flex-wrap: nowrap; overflow-x: auto; padding: .15rem .1rem .5rem; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+    .map-layer-toolbar button { min-height: 2.7rem; flex: 0 0 auto; padding-inline: .75rem; }
+    .chart-metric-row { flex-wrap: nowrap; overflow-x: auto; padding: .15rem .1rem .45rem; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+    .chart-metric-button { min-height: 2.7rem; flex: 0 0 auto; }
+    .weather-hourly-forecast { touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
+}
+
+@media (max-width: 380px) {
+    header > div.max-w-7xl { padding-inline: .65rem; }
+    .brand-home-button { gap: .5rem; }
+    .brand-home-button h1 { font-size: .88rem; }
+    .dashboard-header-context { max-width: 4.7rem; }
+    .dashboard-header-location { max-width: 4.7rem; font-size: .56rem; }
+    #usuario-badge { gap: .35rem; padding-inline: .5rem; }
+    .notification-trigger { width: 2.35rem; height: 2.35rem; }
+    .main-content { padding: .55rem !important; }
+    .weather-temperature { font-size: 2.8rem; }
+    #sensor-detail-content:not(.hidden) { grid-template-columns: minmax(0, 1fr); }
+    .dashboard-metric-card { padding: .8rem; }
+}
