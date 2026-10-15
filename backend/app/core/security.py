@@ -5,14 +5,17 @@ from app.services.supabase_auth import SupabaseAuthError, public_auth_error
 from app.services.pin_auth import validar_token_y_obtener_sesion
 
 
+def extraer_token_bearer(authorization: str) -> str:
+    """Parse an HTTP Bearer credential without case- or whitespace-sensitive checks."""
+    partes = authorization.strip().split(None, 1)
+    if len(partes) != 2 or partes[0].casefold() != "bearer" or not partes[1].strip():
+        raise HTTPException(status_code=401, detail="Formato de token inválido.")
+    return partes[1].strip()
+
+
 def obtener_usuario_actual(authorization: str = Header(...)) -> dict:
     """Verifies the Supabase access token, then loads current app roles from Postgres."""
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Formato de token inválido.")
-
-    access_token = authorization.removeprefix("Bearer ").strip()
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Sesión inválida.")
+    access_token = extraer_token_bearer(authorization)
 
     try:
         auth_user, session_id, _ = validar_token_y_obtener_sesion(access_token)

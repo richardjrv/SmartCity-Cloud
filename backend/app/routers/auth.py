@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 
-from app.core.security import obtener_usuario_actual
+from app.core.security import extraer_token_bearer, obtener_usuario_actual
 from app.db.database import get_db_connection
 from app.models.auth import EstablecerPasswordData, LoginData, PinChallengeData, RecuperarPasswordData, RefreshData, RegisterData
 from app.services.pin_auth import (
@@ -211,9 +211,7 @@ def _pin_user_context(access_token: str):
 
 @router.post("/pin/iniciar")
 def iniciar_verificacion_pin(authorization: str = Header(...)):
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Formato de token inválido.")
-    access_token = authorization.removeprefix("Bearer ").strip()
+    access_token = extraer_token_bearer(authorization)
     auth_user_id, session_id, user = _pin_user_context(access_token)
     connection = None
     cursor = None
@@ -355,23 +353,17 @@ def _validar_y_consumir_reto_pin(datos: PinChallengeData, access_token: str, *, 
 
 @router.post("/pin/verificar")
 def verificar_pin(datos: PinChallengeData, authorization: str = Header(...)):
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Formato de token inválido.")
-    return _validar_y_consumir_reto_pin(datos, authorization.removeprefix("Bearer ").strip(), configurar=False)
+    return _validar_y_consumir_reto_pin(datos, extraer_token_bearer(authorization), configurar=False)
 
 
 @router.post("/pin/establecer")
 def establecer_pin(datos: PinChallengeData, authorization: str = Header(...)):
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Formato de token inválido.")
-    return _validar_y_consumir_reto_pin(datos, authorization.removeprefix("Bearer ").strip(), configurar=True)
+    return _validar_y_consumir_reto_pin(datos, extraer_token_bearer(authorization), configurar=True)
 
 
 @router.post("/logout")
 def logout(authorization: str = Header(...)):
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Formato de token inválido.")
-    access_token = authorization.removeprefix("Bearer ").strip()
+    access_token = extraer_token_bearer(authorization)
     try:
         _, session_id, _ = validar_token_y_obtener_sesion(access_token)
         sign_out(access_token)
