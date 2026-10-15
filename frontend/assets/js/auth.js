@@ -19,7 +19,15 @@ const supabaseAuthClient = window.supabase?.createClient(
 );
 
 async function iniciarSesionFacebook() {
-    const button = document.getElementById("auth-btn-facebook");
+    return iniciarSesionSocial("facebook", "auth-btn-facebook");
+}
+
+async function iniciarSesionGoogle() {
+    return iniciarSesionSocial("google", "auth-btn-google");
+}
+
+async function iniciarSesionSocial(provider, buttonId) {
+    const button = document.getElementById(buttonId);
     if (!supabaseAuthClient) {
         mostrarMensajeAuth("No se pudo cargar el inicio de sesión social. Recarga la página e inténtalo otra vez.", "error");
         return;
@@ -29,15 +37,16 @@ async function iniciarSesionFacebook() {
     button.setAttribute("aria-busy", "true");
     try {
         const { error } = await supabaseAuthClient.auth.signInWithOAuth({
-            provider: "facebook",
+            provider,
             options: {
                 redirectTo: `${window.location.origin}${window.location.pathname}`
             }
         });
         if (error) throw error;
     } catch (error) {
-        console.error("No se pudo iniciar OAuth con Facebook:", error);
-        mostrarMensajeAuth("No se pudo iniciar con Facebook. Revisa la configuración del proveedor e inténtalo otra vez.", "error");
+        console.error(`No se pudo iniciar OAuth con ${provider}:`, error);
+        const nombreProveedor = provider === "google" ? "Google" : "Facebook";
+        mostrarMensajeAuth(`No se pudo iniciar con ${nombreProveedor}. Revisa la configuración del proveedor e inténtalo otra vez.`, "error");
         button.disabled = false;
         button.removeAttribute("aria-busy");
     }
@@ -48,12 +57,12 @@ function limpiarParametrosOAuth(url) {
     window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
 }
 
-async function procesarRetornoFacebook() {
+async function procesarRetornoOAuth() {
     const url = new URL(window.location.href);
     const providerError = url.searchParams.get("error_description") || url.searchParams.get("error");
     if (providerError) {
         limpiarParametrosOAuth(url);
-        mostrarMensajeAuth("Facebook canceló o rechazó el inicio de sesión. Puedes intentarlo de nuevo.", "error");
+        mostrarMensajeAuth("El proveedor de inicio de sesión canceló o rechazó la solicitud. Puedes intentarlo de nuevo.", "error");
         return true;
     }
 
@@ -84,7 +93,7 @@ async function procesarRetornoFacebook() {
         });
         const profile = await response.json().catch(() => ({}));
         if (!response.ok) {
-            throw new Error(profile.detail || "Facebook autenticó la cuenta, pero no se pudo cargar su perfil de SmartCity.");
+            throw new Error(profile.detail || "La cuenta se autenticó, pero no se pudo cargar su perfil de SmartCity.");
         }
 
         localStorage.setItem("user_role_cloud", String(profile.id_rol));
@@ -93,10 +102,10 @@ async function procesarRetornoFacebook() {
         await entrarAlDashboard(profile.nombre || "Usuario", profile.id_rol);
         return true;
     } catch (error) {
-        console.error("No se pudo completar el inicio de sesión con Facebook:", error);
+        console.error("No se pudo completar el inicio de sesión social:", error);
         ["token_cloud", "refresh_token_cloud", "token_expires_cloud", "user_role_cloud", "user_name_cloud", "user_id_cloud"].forEach(key => localStorage.removeItem(key));
         await supabaseAuthClient.auth.signOut({ scope: "local" }).catch(() => {});
-        mostrarMensajeAuth(error.message || "No se pudo completar el inicio de sesión con Facebook.", "error");
+        mostrarMensajeAuth(error.message || "No se pudo completar el inicio de sesión social.", "error");
         return true;
     }
 }
@@ -329,7 +338,7 @@ function limpiarMensajeAuth() {
 }
 
 async function comprobarSesion() {
-    if (await procesarRetornoFacebook()) return;
+    if (await procesarRetornoOAuth()) return;
     if (prepararRecuperacionAuth()) return;
     if (!obtenerToken()) {
         navegarA("auth");
