@@ -147,7 +147,7 @@ def chat_brunito_ai(req: ChatRequest, usuario: dict = Depends(obtener_usuario_ac
             )
 
         completion = client.chat.completions.create(
-            model="openai/gpt-oss-20b",
+            model="openai/gpt-oss-120b",
             messages=messages,
             temperature=0.3,
             max_tokens=500,
