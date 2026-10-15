@@ -10,6 +10,8 @@ class Settings:
     SUPABASE_URL: str = os.environ.get("SUPABASE_URL", "").rstrip("/")
     SUPABASE_ANON_KEY: str = os.environ.get("SUPABASE_ANON_KEY", "")
     SUPABASE_SERVICE_ROLE_KEY: str = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    # Keep this stable while PIN hashes exist. Falls back to service-role key in pin_auth.
+    PIN_PEPPER: str = os.environ.get("PIN_PEPPER", "")
     FRONTEND_URL: str = os.environ.get("FRONTEND_URL", "")
     # Clave separada para firmar propuestas de actuador. Si no se configura,
     # mantiene compatibilidad con instalaciones existentes usando SECRET_KEY.

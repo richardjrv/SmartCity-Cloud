@@ -2,6 +2,9 @@
 let modoRegistro = false;
 let cierreSesionEnCurso = false;
 let recoveryAccessToken = null;
+let retoPinActual = null;
+let configurarPinActual = false;
+let sesionPendientePin = null;
 
 // Publishable keys are designed for browser use; no service-role key belongs here.
 const SUPABASE_AUTH_URL = "https://lqkobrabircleaprkroz.supabase.co";
@@ -57,6 +60,81 @@ function limpiarParametrosOAuth(url) {
     window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
 }
 
+function activarCamposPin(grupo, activar) {
+    document.querySelectorAll(`[data-pin-group="${grupo}"] .pin-digit`).forEach(campo => {
+        campo.required = activar;
+    });
+}
+
+function obtenerPin(grupoNombre) {
+    const grupo = document.querySelector(`[data-pin-group="${grupoNombre}"]`);
+    return grupo ? Array.from(grupo.querySelectorAll(".pin-digit")).map(campo => campo.value).join("") : "";
+}
+
+function limpiarPin(grupoNombre) {
+    document.querySelectorAll(`[data-pin-group="${grupoNombre}"] .pin-digit`).forEach(campo => { campo.value = ""; });
+}
+
+function distribuirPin(grupo, valor, inicio) {
+    const campos = Array.from(grupo.querySelectorAll(".pin-digit"));
+    const digitos = valor.replace(/\D/g, "");
+    campos.slice(inicio).forEach((campo, indice) => { campo.value = digitos[indice] || ""; });
+    campos[Math.min(inicio + digitos.length, campos.length - 1)]?.focus();
+}
+
+function inicializarCamposPin() {
+    document.querySelectorAll("[data-pin-group]").forEach(grupo => {
+        const campos = Array.from(grupo.querySelectorAll(".pin-digit"));
+        campos.forEach((campo, indice) => {
+            campo.addEventListener("input", () => {
+                const valor = campo.value.replace(/\D/g, "");
+                if (valor.length > 1) {
+                    distribuirPin(grupo, valor, indice);
+                    return;
+                }
+                campo.value = valor;
+                if (valor && indice < campos.length - 1) campos[indice + 1].focus();
+            });
+            campo.addEventListener("keydown", evento => {
+                if (evento.key === "Backspace" && !campo.value && indice > 0) campos[indice - 1].focus();
+            });
+            campo.addEventListener("paste", evento => {
+                const digitos = (evento.clipboardData?.getData("text") || "").replace(/\D/g, "");
+                if (!digitos) return;
+                evento.preventDefault();
+                distribuirPin(grupo, digitos, indice);
+            });
+        });
+    });
+    activarCamposPin("pin-confirm", false);
+}
+
+async function iniciarPasoPinOAuth(session) {
+    try {
+        const response = await fetch(`${API_URL}/pin/iniciar`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.detail || "No se pudo iniciar la verificación del PIN.");
+        sesionPendientePin = {
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            expires_in: session.expires_in,
+            expires_at: session.expires_at
+        };
+        retoPinActual = data.challenge_token;
+        configurarPinActual = Boolean(data.configurar_pin);
+        mostrarPasoPin(data.nombre);
+        return true;
+    } catch (error) {
+        console.error("No se pudo iniciar la verificación PIN de la sesión social:", error);
+        await supabaseAuthClient.auth.signOut({ scope: "local" }).catch(() => {});
+        mostrarMensajeAuth(error.message || "No se pudo iniciar la verificación PIN.", "error");
+        return true;
+    }
+}
+
 async function procesarRetornoOAuth() {
     const url = new URL(window.location.href);
     const providerError = url.searchParams.get("error_description") || url.searchParams.get("error");
@@ -82,25 +160,7 @@ async function procesarRetornoOAuth() {
         if (!session?.access_token || !session?.refresh_token) {
             throw new Error("Supabase no devolvió una sesión válida.");
         }
-
-        localStorage.setItem("token_cloud", session.access_token);
-        localStorage.setItem("refresh_token_cloud", session.refresh_token);
-        localStorage.setItem("token_expires_cloud", String(session.expires_at || Math.floor(Date.now() / 1000) + Number(session.expires_in || 3600)));
-
-        const response = await fetch(`${API_URL}/api/perfil`, {
-            headers: { Authorization: `Bearer ${session.access_token}` },
-            cache: "no-store"
-        });
-        const profile = await response.json().catch(() => ({}));
-        if (!response.ok) {
-            throw new Error(profile.detail || "La cuenta se autenticó, pero no se pudo cargar su perfil de SmartCity.");
-        }
-
-        localStorage.setItem("user_role_cloud", String(profile.id_rol));
-        localStorage.setItem("user_name_cloud", profile.nombre || "Usuario");
-        localStorage.setItem("user_id_cloud", String(profile.id));
-        await entrarAlDashboard(profile.nombre || "Usuario", profile.id_rol);
-        return true;
+        return await iniciarPasoPinOAuth(session);
     } catch (error) {
         console.error("No se pudo completar el inicio de sesión social:", error);
         ["token_cloud", "refresh_token_cloud", "token_expires_cloud", "user_role_cloud", "user_name_cloud", "user_id_cloud"].forEach(key => localStorage.removeItem(key));
@@ -166,7 +226,7 @@ function ocultarPasswordAuth() {
 }
 
 function mostrarFormularioAuth(id) {
-    ["form-auth", "form-recovery-request", "form-recovery-password"].forEach(formId => {
+    ["form-auth", "campo-pin", "form-recovery-request", "form-recovery-password"].forEach(formId => {
         document.getElementById(formId)?.classList.toggle("hidden", formId !== id);
     });
     document.getElementById("auth-toggle-container")?.classList.toggle("hidden", id !== "form-auth");
@@ -216,15 +276,146 @@ async function procesarAuth(event) {
             mostrarMensajeAuth(data.detail || "No se pudo iniciar sesión.", "error");
             return;
         }
-        guardarSesionSupabase(data);
         document.getElementById("auth-password").value = "";
-        await entrarAlDashboard(data.nombre, data.id_rol);
+        if (!data.requiere_pin || !data.challenge_token || !data.access_token || !data.refresh_token) {
+            throw new Error("El servidor no inició la verificación del PIN. Inténtalo de nuevo.");
+        }
+        sesionPendientePin = data;
+        retoPinActual = data.challenge_token;
+        configurarPinActual = Boolean(data.configurar_pin);
+        mostrarPasoPin(data.nombre);
     } catch (error) {
-        mostrarMensajeAuth("No se pudo conectar con el servidor. Inténtalo otra vez.", "error");
+        mostrarMensajeAuth(error.message || "No se pudo conectar con el servidor. Inténtalo otra vez.", "error");
     } finally {
         button.disabled = false;
         button.textContent = modoRegistro ? "Crear Cuenta ➔" : "Iniciar Sesión ➔";
     }
+}
+
+function mostrarPasoPin(nombre = "") {
+    document.getElementById("form-auth")?.classList.add("hidden");
+    const formularioPin = document.getElementById("campo-pin");
+    formularioPin?.classList.remove("hidden");
+    const card = document.querySelector(".auth-card");
+    card?.classList.remove("auth-mode-animate");
+    void card?.offsetWidth;
+    card?.classList.add("auth-mode-animate");
+    document.getElementById("auth-toggle-container")?.classList.add("hidden");
+
+    const title = document.getElementById("pin-step-title");
+    const description = document.getElementById("pin-step-description");
+    const button = document.getElementById("pin-step-submit");
+    const confirmation = document.getElementById("pin-confirmation-fields");
+    const status = document.getElementById("pin-step-status");
+    if (title) title.textContent = configurarPinActual ? "Crea tu PIN personal" : "Verifica tu acceso";
+    if (description) {
+        description.textContent = configurarPinActual
+            ? `Hola${nombre ? `, ${nombre}` : ""}. Elige un PIN personal de cuatro cifras para proteger tu cuenta.`
+            : "Ingresa tu PIN personal de cuatro cifras para completar el inicio de sesión.";
+    }
+    if (button) button.textContent = configurarPinActual ? "Guardar PIN y continuar" : "Verificar PIN";
+    confirmation?.classList.toggle("hidden", !configurarPinActual);
+    activarCamposPin("pin-confirm", configurarPinActual);
+    limpiarPin("pin-login");
+    limpiarPin("pin-confirm");
+    if (status) status.textContent = "";
+    document.querySelector('[data-pin-group="pin-login"] .pin-digit')?.focus();
+}
+
+async function procesarPasoPin(event) {
+    event.preventDefault();
+    if (!retoPinActual || !sesionPendientePin?.access_token) {
+        cancelarPasoPin("La verificación venció. Inicia sesión nuevamente.");
+        return;
+    }
+    const pin = obtenerPin("pin-login");
+    const confirmation = obtenerPin("pin-confirm");
+    const status = document.getElementById("pin-step-status");
+    const button = document.getElementById("pin-step-submit");
+    if (!/^[0-9]{4}$/.test(pin)) {
+        if (status) status.textContent = "Ingresa los cuatro números de tu PIN.";
+        return;
+    }
+    if (configurarPinActual && pin !== confirmation) {
+        if (status) status.textContent = "Los PIN no coinciden.";
+        return;
+    }
+
+    if (button) button.disabled = true;
+    if (status) status.textContent = "";
+    const endpoint = configurarPinActual ? "/pin/establecer" : "/pin/verificar";
+    try {
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${sesionPendientePin.access_token}`
+            },
+            body: JSON.stringify({ challenge_token: retoPinActual, pin })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            if (response.status === 401 && !String(data.detail || "").startsWith("PIN incorrecto")) {
+                cancelarPasoPin(data.detail || "La verificación venció. Inicia sesión nuevamente.");
+                return;
+            }
+            if (response.status === 429) {
+                cancelarPasoPin(data.detail || "Se alcanzó el límite de intentos. Vuelve a iniciar sesión más tarde.");
+                return;
+            }
+            if (status) status.textContent = data.detail || "No se pudo verificar el PIN.";
+            limpiarPin("pin-login");
+            document.querySelector('[data-pin-group="pin-login"] .pin-digit')?.focus();
+            return;
+        }
+        completarInicioSesion(data);
+    } catch (error) {
+        if (status) status.textContent = "No se pudo conectar con el servidor. Inténtalo nuevamente.";
+    } finally {
+        if (button?.isConnected) button.disabled = false;
+    }
+}
+
+function completarInicioSesion(profile) {
+    const session = sesionPendientePin;
+    if (!session) return;
+    guardarSesionSupabase({
+        ...profile,
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+        expires_in: session.expires_in,
+        expires_at: session.expires_at
+    });
+    retoPinActual = null;
+    configurarPinActual = false;
+    sesionPendientePin = null;
+    limpiarPin("pin-login");
+    limpiarPin("pin-confirm");
+    document.getElementById("campo-pin")?.classList.add("hidden");
+    document.getElementById("auth-toggle-container")?.classList.remove("hidden");
+    void entrarAlDashboard(profile.nombre || "Usuario", profile.id_rol);
+}
+
+function cancelarPasoPin(mensaje = "") {
+    const pending = sesionPendientePin;
+    retoPinActual = null;
+    configurarPinActual = false;
+    sesionPendientePin = null;
+    limpiarPin("pin-login");
+    limpiarPin("pin-confirm");
+    activarCamposPin("pin-confirm", false);
+    document.getElementById("campo-pin")?.classList.add("hidden");
+    document.getElementById("form-auth")?.classList.remove("hidden");
+    document.getElementById("auth-toggle-container")?.classList.remove("hidden");
+    if (pending) {
+        void fetch(`${API_URL}/logout`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${pending.access_token}` }
+        }).catch(() => {});
+        ["token_cloud", "refresh_token_cloud", "token_expires_cloud", "user_role_cloud", "user_name_cloud", "user_id_cloud"].forEach(key => localStorage.removeItem(key));
+        void supabaseAuthClient?.auth.signOut({ scope: "local" });
+    }
+    if (mensaje) mostrarMensajeAuth(mensaje, "error");
 }
 
 function guardarSesionSupabase(data) {
@@ -279,15 +470,25 @@ async function procesarNuevaPassword(event) {
     event.preventDefault();
     const status = document.getElementById("recovery-new-status");
     const password = document.getElementById("recovery-new-password").value;
+    const pin = document.getElementById("recovery-new-pin").value;
+    const pinConfirmation = document.getElementById("recovery-confirm-pin").value;
     if (!recoveryAccessToken) {
         status.textContent = "El enlace venció o no es válido. Solicita otro.";
+        return;
+    }
+    if (!/^[0-9]{4}$/.test(pin)) {
+        status.textContent = "El PIN debe tener exactamente cuatro números.";
+        return;
+    }
+    if (pin !== pinConfirmation) {
+        status.textContent = "Los PIN no coinciden.";
         return;
     }
     status.textContent = "Guardando…";
     try {
         const { ok, data } = await apiFetch("/establecer-password", {
             method: "POST",
-            body: JSON.stringify({ access_token: recoveryAccessToken, password_nueva: password })
+            body: JSON.stringify({ access_token: recoveryAccessToken, password_nueva: password, pin_nuevo: pin })
         });
         status.textContent = ok ? data.mensaje : (data.detail || "No se pudo cambiar la contraseña.");
         status.className = `min-h-5 text-center text-sm ${ok ? "text-emerald-400" : "text-rose-400"}`;
@@ -295,6 +496,7 @@ async function procesarNuevaPassword(event) {
             recoveryAccessToken = null;
             window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
             document.getElementById("form-recovery-password")?.reset();
+            await supabaseAuthClient?.auth.signOut({ scope: "local" }).catch(() => {});
             window.setTimeout(() => {
                 mostrarFormularioAuth("form-auth");
                 status.textContent = "";
@@ -341,13 +543,41 @@ async function comprobarSesion() {
     if (await procesarRetornoOAuth()) return;
     if (prepararRecuperacionAuth()) return;
     if (!obtenerToken()) {
+        if (supabaseAuthClient) {
+            const { data } = await supabaseAuthClient.auth.getSession();
+            if (data.session?.access_token) {
+                await iniciarPasoPinOAuth(data.session);
+                return;
+            }
+        }
         navegarA("auth");
         void precalentarAPI();
         return;
     }
     try {
-        const { ok, data } = await apiFetch("/api/perfil");
+        const { ok, status, data } = await apiFetch("/api/perfil");
         if (!ok) {
+            if (status === 428) {
+                sesionPendientePin = {
+                    access_token: obtenerToken(),
+                    refresh_token: localStorage.getItem("refresh_token_cloud"),
+                    expires_in: Number(localStorage.getItem("token_expires_cloud") || 0) - Math.floor(Date.now() / 1000)
+                };
+                const response = await fetch(`${API_URL}/pin/iniciar`, {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${sesionPendientePin.access_token}` }
+                });
+                const pinInfo = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    cancelarPasoPin(pinInfo.detail || "No se pudo iniciar la verificación del PIN.");
+                    navegarA("auth");
+                    return;
+                }
+                retoPinActual = pinInfo.challenge_token;
+                configurarPinActual = Boolean(pinInfo.configurar_pin);
+                mostrarPasoPin(pinInfo.nombre);
+                return;
+            }
             await cerrarSesion();
             return;
         }
@@ -372,9 +602,13 @@ async function cerrarSesion(notifyServer = true) {
             });
         } catch { /* La sesión local se limpia aunque el servidor no responda. */ }
     }
+    await supabaseAuthClient?.auth.signOut({ scope: "local" }).catch(() => {});
     if (typeof detenerEscuchaWakeBrunito === "function") detenerEscuchaWakeBrunito();
     ["token_cloud", "refresh_token_cloud", "token_expires_cloud", "user_role_cloud", "user_name_cloud", "user_id_cloud"].forEach(key => localStorage.removeItem(key));
     recoveryAccessToken = null;
+    retoPinActual = null;
+    configurarPinActual = false;
+    sesionPendientePin = null;
     if (modoRegistro) toggleModoAuth();
     ocultarPasswordAuth();
     document.getElementById("form-auth")?.reset();

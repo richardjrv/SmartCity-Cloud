@@ -13,9 +13,11 @@ La autenticación web usa Supabase Auth. `public.usuarios.id` continúa siendo e
    - `FRONTEND_URL`: URL del sitio a la que Supabase debe regresar al completar recuperación de contraseña. Debe estar en Redirect URLs.
    - Conserva `DATABASE_URL` y las demás variables existentes.
 4. Revisa y ejecuta una sola vez `backend/sql/supabase_auth_migration.sql` en el SQL Editor del proyecto correcto. La transacción aborta si no encuentra el rol `id=2` o detecta correos duplicados normalizados.
-5. Publica el backend y el frontend actualizados.
-6. Crea una cuenta nueva desde el sitio y confirma el correo. El trigger enlaza la cuenta y crea su perfil interno. Si coincide con una fila de prueba existente, la enlaza, elimina sus hashes locales y le deja rol de usuario.
-7. Promueve al administrador de confianza manualmente después de confirmar esa cuenta. Sustituye el correo:
+5. Para habilitar el segundo paso con PIN, ejecuta `backend/sql/auth_pin_session_gate.sql` en el mismo proyecto Supabase antes de publicar el backend actualizado.
+6. En Render, configura `PIN_PEPPER` con un secreto largo y aleatorio y consérvalo estable mientras existan PIN guardados. El backend puede usar temporalmente `SUPABASE_SERVICE_ROLE_KEY` como pepper si esta variable no está configurada.
+7. Publica el backend y el frontend actualizados.
+8. Crea una cuenta nueva desde el sitio y confirma el correo. El trigger enlaza la cuenta y crea su perfil interno. Si coincide con una fila de prueba existente, la enlaza, elimina sus hashes locales y le deja rol de usuario.
+9. Promueve al administrador de confianza manualmente después de confirmar esa cuenta. Sustituye el correo:
 
    ```sql
    update public.usuarios as u
@@ -28,9 +30,10 @@ La autenticación web usa Supabase Auth. `public.usuarios.id` continúa siendo e
 ## Notas de seguridad y alcance
 
 - El registro no puede asignar roles administrativos. El nombre enviado en metadata es solo información de perfil.
-- El frontend guarda el access token y el refresh token de Supabase; el backend valida cada access token consultando Supabase Auth y obtiene el rol desde `public.usuarios`.
+- El frontend guarda el access token y el refresh token de Supabase solo después de validar el PIN; el backend valida cada access token consultando Supabase Auth y obtiene el rol desde `public.usuarios`.
 - `public.usuarios` queda con RLS habilitado y sin permisos directos para `anon`/`authenticated`; el acceso pasa por FastAPI.
-- El PIN propio de cuatro cifras deja de formar parte del login. Si se necesita un segundo factor, implementar Supabase MFA (por ejemplo TOTP) en una etapa aparte.
+- Después del login de Supabase, cada sesión de SmartCity debe confirmar un PIN personal de cuatro cifras. El hash usa scrypt y pepper del servidor; cinco intentos fallidos bloquean el PIN durante 15 minutos. El backend guarda qué sesiones pasaron el PIN y bloquea sus APIs si no lo hicieron; la marca vence a los 30 días.
+- Para restablecer un PIN olvidado, la persona usa la recuperación por correo y define una contraseña y PIN nuevos. Un PIN de cuatro cifras es un bloqueo adicional de la aplicación, no equivale a MFA de Supabase ni a un autenticador independiente.
 - Las cuentas de prueba locales no se importan con su hash `pbkdf2_sha256`. El usuario debe registrarse o restablecer su contraseña con Supabase Auth. Supabase documenta migración de hash para bcrypt/Argon2, no este formato.
 - El servicio de correo predeterminado de Supabase tiene límites de envío; para producción configura SMTP propio.
 - Esta migración no se ejecuta automáticamente por el código. El archivo SQL debe revisarse y ejecutarse manualmente en el proyecto Supabase.

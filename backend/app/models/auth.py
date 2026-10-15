@@ -28,6 +28,12 @@ class RecuperarPasswordData(BaseModel):
 class EstablecerPasswordData(BaseModel):
     access_token: str = Field(min_length=20, max_length=8192)
     password_nueva: str = Field(min_length=8, max_length=128)
+    pin_nuevo: str = Field(pattern=r"^[0-9]{4}$")
+
+
+class PinChallengeData(BaseModel):
+    challenge_token: str = Field(min_length=32, max_length=128)
+    pin: str = Field(pattern=r"^[0-9]{4}$")
 
 
 class ModificarUsuarioAdminData(BaseModel):

@@ -19,6 +19,7 @@ comment on column public.usuarios.pin_bloqueado_hasta is
 create table if not exists public.auth_pin_challenges (
     id text primary key,
     user_id integer not null references public.usuarios(id) on delete cascade,
+    auth_session_id uuid,
     purpose text not null check (purpose in ('login', 'setup', 'reset')),
     expires_at timestamptz not null,
     failed_attempts smallint not null default 0 check (failed_attempts >= 0),
@@ -32,11 +33,27 @@ alter table public.auth_pin_challenges
 alter table public.auth_pin_challenges
     add constraint auth_pin_challenges_purpose_check
     check (purpose in ('login', 'setup', 'reset'));
+alter table public.auth_pin_challenges
+    add column if not exists auth_session_id uuid;
 
 create index if not exists idx_auth_pin_challenges_user_created
     on public.auth_pin_challenges (user_id, created_at desc);
 create index if not exists idx_auth_pin_challenges_expiration
     on public.auth_pin_challenges (expires_at);
+create index if not exists idx_auth_pin_challenges_session
+    on public.auth_pin_challenges (auth_session_id, user_id, created_at desc);
+
+-- Una sesión solo puede usar la API después de que su usuario confirme el PIN.
+create table if not exists public.auth_pin_sessions (
+    session_id uuid primary key,
+    user_id integer not null references public.usuarios(id) on delete cascade,
+    verified_at timestamptz not null default now(),
+    expires_at timestamptz not null
+);
+create index if not exists idx_auth_pin_sessions_user
+    on public.auth_pin_sessions (user_id);
+alter table public.auth_pin_sessions enable row level security;
+revoke all on table public.auth_pin_sessions from public, anon, authenticated;
 
 alter table public.auth_pin_challenges enable row level security;
 revoke all on table public.auth_pin_challenges from public, anon, authenticated;

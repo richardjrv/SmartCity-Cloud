@@ -1,7 +1,8 @@
 from fastapi import Depends, Header, HTTPException
 
 from app.db.database import get_db_connection
-from app.services.supabase_auth import SupabaseAuthError, get_user, public_auth_error
+from app.services.supabase_auth import SupabaseAuthError, public_auth_error
+from app.services.pin_auth import validar_token_y_obtener_sesion
 
 
 def obtener_usuario_actual(authorization: str = Header(...)) -> dict:
@@ -14,7 +15,7 @@ def obtener_usuario_actual(authorization: str = Header(...)) -> dict:
         raise HTTPException(status_code=401, detail="Sesión inválida.")
 
     try:
-        auth_user = get_user(access_token)
+        auth_user, session_id, _ = validar_token_y_obtener_sesion(access_token)
     except SupabaseAuthError as error:
         raise public_auth_error(error, login=True) from error
 
@@ -29,11 +30,15 @@ def obtener_usuario_actual(authorization: str = Header(...)) -> dict:
         cursor = connection.cursor()
         cursor.execute(
             """
-            SELECT id, nombre, email, id_rol, COALESCE(estado, 'activo')
-            FROM public.usuarios
-            WHERE auth_user_id = %s
+            SELECT u.id, u.nombre, u.email, u.id_rol, COALESCE(u.estado, 'activo'),
+                   EXISTS (
+                       SELECT 1 FROM public.auth_pin_sessions AS p
+                       WHERE p.session_id = %s AND p.user_id = u.id AND p.expires_at > NOW()
+                   )
+            FROM public.usuarios AS u
+            WHERE u.auth_user_id = %s
             """,
-            (auth_user_id,),
+            (session_id, auth_user_id),
         )
         row = cursor.fetchone()
     except Exception as error:
@@ -48,6 +53,8 @@ def obtener_usuario_actual(authorization: str = Header(...)) -> dict:
         raise HTTPException(status_code=403, detail="Confirma tu correo y vuelve a iniciar sesión.")
     if row[4] != "activo":
         raise HTTPException(status_code=403, detail="Tu cuenta está desactivada.")
+    if not row[5]:
+        raise HTTPException(status_code=428, detail="Completa la verificación de PIN para acceder a SmartCity Cloud.")
 
     return {
         "user_id": row[0],
@@ -55,6 +62,7 @@ def obtener_usuario_actual(authorization: str = Header(...)) -> dict:
         "email": row[2] or auth_user.get("email", ""),
         "id_rol": row[3],
         "auth_user_id": auth_user_id,
+        "auth_session_id": session_id,
         "access_token": access_token,
     }
 

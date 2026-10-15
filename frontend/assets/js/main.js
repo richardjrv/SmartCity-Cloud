@@ -523,6 +523,7 @@ function cerrarRecorridoGuiado() {
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("login-only");
+    inicializarCamposPin();
     inicializarAnimacionLecturas();
     if (!obtenerToken()) animarEntradaAuth();
     inicializarBarraLateral();

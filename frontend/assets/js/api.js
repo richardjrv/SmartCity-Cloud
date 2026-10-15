@@ -76,6 +76,10 @@ async function apiFetch(endpoint, options = {}) {
             void cerrarSesion(false);
             throw new Error("Sesión expirada.");
         }
+        if (response.status === 428 && !publicAuth && endpoint !== "/api/perfil") {
+            void cerrarSesion(false);
+            throw new Error("La sesión necesita una nueva verificación de PIN.");
+        }
         const data = response.status === 204 ? {} : await response.json();
         return { ok: response.ok, status: response.status, data };
     } catch (error) {
