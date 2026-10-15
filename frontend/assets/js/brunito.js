@@ -410,6 +410,43 @@ function esConsultaSensoresBrunito(texto) {
     return consultaDeSensor || (consultaDeMetrica && !consultaMeteorologica && !consultaUbicada);
 }
 
+function responderConsultaNotificacionesBrunito(texto, typing) {
+    const consulta = normalizarConsultaClimaBrunito(texto);
+    if (!/\b(notificacion(?:es)?|avisos?)\b/.test(consulta)) return false;
+
+    const usuarioId = localStorage.getItem("user_id_cloud") || localStorage.getItem("user_name_cloud") || "usuario";
+    let notificaciones = [];
+    try {
+        const guardadas = JSON.parse(localStorage.getItem(`smartcity_notificaciones_${usuarioId}`) || "[]");
+        if (Array.isArray(guardadas)) notificaciones = guardadas;
+    } catch (error) {
+        console.warn("No se pudieron leer las notificaciones locales de Brunito.", error);
+    }
+
+    const nuevas = notificaciones.filter(item => !item.leida);
+    let respuesta;
+    if (!nuevas.length) {
+        respuesta = notificaciones.length
+            ? `No tienes notificaciones sin leer. Hay ${notificaciones.length} ${notificaciones.length === 1 ? "aviso guardado" : "avisos guardados"}.`
+            : "No tienes notificaciones nuevas guardadas en este navegador.";
+    } else {
+        const recientes = nuevas.slice(0, 3).map(item => {
+            const fecha = item.fecha ? new Date(item.fecha) : null;
+            const fechaTexto = fecha && !Number.isNaN(fecha.getTime())
+                ? ` (${new Intl.DateTimeFormat("es-EC", { dateStyle: "short", timeStyle: "short" }).format(fecha)})`
+                : "";
+            return `• ${item.titulo || "Aviso"}: ${item.mensaje || "Sin detalles"}${fechaTexto}`;
+        });
+        respuesta = `Tienes ${nuevas.length} ${nuevas.length === 1 ? "notificación sin leer" : "notificaciones sin leer"}:\n${recientes.join("\n")}${nuevas.length > recientes.length ? "\nAbre el menú de notificaciones para ver las demás." : ""}`;
+    }
+
+    typing?.remove();
+    agregarMensajeBrunito("model", respuesta);
+    brunitoHistory.push({ role: "user", content: texto });
+    brunitoHistory.push({ role: "assistant", content: respuesta });
+    return true;
+}
+
 function respuestaDesdeLecturaSensorBrunito(lectura, texto) {
     const consulta = normalizarConsultaClimaBrunito(texto);
     const formatoNumero = valor => Number.isFinite(Number(valor))
@@ -573,6 +610,8 @@ async function procesarMensajeBrunito(texto) {
     typing.innerText = "🤖 Brunito está pensando...";
     container.appendChild(typing);
     container.scrollTop = container.scrollHeight;
+
+    if (responderConsultaNotificacionesBrunito(texto, typing)) return;
 
     if (esConsultaSensoresBrunito(texto)) {
         await responderConsultaSensoresBrunito(texto, typing);

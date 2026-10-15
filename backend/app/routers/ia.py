@@ -156,7 +156,10 @@ def chat_brunito_ai(req: ChatRequest, usuario: dict = Depends(obtener_usuario_ac
         )
         # Groq executes browser_search server-side; local actuator proposals stay
         # in this API and still require explicit administrator confirmation.
-        tools = [{"type": "browser_search"}]
+        # Solo adjuntar browser_search cuando la consulta pide datos actuales.
+        # En preguntas comunes, los built-in tools agregan innecesariamente
+        # latencia y complejidad al request de Chat Completions.
+        tools = [{"type": "browser_search"}] if requiere_busqueda else []
         actuadores_por_id = {}
         if actuadores_disponibles and not requiere_busqueda:
             actuadores_por_id = {actuador["id"]: actuador for actuador in actuadores_disponibles}
@@ -214,15 +217,20 @@ def chat_brunito_ai(req: ChatRequest, usuario: dict = Depends(obtener_usuario_ac
                 "Si piden encender o apagar una luminaria, explica que solo un administrador puede solicitarlo."
             )
 
+        parametros_completion = {
+            "model": "openai/gpt-oss-120b",
+            "messages": messages,
+            "temperature": 0.3,
+            "max_completion_tokens": 2048,
+            "reasoning_effort": "low",
+            "stream": False,
+        }
+        if tools:
+            parametros_completion["tools"] = tools
+            parametros_completion["tool_choice"] = "required"
+
         completion = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
-            messages=messages,
-            temperature=0.3,
-            max_completion_tokens=2048,
-            reasoning_effort="low",
-            stream=False,
-            tools=tools,
-            tool_choice="required" if requiere_busqueda else "auto",
+            **parametros_completion,
         )
 
         respuesta_modelo = completion.choices[0].message
