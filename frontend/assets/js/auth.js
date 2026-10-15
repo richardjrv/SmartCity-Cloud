@@ -31,8 +31,7 @@ async function iniciarSesionFacebook() {
         const { error } = await supabaseAuthClient.auth.signInWithOAuth({
             provider: "facebook",
             options: {
-                redirectTo: `${window.location.origin}${window.location.pathname}`,
-                scopes: "email public_profile"
+                redirectTo: `${window.location.origin}${window.location.pathname}`
             }
         });
         if (error) throw error;
