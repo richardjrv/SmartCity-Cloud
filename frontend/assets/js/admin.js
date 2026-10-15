@@ -2,6 +2,14 @@
 // 👑 MÓDULO DE ADMINISTRACIÓN DE USUARIOS (FASE 3)
 // ============================================================
 
+let adminRoleReturnFocus = null;
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !document.getElementById("admin-role-dialog")?.classList.contains("hidden")) {
+        cerrarSelectorRol();
+    }
+});
+
 async function cargarUsuariosAdmin() {
     const tabla = document.getElementById("tabla-usuarios-body");
     if (!tabla) return;
@@ -120,10 +128,11 @@ function mostrarUsuariosTabla(usuarios) {
 
             <td class="px-4 py-3">
                 <div class="flex justify-center gap-2">
-                    ${Number(usuario.id) !== idUsuarioActual ? `<button onclick="cambiarRolUsuario(${usuario.id}, ${usuario.id_rol})"
-                            class="px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition text-xs"
-                            title="Cambiar Rol">
-                        🔄
+                    ${Number(usuario.id) !== idUsuarioActual ? `<button onclick="cambiarRolUsuario(${usuario.id})"
+                            class="admin-change-role-button"
+                            aria-label="Cambiar rol de ${escapeHTML(usuario.nombre || usuario.email || `usuario ${usuario.id}`)}"
+                            title="Cambiar rol">
+                        <span aria-hidden="true">✎</span><span>Cambiar rol</span>
                     </button>` : ""}
 
                     <button onclick="cambiarEstadoUsuario(${usuario.id}, '${usuario.estado}')"
@@ -173,18 +182,62 @@ function filtrarUsuarios() {
     if (resumen) resumen.textContent = `Mostrando ${filtrados.length} de ${window.usuariosAdmin.length} cuentas`;
 }
 
-async function cambiarRolUsuario(usuarioId, rolActual) {
-    const roles = [
-        { id: 1, nombre: "Administrador" },
-        { id: 2, nombre: "Usuario" },
-        { id: 3, nombre: "Operador" }
-    ];
-    const indice = roles.findIndex(rol => rol.id === Number(rolActual));
-    const siguiente = roles[(indice + 1) % roles.length];
+function cambiarRolUsuario(usuarioId) {
+    const usuario = (window.usuariosAdmin || []).find(item => Number(item.id) === Number(usuarioId));
+    const modal = document.getElementById("admin-role-dialog");
+    if (!usuario || !modal) return;
 
-    if (!confirm(`¿Cambiar el rol del usuario #${usuarioId} a ${siguiente.nombre}?`)) return;
+    adminRoleReturnFocus = document.activeElement;
+    document.getElementById("admin-role-user-name").textContent = usuario.nombre || usuario.username || usuario.email || `Usuario #${usuario.id}`;
+    document.getElementById("admin-role-user-email").textContent = usuario.email || `Cuenta #${usuario.id}`;
+    document.getElementById("admin-role-current").textContent = usuario.rol || nombreRolAdmin(usuario.id_rol);
+    document.getElementById("admin-role-user-id").value = String(usuario.id);
+    const opcionActual = modal.querySelector(`input[name="admin-role-choice"][value="${Number(usuario.id_rol)}"]`);
+    if (opcionActual) opcionActual.checked = true;
+    const feedback = document.getElementById("admin-role-feedback");
+    if (feedback) feedback.textContent = "";
+    const guardar = document.getElementById("admin-role-save");
+    if (guardar) { guardar.disabled = false; guardar.textContent = "Guardar cambios"; }
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    modal.setAttribute("aria-hidden", "false");
+    modal.querySelector('input[name="admin-role-choice"]:checked')?.focus();
+}
 
-    await modificarUsuarioAdmin(usuarioId, { id_rol: siguiente.id });
+function nombreRolAdmin(rolId) {
+    return ({ 1: "Administrador", 2: "Usuario", 3: "Operador" })[Number(rolId)] || "Sin rol";
+}
+
+function cerrarSelectorRol() {
+    const modal = document.getElementById("admin-role-dialog");
+    if (!modal) return;
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    modal.setAttribute("aria-hidden", "true");
+    if (adminRoleReturnFocus?.isConnected) adminRoleReturnFocus.focus();
+    adminRoleReturnFocus = null;
+}
+
+async function guardarRolSeleccionado(event) {
+    event.preventDefault();
+    const id = Number(document.getElementById("admin-role-user-id")?.value);
+    const rolId = Number(document.querySelector('input[name="admin-role-choice"]:checked')?.value);
+    const usuario = (window.usuariosAdmin || []).find(item => Number(item.id) === id);
+    if (!usuario || ![1, 2, 3].includes(rolId)) return;
+    if (Number(usuario.id_rol) === rolId) { cerrarSelectorRol(); return; }
+
+    const boton = document.getElementById("admin-role-save");
+    const feedback = document.getElementById("admin-role-feedback");
+    boton.disabled = true;
+    boton.textContent = "Guardando…";
+    if (feedback) feedback.textContent = "Aplicando el nuevo rol…";
+    const actualizado = await modificarUsuarioAdmin(id, { id_rol: rolId }, { silencioso: true });
+    if (actualizado) cerrarSelectorRol();
+    else {
+        boton.disabled = false;
+        boton.textContent = "Guardar cambios";
+        if (feedback) feedback.textContent = "No se pudo guardar. Revisa el mensaje y vuelve a intentarlo.";
+    }
 }
 
 async function cambiarEstadoUsuario(usuarioId, estadoActual) {
@@ -195,7 +248,7 @@ async function cambiarEstadoUsuario(usuarioId, estadoActual) {
     await modificarUsuarioAdmin(usuarioId, { estado: nuevoEstado });
 }
 
-async function modificarUsuarioAdmin(usuarioId, cambios) {
+async function modificarUsuarioAdmin(usuarioId, cambios, opciones = {}) {
     try {
         const { ok, data } = await apiFetch(`/api/admin/usuarios/${usuarioId}`, {
             method: "PUT",
@@ -204,13 +257,16 @@ async function modificarUsuarioAdmin(usuarioId, cambios) {
 
         if (!ok) {
             alert("❌ " + (data.detail || "No se pudo modificar el usuario."));
-            return;
+            return false;
         }
 
-        alert("✅ " + data.mensaje);
+        if (!opciones.silencioso) alert("✅ " + data.mensaje);
         cargarUsuariosAdmin();
+        return true;
     } catch (error) {
         console.error("❌ Error modificando usuario:", error);
+        alert("❌ No se pudo conectar con el servidor para guardar el cambio.");
+        return false;
     }
 }
 

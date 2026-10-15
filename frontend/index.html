@@ -824,6 +824,45 @@
         </section>
     </div>
 
+    <div id="admin-role-dialog" class="admin-role-overlay hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="admin-role-title" onclick="if(event.target === this) cerrarSelectorRol()">
+        <form class="admin-role-panel" onsubmit="guardarRolSeleccionado(event)">
+            <input id="admin-role-user-id" type="hidden">
+            <div class="admin-role-heading">
+                <span class="admin-role-icon" aria-hidden="true">♙</span>
+                <div><p class="admin-role-eyebrow">PERMISOS DE CUENTA</p><h2 id="admin-role-title">Cambiar rol</h2></div>
+                <button type="button" class="admin-role-close" onclick="cerrarSelectorRol()" aria-label="Cerrar">✕</button>
+            </div>
+            <div class="admin-role-user"><strong id="admin-role-user-name"></strong><span id="admin-role-user-email"></span></div>
+            <p class="admin-role-current">Rol actual: <strong id="admin-role-current"></strong></p>
+            <fieldset class="admin-role-options">
+                <legend>Selecciona el nuevo rol</legend>
+                <label class="admin-role-option">
+                    <input type="radio" name="admin-role-choice" value="1" required>
+                    <span class="admin-role-option-icon admin-role-admin" aria-hidden="true">♛</span>
+                    <span class="admin-role-option-copy"><strong>Administrador</strong><small>Gestiona cuentas, permisos y dispositivos.</small></span>
+                    <span class="admin-role-radio" aria-hidden="true"></span>
+                </label>
+                <label class="admin-role-option">
+                    <input type="radio" name="admin-role-choice" value="3">
+                    <span class="admin-role-option-icon admin-role-operator" aria-hidden="true">⚙</span>
+                    <span class="admin-role-option-copy"><strong>Operador</strong><small>Revisa alertas y actualiza su seguimiento.</small></span>
+                    <span class="admin-role-radio" aria-hidden="true"></span>
+                </label>
+                <label class="admin-role-option">
+                    <input type="radio" name="admin-role-choice" value="2">
+                    <span class="admin-role-option-icon admin-role-user" aria-hidden="true">♙</span>
+                    <span class="admin-role-option-copy"><strong>Usuario</strong><small>Consulta el panel y envía reportes.</small></span>
+                    <span class="admin-role-radio" aria-hidden="true"></span>
+                </label>
+            </fieldset>
+            <p id="admin-role-feedback" class="admin-role-feedback" role="status" aria-live="polite"></p>
+            <div class="admin-role-actions">
+                <button type="button" class="admin-role-cancel" onclick="cerrarSelectorRol()">Cancelar</button>
+                <button id="admin-role-save" type="submit" class="admin-role-save">Guardar cambios</button>
+            </div>
+        </form>
+    </div>
+
     <div id="contact-modal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[70] items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="contact-title">
         <section class="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-3xl p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h2 id="contact-title" class="text-xl font-bold text-white">Contáctanos</h2>
