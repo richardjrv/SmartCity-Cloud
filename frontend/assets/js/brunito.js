@@ -526,7 +526,8 @@ async function procesarMensajeBrunito(texto) {
         typing.remove();
 
         if (ok && data.respuesta) {
-            agregarMensajeBrunito("model", data.respuesta);
+            const respuestaLimpia = limpiarCitasTecnicasBrunito(data.respuesta);
+            agregarMensajeBrunito("model", respuestaLimpia);
 
             if (data.accion_pendiente) {
                 const esAdmin = Number(localStorage.getItem("user_role_cloud")) === 1;
@@ -539,7 +540,7 @@ async function procesarMensajeBrunito(texto) {
 
             // Guardar historial para mantener el hilo de la conversación
             brunitoHistory.push({ role: "user", content: texto });
-            brunitoHistory.push({ role: "assistant", content: data.respuesta });
+            brunitoHistory.push({ role: "assistant", content: respuestaLimpia });
         } else {
             agregarMensajeBrunito("model", `⚠️ ${data.detail || "No se pudo consultar a Brunito AI."}`);
         }
@@ -548,6 +549,15 @@ async function procesarMensajeBrunito(texto) {
         typing.remove();
         agregarMensajeBrunito("model", "⚠️ Error de conexión con el servidor.");
     }
+}
+
+function limpiarCitasTecnicasBrunito(contenido) {
+    return String(contenido ?? "")
+        .replace(/[\[【〖〔]\s*\d+\s*†\s*L\d+(?:\s*[-–]\s*L?\d+)?\s*[\]】〗〕]/gu, "")
+        .replace(/[ \t]{2,}/g, " ")
+        .replace(/ +([,.;:!?])/g, "$1")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
 }
 
 function agregarMensajeBrunito(role, content) {
