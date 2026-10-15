@@ -394,10 +394,75 @@ function normalizarConsultaClimaBrunito(texto) {
 
 function esConsultaClimaBrunito(texto) {
     const consulta = normalizarConsultaClimaBrunito(texto);
-    const mencionaClima = /\b(clima|tiempo|weather|pronostico|temperatura|sensacion termica|humedad|precipitacion|lluvia|probabilidad|indice uv|uv|ultravioleta|radiacion|sol|soleado|soleada|despejado|despejada|nublado|nublada|cielo|viento|rafaga|rafagas)\b/.test(consulta);
-    const consultaDeSensor = /\b(sensor|sensores|esp32|dht22)\b/.test(consulta)
-        && !/\b(clima|tiempo|weather|pronostico|open meteo)\b/.test(consulta);
-    return mencionaClima && !consultaDeSensor;
+    const consultaDeSensor = /\b(sensor|sensores|esp32|dht22|lectura|lecturas|datos guardados|registrados)\b/.test(consulta);
+    const consultaMeteorologica = /\b(clima|tiempo|weather|pronostico|prevision|open meteo|sensacion termica|probabilidad|indice uv|uv|ultravioleta|radiacion|soleado|soleada|despejado|despejada|nublado|nublada|cielo|viento|rafaga|rafagas)\b/.test(consulta);
+    const consultaConUbicacion = /\b(?:en|de|para)\s+(?:puerto francisco de orellana|francisco de orellana|orellana|el coca)\b/.test(consulta)
+        && /\b(temperatura|humedad|lluvia|precipitacion)\b/.test(consulta);
+    return !consultaDeSensor && (consultaMeteorologica || consultaConUbicacion);
+}
+
+function esConsultaSensoresBrunito(texto) {
+    const consulta = normalizarConsultaClimaBrunito(texto);
+    const consultaDeSensor = /\b(sensor|sensores|esp32|dht22|lectura|lecturas|datos guardados|registrados)\b/.test(consulta);
+    const consultaDeMetrica = /\b(temperatura|humedad|calidad del aire|calidad aire|distancia|lluvia|luminosidad|luz|nivel de agua|reflectancia|tcrt5000)\b/.test(consulta);
+    const consultaMeteorologica = /\b(clima|tiempo|weather|pronostico|prevision|open meteo)\b/.test(consulta);
+    const consultaUbicada = /\b(?:en|de|para)\s+(?:puerto francisco de orellana|francisco de orellana|orellana|el coca)\b/.test(consulta);
+    return consultaDeSensor || (consultaDeMetrica && !consultaMeteorologica && !consultaUbicada);
+}
+
+function respuestaDesdeLecturaSensorBrunito(lectura, texto) {
+    const consulta = normalizarConsultaClimaBrunito(texto);
+    const formatoNumero = valor => Number.isFinite(Number(valor))
+        ? new Intl.NumberFormat("es-EC", { maximumFractionDigits: 2 }).format(Number(valor))
+        : "no disponible";
+    const campos = [
+        { clave: "temperatura", nombre: "Temperatura", unidad: " °C", patron: /\b(temperatura|calor|frio)\b/ },
+        { clave: "humedad", nombre: "Humedad", unidad: " %", patron: /\b(humedad)\b/ },
+        { clave: "calidad_aire", nombre: "Calidad del aire", unidad: " (lectura ICA)", patron: /\b(calidad del aire|calidad aire|ica)\b/ },
+        { clave: "distancia_cm", nombre: "Distancia", unidad: " cm", patron: /\b(distancia|proximidad)\b/ },
+        { clave: "lluvia_detectada", nombre: "Lluvia detectada", unidad: "", patron: /\b(lluvia|lluvia detectada)\b/, booleano: true },
+        { clave: "luminosidad", nombre: "Luminosidad (LDR)", unidad: " (lectura sin calibrar)", patron: /\b(luminosidad|luz|ldr)\b/ },
+        { clave: "nivel_agua", nombre: "Nivel de agua", unidad: " (lectura sin calibrar)", patron: /\b(nivel de agua|agua)\b/ },
+        { clave: "reflectancia_tcrt5000", nombre: "Reflectancia TCRT5000", unidad: " (lectura)", patron: /\b(reflectancia|tcrt5000)\b/ },
+        { clave: "tcrt5000_detectado", nombre: "Detección TCRT5000", unidad: "", patron: /\b(deteccion|detectado|tcrt5000)\b/, booleano: true }
+    ];
+    const camposSolicitados = campos.filter(campo => campo.patron.test(consulta));
+    const seleccion = camposSolicitados.length ? camposSolicitados : campos;
+    const valores = seleccion
+        .filter(campo => lectura[campo.clave] !== null && lectura[campo.clave] !== undefined)
+        .map(campo => `${campo.nombre}: ${campo.booleano ? (lectura[campo.clave] ? "sí" : "no") : `${formatoNumero(lectura[campo.clave])}${campo.unidad}`}`);
+    const fecha = lectura.fecha_hora ? new Date(lectura.fecha_hora) : null;
+    const fechaTexto = fecha && !Number.isNaN(fecha.getTime())
+        ? new Intl.DateTimeFormat("es-EC", { dateStyle: "short", timeStyle: "short", timeZone: "America/Guayaquil" }).format(fecha)
+        : "fecha no disponible";
+    if (!valores.length) {
+        return `La última lectura guardada de ${lectura.sensor_id || "tu ESP32"} (${fechaTexto}) no incluye esas mediciones.`;
+    }
+    return `Última lectura guardada del ESP32 ${lectura.sensor_id || ""} (${fechaTexto}): ${valores.join("; ")}.`;
+}
+
+async function responderConsultaSensoresBrunito(texto, typing) {
+    try {
+        const { ok, data } = await apiFetch("/sensores/ultimas");
+        typing?.remove();
+        if (!ok) {
+            agregarMensajeBrunito("model", `No pude leer las mediciones guardadas del ESP32. ${data?.detail || "Inténtalo de nuevo."}`);
+            return;
+        }
+        const lecturas = Array.isArray(data) ? data : [];
+        if (!lecturas.length) {
+            agregarMensajeBrunito("model", "Todavía no hay lecturas del ESP32 guardadas en Supabase.");
+            return;
+        }
+        const respuesta = respuestaDesdeLecturaSensorBrunito(lecturas[0], texto);
+        agregarMensajeBrunito("model", respuesta);
+        brunitoHistory.push({ role: "user", content: texto });
+        brunitoHistory.push({ role: "assistant", content: respuesta });
+    } catch (error) {
+        console.warn("Brunito no pudo consultar las lecturas guardadas del ESP32:", error);
+        typing?.remove();
+        agregarMensajeBrunito("model", "No pude conectar con el servicio de lecturas del ESP32. Revisa tu sesión e inténtalo de nuevo.");
+    }
 }
 
 function valorClimaBrunito(valor, decimales = 1) {
@@ -508,6 +573,11 @@ async function procesarMensajeBrunito(texto) {
     typing.innerText = "🤖 Brunito está pensando...";
     container.appendChild(typing);
     container.scrollTop = container.scrollHeight;
+
+    if (esConsultaSensoresBrunito(texto)) {
+        await responderConsultaSensoresBrunito(texto, typing);
+        return;
+    }
 
     if (esConsultaClimaBrunito(texto)) {
         await responderConsultaClimaBrunito(texto, typing);
