@@ -14,8 +14,11 @@ def obtener_perfil(usuario: dict = Depends(obtener_usuario_actual)):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT id, nombre, email, username, id_rol, COALESCE(estado, 'activo'), avatar, fecha_registro, ultimo_acceso 
-            FROM usuarios WHERE id = %s
+            SELECT u.id, u.nombre, u.email, u.username, u.id_rol,
+                   COALESCE(u.estado, 'activo'), u.avatar, u.fecha_registro,
+                   u.ultimo_acceso, r.nombre
+            FROM usuarios AS u LEFT JOIN public.roles AS r ON r.id = u.id_rol
+            WHERE u.id = %s
             """, 
             (usuario["user_id"],)
         )
@@ -32,7 +35,7 @@ def obtener_perfil(usuario: dict = Depends(obtener_usuario_actual)):
             "email": data[2],
             "username": data[3] or data[2].split("@")[0],
             "id_rol": data[4],
-            "rol": "👑 Administrador" if data[4] == 1 else "👤 Usuario",
+            "rol": {"admin": "👑 Administrador", "operador": "🛠️ Operador", "usuario": "👤 Usuario"}.get(data[9], "👤 Usuario"),
             "estado": data[5],
             "avatar": data[6] or "",
             "fecha_registro": str(data[7]),

@@ -6,7 +6,7 @@ from app.core.config import settings
 from main import app
 from app.models.alertas import CambioEstadoAlertaData, ReporteAlertaData
 from app.models.sensores import LecturaSensorData
-from app.core.security import obtener_usuario_actual, requerir_admin
+from app.core.security import obtener_usuario_actual, requerir_gestor_alertas
 from app.routers import alertas as router_alertas
 from app.routers import sensores as router_sensores
 from app.services import alertas, sensores
@@ -31,11 +31,11 @@ class ArquitecturaApiTests(unittest.TestCase):
             dependency_calls = {dependency.call for dependency in route.dependant.dependencies}
             self.assertIn(obtener_usuario_actual, dependency_calls)
 
-    def test_operaciones_admin_de_alertas_requieren_rol_admin(self):
+    def test_seguimiento_de_alertas_requiere_admin_o_operador(self):
         for path in ("/alertas/{alerta_id}/estado", "/alertas/sensor"):
             route = next(item for item in router_alertas.router.routes if item.path == path)
             dependency_calls = {dependency.call for dependency in route.dependant.dependencies}
-            self.assertIn(requerir_admin, dependency_calls)
+            self.assertIn(requerir_gestor_alertas, dependency_calls)
 
 
 class ServiciosDominioTests(unittest.TestCase):

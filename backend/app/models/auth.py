@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -31,8 +33,8 @@ class EstablecerPasswordData(BaseModel):
 
 
 class ModificarUsuarioAdminData(BaseModel):
-    id_rol: int | None = None
-    estado: str | None = None
+    id_rol: Literal[1, 2, 3] | None = None
+    estado: Literal["activo", "inactivo"] | None = None
 
 
 class ActualizarPerfilData(BaseModel):

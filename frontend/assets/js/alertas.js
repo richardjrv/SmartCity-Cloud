@@ -9,8 +9,8 @@ const ESTADOS_ALERTA = [
     ["resuelto", "Resuelto"]
 ];
 
-function esAdministradorAlertas() {
-    return Number(localStorage.getItem("user_role_cloud")) === 1;
+function puedeGestionarAlertas() {
+    return [1, 3].includes(Number(localStorage.getItem("user_role_cloud")));
 }
 
 function alertaSensorGuardada(sensorId, metrica) {
@@ -52,7 +52,7 @@ function actualizarEstadoVisualAlerta(item, estado) {
 }
 
 function crearControlEstadoAlerta(alerta, alCambiar) {
-    if (!esAdministradorAlertas()) {
+    if (!puedeGestionarAlertas()) {
         const estado = document.createElement("span");
         estado.className = "alert-status-pill";
         estado.dataset.alertStatus = alerta.estado;
@@ -64,7 +64,7 @@ function crearControlEstadoAlerta(alerta, alCambiar) {
     seguimiento.className = "alert-admin-followup";
     const label = document.createElement("label");
     label.className = "alert-status-label";
-    label.textContent = "Estado (solo admin)";
+    label.textContent = "Estado (administración y operación)";
     const select = document.createElement("select");
     select.className = "alert-status-select";
     select.dataset.alertStatus = alerta.estado;
@@ -87,7 +87,7 @@ function crearControlEstadoAlerta(alerta, alCambiar) {
     observation.required = true;
     observation.rows = 2;
     observation.placeholder = "Ej.: Revisé el sensor; queda pendiente recalibrarlo.";
-    observation.setAttribute("aria-label", `Observación administrativa para: ${alerta.titulo}`);
+    observation.setAttribute("aria-label", `Nota de seguimiento para: ${alerta.titulo}`);
     notaLabel.appendChild(observation);
     const save = document.createElement("button");
     save.type = "button";
@@ -244,14 +244,14 @@ function reemplazarAlertaCompartida(alerta) {
 }
 
 function configurarCentroAlertasPorRol(idRol = localStorage.getItem("user_role_cloud")) {
-    const administrador = Number(idRol) === 1;
+    const gestionar = [1, 3].includes(Number(idRol));
     const form = document.getElementById("alert-report-form");
     const nota = document.getElementById("alert-center-note");
-    form?.classList.toggle("hidden", administrador);
+    form?.classList.toggle("hidden", gestionar);
     if (nota) {
-        nota.textContent = administrador
-            ? "Los usuarios envían los avisos. Desde aquí puedes cambiar su estado y dejar una nota breve; cada cambio queda en el historial y en las notificaciones."
-            : "Selecciona el tipo de aviso y describe lo observado. El administrador revisará el reporte y sus cambios aparecerán aquí y en tus notificaciones.";
+        nota.textContent = gestionar
+            ? "Los usuarios envían los avisos. Desde aquí puedes atenderlos, cambiar su estado y dejar una nota; cada cambio queda en el historial."
+            : "Selecciona el tipo de aviso y describe lo observado. El equipo de operación revisará el reporte y sus cambios aparecerán aquí y en tus notificaciones.";
     }
 }
 

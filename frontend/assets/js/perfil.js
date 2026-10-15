@@ -35,13 +35,14 @@ async function cargarPerfilUsuario() {
         if (perfNombre) perfNombre.innerText = data.nombre || "-";
         if (perfUser) perfUser.innerText = `@${data.username || "-"}`;
         if (perfEmail) perfEmail.innerText = data.email || "-";
-        if (perfRol) perfRol.innerText = data.rol || "👤 Usuario";
+        const rolNombre = ({ 1: "👑 Administrador", 2: "👤 Usuario", 3: "🛠️ Operador" })[Number(data.id_rol)] || "👤 Usuario";
+        if (perfRol) perfRol.innerText = data.rol || rolNombre;
         const accountName = document.getElementById("account-menu-name");
         const accountEmail = document.getElementById("account-menu-email");
         const accountRole = document.getElementById("account-menu-role");
         if (accountName) accountName.textContent = data.nombre || "Usuario";
         if (accountEmail) accountEmail.textContent = data.email || "";
-        if (accountRole) accountRole.textContent = data.rol || "Cuenta activa";
+        if (accountRole) accountRole.textContent = data.rol || rolNombre;
 
         if (perfEstado) {
             if (data.estado === "activo") {

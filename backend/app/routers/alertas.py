@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.core.security import obtener_usuario_actual, requerir_admin
+from app.core.security import ROLE_USER, obtener_usuario_actual, requerir_gestor_alertas
 from app.db.database import get_db_connection
 from app.models.alertas import (
     CambioEstadoAlertaData,
@@ -46,7 +46,7 @@ def usuario_comun(usuario: dict = Depends(usuario_activo)):
         fila = cursor.fetchone()
         if not fila:
             raise HTTPException(status_code=403, detail="La cuenta ya no está disponible.")
-        if fila[0] != 2:
+        if fila[0] != ROLE_USER:
             raise HTTPException(status_code=403, detail="Solo las cuentas de usuario pueden enviar avisos.")
         return usuario
     except HTTPException:
@@ -84,11 +84,11 @@ def reportar_alerta(datos: ReporteAlertaData, usuario: dict = Depends(usuario_co
 def cambiar_estado_alerta(
     alerta_id: int,
     datos: CambioEstadoAlertaData,
-    admin: dict = Depends(requerir_admin),
+    gestor: dict = Depends(requerir_gestor_alertas),
 ):
-    """Solo el administrador puede cambiar el seguimiento; todos pueden leerlo."""
+    """Administrators and operators may follow up; all signed-in users may read."""
     try:
-        return servicio_alertas.cambiar_estado_alerta(alerta_id, datos, admin["user_id"])
+        return servicio_alertas.cambiar_estado_alerta(alerta_id, datos, gestor["user_id"])
     except servicio_alertas.AlertaNoEncontrada as error:
         raise HTTPException(status_code=404, detail="No se encontró esa alerta.") from error
     except servicio_alertas.NotaObligatoria as error:
@@ -100,11 +100,11 @@ def cambiar_estado_alerta(
 @router.put("/sensor")
 def guardar_estado_alerta_sensor(
     datos: EstadoAlertaSensorData,
-    admin: dict = Depends(requerir_admin),
+    gestor: dict = Depends(requerir_gestor_alertas),
 ):
-    """El administrador solo cambia estado y deja una nota sobre un reporte ya existente."""
+    """Administrators and operators can change a sensor alert and leave a note."""
     try:
-        return servicio_alertas.guardar_estado_alerta_sensor(datos, admin["user_id"])
+        return servicio_alertas.guardar_estado_alerta_sensor(datos, gestor["user_id"])
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except servicio_alertas.NotaObligatoria as error:

@@ -292,6 +292,15 @@ function mostrarDashboard(nombre, idRol) {
     if (navNombre) navNombre.innerText = nombre;
     const menuNombre = document.getElementById("account-menu-name");
     if (menuNombre) menuNombre.textContent = nombre;
+    const roleLabel = document.getElementById("account-menu-role");
+    if (roleLabel) {
+        roleLabel.textContent = ({ 1: "👑 Administrador", 2: "👤 Usuario", 3: "🛠️ Operador" })[Number(idRol)] || "Cuenta activa";
+    }
+    const alertMenuButton = document.getElementById("btn-menu-alertas");
+    const alertMenuLabel = document.getElementById("sidebar-alertas-label");
+    const puedeAtender = [1, 3].includes(Number(idRol));
+    if (alertMenuLabel) alertMenuLabel.textContent = puedeAtender ? "Atender alertas" : "Reportar alertas";
+    alertMenuButton?.setAttribute("aria-label", puedeAtender ? "Atender alertas" : "Reportar alertas");
 
     const btnAdmin = document.getElementById("btn-menu-admin");
     if (btnAdmin) {

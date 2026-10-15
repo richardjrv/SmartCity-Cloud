@@ -458,7 +458,7 @@ html[data-theme="light"] .chart-sensor-status.has-data { color: #047857; }
 }
 
 /* Panel de administración: resumen previo a la tabla y acciones agrupadas. */
-.admin-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; margin: 0 0 1.35rem; }
+.admin-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; margin: 0 0 1.35rem; }
 .admin-summary-card { display: flex; align-items: center; gap: .85rem; min-width: 0; padding: .9rem 1rem; border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border-color)); border-radius: 1rem; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, var(--bg-card)), color-mix(in srgb, var(--bg-input) 65%, transparent)); }
 .admin-summary-card > span { display: grid; flex: 0 0 2.55rem; width: 2.55rem; height: 2.55rem; place-items: center; border-radius: .82rem; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); font-size: 1.1rem; }
 .admin-summary-card div { display: grid; gap: .14rem; }

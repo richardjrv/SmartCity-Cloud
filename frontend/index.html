@@ -138,8 +138,8 @@
                 <button type="button" class="sidebar-link" data-sidebar-view="capas" onclick="navegarA('capas')" aria-label="Mapa por capas">
                     <span class="sidebar-icon" aria-hidden="true">▦</span><span class="sidebar-link-label">Mapa por capas</span>
                 </button>
-                <button type="button" class="sidebar-link" data-sidebar-view="alertas" onclick="navegarA('alertas')" aria-label="Centro de alertas">
-                    <span class="sidebar-icon" aria-hidden="true">⚑</span><span class="sidebar-link-label">Centro de alertas</span>
+                <button id="btn-menu-alertas" type="button" class="sidebar-link" data-sidebar-view="alertas" onclick="navegarA('alertas')" aria-label="Centro de alertas">
+                    <span class="sidebar-icon" aria-hidden="true">⚑</span><span id="sidebar-alertas-label" class="sidebar-link-label">Centro de alertas</span>
                     <span id="sensor-alert-badge" class="sidebar-alert-badge hidden" aria-label="0 lecturas fuera de rango">0</span>
                 </button>
                 <button type="button" class="sidebar-link" data-sidebar-view="reportes" onclick="navegarA('reportes')" aria-label="Reportes">
@@ -765,7 +765,7 @@
                         <input type="text" id="buscar-usuario" onkeyup="filtrarUsuarios()" placeholder="🔎 Buscar por nombre o correo..." class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 transition">
                     </div>
                     <div class="admin-user-filters" role="group" aria-label="Filtrar usuarios">
-                        <label>Rol<select id="admin-filter-role" onchange="filtrarUsuarios()"><option value="todos">Todos</option><option value="1">Administradores</option><option value="2">Usuarios</option></select></label>
+                        <label>Rol<select id="admin-filter-role" onchange="filtrarUsuarios()"><option value="todos">Todos</option><option value="1">Administradores</option><option value="2">Usuarios</option><option value="3">Operadores</option></select></label>
                         <label>Estado<select id="admin-filter-state" onchange="filtrarUsuarios()"><option value="todos">Todos</option><option value="activo">Activos</option><option value="inactivo">Inactivos</option></select></label>
                     </div>
                 </div>
@@ -774,6 +774,7 @@
                     <article class="admin-summary-card"><span aria-hidden="true">♙</span><div><strong id="admin-total-users">—</strong><small>Usuarios registrados</small></div></article>
                     <article class="admin-summary-card"><span aria-hidden="true">●</span><div><strong id="admin-active-users">—</strong><small>Cuentas activas</small></div></article>
                     <article class="admin-summary-card"><span aria-hidden="true">👑</span><div><strong id="admin-admin-users">—</strong><small>Administradores</small></div></article>
+                    <article class="admin-summary-card"><span aria-hidden="true">🛠️</span><div><strong id="admin-operator-users">—</strong><small>Operadores</small></div></article>
                     <p class="admin-summary-note">Gestiona roles y estados desde las acciones de cada cuenta. Los cambios de permisos también deben validarse en el backend.</p>
                 </div>
                 <p id="admin-filter-results" class="admin-filter-results" aria-live="polite"></p>

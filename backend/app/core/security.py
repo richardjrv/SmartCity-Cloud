@@ -4,6 +4,10 @@ from app.db.database import get_db_connection
 from app.services.supabase_auth import SupabaseAuthError, public_auth_error
 from app.services.supabase_sessions import validar_token_y_obtener_sesion
 
+ROLE_ADMIN = 1
+ROLE_USER = 2
+ROLE_OPERATOR = 3
+
 
 def extraer_token_bearer(authorization: str) -> str:
     """Parse an HTTP Bearer credential without case- or whitespace-sensitive checks."""
@@ -32,8 +36,9 @@ def obtener_usuario_actual(authorization: str = Header(...)) -> dict:
         connection = get_db_connection()
         cursor = connection.cursor()
         cursor.execute(
-            """SELECT u.id, u.nombre, u.email, u.id_rol, COALESCE(u.estado, 'activo')
-               FROM public.usuarios AS u WHERE u.auth_user_id = %s""",
+            """SELECT u.id, u.nombre, u.email, u.id_rol, COALESCE(u.estado, 'activo'), r.nombre
+               FROM public.usuarios AS u LEFT JOIN public.roles AS r ON r.id = u.id_rol
+               WHERE u.auth_user_id = %s""",
             (auth_user_id,),
         )
         row = cursor.fetchone()
@@ -54,6 +59,7 @@ def obtener_usuario_actual(authorization: str = Header(...)) -> dict:
         "nombre": row[1],
         "email": row[2] or auth_user.get("email", ""),
         "id_rol": row[3],
+        "rol": row[5],
         "auth_user_id": auth_user_id,
         "auth_session_id": session_id,
         "access_token": access_token,
@@ -62,6 +68,13 @@ def obtener_usuario_actual(authorization: str = Header(...)) -> dict:
 
 def requerir_admin(usuario: dict = Depends(obtener_usuario_actual)) -> dict:
     """Authorization always comes from the current database row, never user metadata."""
-    if usuario.get("id_rol") != 1:
+    if usuario.get("id_rol") != ROLE_ADMIN:
         raise HTTPException(status_code=403, detail="Acceso denegado: se requieren permisos de administrador.")
+    return usuario
+
+
+def requerir_gestor_alertas(usuario: dict = Depends(obtener_usuario_actual)) -> dict:
+    """Administrators and operators may follow up alerts; citizen accounts may not."""
+    if usuario.get("id_rol") not in (ROLE_ADMIN, ROLE_OPERATOR):
+        raise HTTPException(status_code=403, detail="Acceso denegado: se requieren permisos de operación.")
     return usuario

@@ -51,9 +51,11 @@ function actualizarResumenUsuariosAdmin(usuarios = []) {
     const total = document.getElementById("admin-total-users");
     const activos = document.getElementById("admin-active-users");
     const admins = document.getElementById("admin-admin-users");
+    const operators = document.getElementById("admin-operator-users");
     if (total) total.textContent = String(usuarios.length);
     if (activos) activos.textContent = String(usuarios.filter(usuario => usuario.estado === "activo").length);
     if (admins) admins.textContent = String(usuarios.filter(usuario => Number(usuario.id_rol) === 1).length);
+    if (operators) operators.textContent = String(usuarios.filter(usuario => Number(usuario.id_rol) === 3).length);
 }
 
 function mostrarUsuariosTabla(usuarios) {
@@ -76,8 +78,13 @@ function mostrarUsuariosTabla(usuarios) {
     const idUsuarioActual = Number(localStorage.getItem("user_id_cloud"));
 
     usuarios.forEach(usuario => {
-        const esAdmin = Number(usuario.id_rol) === 1;
+        const rolId = Number(usuario.id_rol);
         const activo = usuario.estado === "activo";
+        const estiloRol = rolId === 1
+            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+            : rolId === 3
+                ? "bg-violet-500/10 text-violet-300 border border-violet-500/20"
+                : "bg-blue-500/10 text-blue-400 border border-blue-500/20";
         const tr = document.createElement("tr");
         tr.className = "hover:bg-slate-700/30 transition border-b border-slate-700/30";
 
@@ -92,12 +99,8 @@ function mostrarUsuariosTabla(usuarios) {
             <td class="px-4 py-3 text-slate-300">${escapeHTML(usuario.email)}</td>
 
             <td class="px-4 py-3">
-                <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    esAdmin
-                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                        : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                }">
-                    ${esAdmin ? "👑 Admin" : "👤 Usuario"}
+                <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${estiloRol}">
+                    ${escapeHTML(usuario.rol)}
                 </span>
             </td>
 
@@ -117,11 +120,11 @@ function mostrarUsuariosTabla(usuarios) {
 
             <td class="px-4 py-3">
                 <div class="flex justify-center gap-2">
-                    <button onclick="cambiarRolUsuario(${usuario.id}, ${usuario.id_rol})"
+                    ${Number(usuario.id) !== idUsuarioActual ? `<button onclick="cambiarRolUsuario(${usuario.id}, ${usuario.id_rol})"
                             class="px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition text-xs"
                             title="Cambiar Rol">
                         🔄
-                    </button>
+                    </button>` : ""}
 
                     <button onclick="cambiarEstadoUsuario(${usuario.id}, '${usuario.estado}')"
                             class="px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white transition text-xs"
@@ -171,12 +174,17 @@ function filtrarUsuarios() {
 }
 
 async function cambiarRolUsuario(usuarioId, rolActual) {
-    const nuevoRol = Number(rolActual) === 1 ? 2 : 1;
-    const nombreRol = nuevoRol === 1 ? "Administrador" : "Usuario";
+    const roles = [
+        { id: 1, nombre: "Administrador" },
+        { id: 2, nombre: "Usuario" },
+        { id: 3, nombre: "Operador" }
+    ];
+    const indice = roles.findIndex(rol => rol.id === Number(rolActual));
+    const siguiente = roles[(indice + 1) % roles.length];
 
-    if (!confirm(`¿Cambiar el rol del usuario #${usuarioId} a ${nombreRol}?`)) return;
+    if (!confirm(`¿Cambiar el rol del usuario #${usuarioId} a ${siguiente.nombre}?`)) return;
 
-    await modificarUsuarioAdmin(usuarioId, { id_rol: nuevoRol });
+    await modificarUsuarioAdmin(usuarioId, { id_rol: siguiente.id });
 }
 
 async function cambiarEstadoUsuario(usuarioId, estadoActual) {

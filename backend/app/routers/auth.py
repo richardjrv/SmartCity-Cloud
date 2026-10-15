@@ -38,8 +38,9 @@ def _session_response(session: dict):
         connection = get_db_connection()
         cursor = connection.cursor()
         cursor.execute(
-            """SELECT id, nombre, email, id_rol, COALESCE(estado, 'activo')
-               FROM public.usuarios WHERE auth_user_id = %s""",
+            """SELECT u.id, u.nombre, u.email, u.id_rol, COALESCE(u.estado, 'activo'), r.nombre
+               FROM public.usuarios AS u LEFT JOIN public.roles AS r ON r.id = u.id_rol
+               WHERE u.auth_user_id = %s""",
             (auth_user_id,),
         )
         user = cursor.fetchone()
@@ -64,6 +65,7 @@ def _session_response(session: dict):
         "auth_user_id": auth_user_id,
         "nombre": user[1],
         "id_rol": user[3],
+        "rol": user[5],
     }
 
 
