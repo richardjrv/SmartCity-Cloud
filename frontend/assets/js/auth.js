@@ -26,6 +26,45 @@ async function iniciarSesionGoogle() {
     return iniciarSesionSocial("google", "auth-btn-google");
 }
 
+async function solicitarEnlaceMagico() {
+    const emailInput = document.getElementById("auth-email");
+    const button = document.getElementById("auth-magic-link");
+    const email = emailInput?.value.trim();
+    if (!emailInput || !emailInput.reportValidity() || !email) return;
+    if (!supabaseAuthClient) {
+        mostrarMensajeAuth("No se pudo cargar el inicio de sesión por correo. Recarga la página e inténtalo otra vez.", "error");
+        return;
+    }
+
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    button.textContent = "Enviando enlace…";
+    try {
+        const { error } = await supabaseAuthClient.auth.signInWithOtp({
+            email,
+            options: {
+                shouldCreateUser: false,
+                emailRedirectTo: `${window.location.origin}${window.location.pathname}`
+            }
+        });
+        if (error) throw error;
+        mostrarMensajeAuth("Si existe una cuenta con ese correo, recibirás un enlace para iniciar sesión. Revisa también la carpeta de spam.", "success");
+    } catch (error) {
+        console.error("No se pudo enviar el enlace mágico:", error);
+        const tooManyRequests = error.status === 429 || /rate limit|too many requests/i.test(error.message || "");
+        mostrarMensajeAuth(
+            tooManyRequests
+                ? "Se solicitaron enlaces hace poco. Espera un momento antes de volver a intentarlo."
+                : "No se pudo enviar el enlace. Revisa la configuración de correo de Supabase e inténtalo más tarde.",
+            "error"
+        );
+    } finally {
+        button.disabled = false;
+        button.removeAttribute("aria-busy");
+        button.textContent = "Enviar enlace mágico al correo";
+    }
+}
+
 async function iniciarSesionSocial(provider, buttonId) {
     const button = document.getElementById(buttonId);
     if (!supabaseAuthClient) {
@@ -89,7 +128,7 @@ async function procesarRetornoOAuth() {
     const providerError = url.searchParams.get("error_description") || url.searchParams.get("error");
     if (providerError) {
         limpiarParametrosOAuth(url);
-        mostrarMensajeAuth("El proveedor de inicio de sesión canceló o rechazó la solicitud. Puedes intentarlo de nuevo.", "error");
+        mostrarMensajeAuth("No se pudo completar el inicio de sesión. El proveedor pudo rechazar la solicitud o el enlace pudo vencer. Inténtalo de nuevo.", "error");
         return true;
     }
 
@@ -142,6 +181,7 @@ function toggleModoAuth() {
     if (toggleText) toggleText.textContent = modoRegistro ? "¿Ya tienes una cuenta?" : "¿No tienes cuenta?";
     if (toggleButton) toggleButton.textContent = modoRegistro ? "Iniciar Sesión" : "Crear una cuenta";
     document.getElementById("auth-forgot-password")?.classList.toggle("hidden", modoRegistro);
+    document.getElementById("auth-magic-link")?.classList.toggle("hidden", modoRegistro);
     mostrarFormularioAuth("form-auth");
     ocultarPasswordAuth();
     document.getElementById("form-auth")?.reset();
