@@ -16,4 +16,15 @@ class Settings:
     # Claves de APIs Externas
     GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
 
+    # Lista separada por comas de orígenes frontend permitidos por CORS.
+    # En local se aceptan Live Server y localhost; producción debe definir FRONTEND_ORIGINS.
+    FRONTEND_ORIGINS: list[str] = [
+        origin.strip().rstrip("/")
+        for origin in os.environ.get(
+            "FRONTEND_ORIGINS",
+            "http://127.0.0.1:5500,http://localhost:5500,http://127.0.0.1:3000,http://localhost:3000",
+        ).split(",")
+        if origin.strip()
+    ]
+
 settings = Settings()
