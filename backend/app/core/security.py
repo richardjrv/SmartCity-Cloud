@@ -2,7 +2,7 @@ from fastapi import Depends, Header, HTTPException
 
 from app.db.database import get_db_connection
 from app.services.supabase_auth import SupabaseAuthError, public_auth_error
-from app.services.pin_auth import validar_token_y_obtener_sesion
+from app.services.supabase_sessions import validar_token_y_obtener_sesion
 
 
 def extraer_token_bearer(authorization: str) -> str:
@@ -32,16 +32,9 @@ def obtener_usuario_actual(authorization: str = Header(...)) -> dict:
         connection = get_db_connection()
         cursor = connection.cursor()
         cursor.execute(
-            """
-            SELECT u.id, u.nombre, u.email, u.id_rol, COALESCE(u.estado, 'activo'),
-                   EXISTS (
-                       SELECT 1 FROM public.auth_pin_sessions AS p
-                       WHERE p.session_id = %s AND p.user_id = u.id AND p.expires_at > NOW()
-                   )
-            FROM public.usuarios AS u
-            WHERE u.auth_user_id = %s
-            """,
-            (session_id, auth_user_id),
+            """SELECT u.id, u.nombre, u.email, u.id_rol, COALESCE(u.estado, 'activo')
+               FROM public.usuarios AS u WHERE u.auth_user_id = %s""",
+            (auth_user_id,),
         )
         row = cursor.fetchone()
     except Exception as error:
@@ -56,9 +49,6 @@ def obtener_usuario_actual(authorization: str = Header(...)) -> dict:
         raise HTTPException(status_code=403, detail="Confirma tu correo y vuelve a iniciar sesión.")
     if row[4] != "activo":
         raise HTTPException(status_code=403, detail="Tu cuenta está desactivada.")
-    if not row[5]:
-        raise HTTPException(status_code=428, detail="Completa la verificación de PIN para acceder a SmartCity Cloud.")
-
     return {
         "user_id": row[0],
         "nombre": row[1],

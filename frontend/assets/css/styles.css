@@ -1374,9 +1374,7 @@ html[data-theme="light"] .map-interaction-badge { color: #1d4ed8; }
 .auth-entry .mission-vision-grid article { animation: auth-card-enter .65s cubic-bezier(.2, .8, .2, 1) both; }
 .auth-entry .mission-vision-grid article:nth-child(2) { animation-delay: .2s; }
 .auth-mode-animate { animation: auth-mode-change .48s cubic-bezier(.2, .8, .2, 1); }
-.auth-mode-animate #campo-nombre:not(.hidden),
-.auth-mode-animate #campo-pin:not(.hidden) { animation: auth-fields-enter .42s cubic-bezier(.2, .8, .2, 1) both; }
-.auth-mode-animate #campo-pin:not(.hidden) { animation-delay: .08s; }
+.auth-mode-animate #campo-nombre:not(.hidden) { animation: auth-fields-enter .42s cubic-bezier(.2, .8, .2, 1) both; }
 #auth-btn-submit { position: relative; overflow: hidden; transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
 #auth-btn-submit:hover { transform: translateY(-2px); box-shadow: 0 14px 32px var(--accent-glow); filter: brightness(1.06); }
 #auth-btn-submit::after {

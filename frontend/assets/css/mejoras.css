@@ -211,11 +211,6 @@ body.high-contrast .brunito-action-card :is(h3, p) {
 .download-history-detail strong { overflow: hidden; color: var(--text-primary); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
 .download-history-empty { padding: .55rem .65rem; color: var(--text-muted); font-size: .72rem; }
 
-/* Verificación del PIN y carga de sesión. */
-.pin-status-success { color: #34d399 !important; }
-.pin-digit-success { border-color: #34d399 !important; box-shadow: 0 0 0 3px rgb(52 211 153 / 17%) !important; }
-#pin-step-submit.pin-verification-success { border-color: #10b981; background: #059669; box-shadow: 0 0 1.25rem rgb(16 185 129 / 38%); animation: pin-success-pop .4s ease-out both; }
-@keyframes pin-success-pop { 50% { transform: scale(1.025); } }
 .auth-loading-active { overflow: hidden; }
 .auth-loading-overlay { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 1rem; background: rgb(2 6 23 / 82%); backdrop-filter: blur(14px); animation: auth-overlay-in .2s ease-out both; }
 .auth-loading-overlay--exit { animation: auth-overlay-out .6s ease-in both; }
@@ -843,69 +838,6 @@ html[data-theme="light"] .map-layer-legend {
 
     .alert-report-field:nth-child(2) {
         grid-column: 1 / -1;
-    }
-}
-
-.pin-digit-group {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: .65rem;
-}
-
-.pin-digit {
-    width: 100%;
-    min-width: 0;
-    min-height: 3.4rem;
-    border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border-color));
-    border-radius: .85rem;
-    color: var(--text-primary);
-    background: var(--bg-input);
-    font-size: 1.35rem !important;
-    font-weight: 750;
-    text-align: center;
-    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
-}
-
-.pin-digit:focus-visible {
-    border-color: var(--accent);
-    outline: none;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
-    transform: translateY(-1px);
-}
-
-.pin-step-icon {
-    display: grid;
-    width: 3.5rem;
-    height: 3rem;
-    margin: 0 auto .85rem;
-    place-items: center;
-    border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--border-color));
-    border-radius: 1rem;
-    background: color-mix(in srgb, var(--accent) 14%, var(--bg-card));
-    font-size: 1.4rem;
-}
-
-.pin-digit-group--login {
-    margin-block: 1.25rem;
-}
-
-body.high-contrast .pin-digit {
-    color: #fff;
-    background: #000;
-    border-color: #fff;
-}
-
-html[data-theme="light"] .pin-digit {
-    color: #0f172a;
-}
-
-@media (max-width: 420px) {
-    .pin-digit-group {
-        gap: .45rem;
-    }
-
-    .pin-digit {
-        min-height: 3rem;
     }
 }
 
