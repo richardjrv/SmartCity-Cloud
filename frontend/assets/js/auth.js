@@ -3,6 +3,105 @@ let modoRegistro = false;
 let cierreSesionEnCurso = false;
 let recoveryAccessToken = null;
 
+// Publishable keys are designed for browser use; no service-role key belongs here.
+const SUPABASE_AUTH_URL = "https://lqkobrabircleaprkroz.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_rxby7ym-DzgC3cRB0PQxWQ_TYKfumxF";
+const supabaseAuthClient = window.supabase?.createClient(
+    SUPABASE_AUTH_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+        auth: {
+            flowType: "pkce",
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+        }
+    }
+);
+
+async function iniciarSesionFacebook() {
+    const button = document.getElementById("auth-btn-facebook");
+    if (!supabaseAuthClient) {
+        mostrarMensajeAuth("No se pudo cargar el inicio de sesión social. Recarga la página e inténtalo otra vez.", "error");
+        return;
+    }
+
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    try {
+        const { error } = await supabaseAuthClient.auth.signInWithOAuth({
+            provider: "facebook",
+            options: {
+                redirectTo: `${window.location.origin}${window.location.pathname}`,
+                scopes: "email public_profile"
+            }
+        });
+        if (error) throw error;
+    } catch (error) {
+        console.error("No se pudo iniciar OAuth con Facebook:", error);
+        mostrarMensajeAuth("No se pudo iniciar con Facebook. Revisa la configuración del proveedor e inténtalo otra vez.", "error");
+        button.disabled = false;
+        button.removeAttribute("aria-busy");
+    }
+}
+
+function limpiarParametrosOAuth(url) {
+    ["code", "state", "error", "error_code", "error_description"].forEach(key => url.searchParams.delete(key));
+    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+}
+
+async function procesarRetornoFacebook() {
+    const url = new URL(window.location.href);
+    const providerError = url.searchParams.get("error_description") || url.searchParams.get("error");
+    if (providerError) {
+        limpiarParametrosOAuth(url);
+        mostrarMensajeAuth("Facebook canceló o rechazó el inicio de sesión. Puedes intentarlo de nuevo.", "error");
+        return true;
+    }
+
+    const code = url.searchParams.get("code");
+    if (!code) return false;
+    limpiarParametrosOAuth(url);
+
+    if (!supabaseAuthClient) {
+        mostrarMensajeAuth("No se pudo completar el inicio de sesión social. Recarga la página e inténtalo otra vez.", "error");
+        return true;
+    }
+
+    try {
+        const { data, error } = await supabaseAuthClient.auth.exchangeCodeForSession(code);
+        if (error) throw error;
+        const session = data.session;
+        if (!session?.access_token || !session?.refresh_token) {
+            throw new Error("Supabase no devolvió una sesión válida.");
+        }
+
+        localStorage.setItem("token_cloud", session.access_token);
+        localStorage.setItem("refresh_token_cloud", session.refresh_token);
+        localStorage.setItem("token_expires_cloud", String(session.expires_at || Math.floor(Date.now() / 1000) + Number(session.expires_in || 3600)));
+
+        const response = await fetch(`${API_URL}/api/perfil`, {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+            cache: "no-store"
+        });
+        const profile = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(profile.detail || "Facebook autenticó la cuenta, pero no se pudo cargar su perfil de SmartCity.");
+        }
+
+        localStorage.setItem("user_role_cloud", String(profile.id_rol));
+        localStorage.setItem("user_name_cloud", profile.nombre || "Usuario");
+        localStorage.setItem("user_id_cloud", String(profile.id));
+        await entrarAlDashboard(profile.nombre || "Usuario", profile.id_rol);
+        return true;
+    } catch (error) {
+        console.error("No se pudo completar el inicio de sesión con Facebook:", error);
+        ["token_cloud", "refresh_token_cloud", "token_expires_cloud", "user_role_cloud", "user_name_cloud", "user_id_cloud"].forEach(key => localStorage.removeItem(key));
+        await supabaseAuthClient.auth.signOut({ scope: "local" }).catch(() => {});
+        mostrarMensajeAuth(error.message || "No se pudo completar el inicio de sesión con Facebook.", "error");
+        return true;
+    }
+}
+
 function toggleModoAuth() {
     modoRegistro = !modoRegistro;
     const nameField = document.getElementById("campo-nombre");
@@ -231,6 +330,7 @@ function limpiarMensajeAuth() {
 }
 
 async function comprobarSesion() {
+    if (await procesarRetornoFacebook()) return;
     if (prepararRecuperacionAuth()) return;
     if (!obtenerToken()) {
         navegarA("auth");

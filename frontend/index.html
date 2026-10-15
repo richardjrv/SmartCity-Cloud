@@ -218,6 +218,15 @@
                     <button type="submit" id="auth-btn-submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl text-sm transition shadow-lg shadow-blue-600/30 mt-2">
                         Iniciar Sesión ➔
                     </button>
+                    <div class="flex items-center gap-3 py-1 text-xs text-slate-500" aria-hidden="true">
+                        <span class="h-px flex-1 bg-slate-700"></span>
+                        <span>o continúa con</span>
+                        <span class="h-px flex-1 bg-slate-700"></span>
+                    </div>
+                    <button type="button" id="auth-btn-facebook" onclick="iniciarSesionFacebook()" class="w-full inline-flex items-center justify-center gap-3 rounded-xl border border-slate-600 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-[#1877F2]"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.98h-1.513c-1.49 0-1.956.93-1.956 1.884v2.257h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073Z"/></svg>
+                        <span>Continuar con Facebook</span>
+                    </button>
                     <button id="auth-forgot-password" type="button" onclick="mostrarRecuperarPassword()" class="w-full text-sm text-blue-300 hover:text-white">¿Olvidaste tu contraseña?</button>
                 </form>
 
@@ -938,6 +947,7 @@
     <!-- ============================================================ -->
     <!-- 5. SCRIPTS JS MODULARES EN ORDEN                             -->
     <!-- ============================================================ -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.min.js"></script>
     <script src="assets/js/api.js"></script>
     <script src="assets/js/auth.js"></script>
     <script src="assets/js/perfil.js"></script>
