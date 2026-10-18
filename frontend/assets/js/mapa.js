@@ -1,6 +1,6 @@
 // Posiciones demostrativas sobre el modelo ciudad.glb. No representan instalaciones reales.
 const SENSOR_MAP_POSITIONS = [
-    { x: 12, z: -20 }
+    { x: 0.58, y: 1.2, z: 1.18 }
 ];
 
 const DEMO_SENSOR_ID = "DEMO-ESP32-MAQUETA";
@@ -258,7 +258,7 @@ function renderizarMarcadoresSensores() {
         marker.className = "city-lamp-marker" + (sensor.id === sensorEnDetalle ? " selected" : "");
         marker.dataset.level = level;
         marker.dataset.source = modoDemoSensores ? "demo" : "api";
-        marker.dataset.position = `${position.x}m 0.15m ${position.z}m`;
+        marker.dataset.position = `${position.x}m ${position.y}m ${position.z}m`;
         marker.dataset.normal = "0m 1m 0m";
         marker.slot = `hotspot-sensor-${sensor.index}`;
         marker.setAttribute("aria-label", `Controlador ESP32 ${sensor.id}; ${level === "unknown" ? "lectura disponible, sin umbrales configurados" : "estado no disponible"}. Ver lecturas.`);
