@@ -1,0 +1,6 @@
+/* Ajustes del navegador compartidos por todos los tamaños de pantalla. */
+html { scrollbar-gutter: stable; }
+@supports not (height: 100dvh) {
+  .workspace { min-height: calc(100vh - 91px); }
+  .explorer, .systems-panel { height: calc(100vh - 91px); }
+}

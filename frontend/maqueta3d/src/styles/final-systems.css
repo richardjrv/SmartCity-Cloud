@@ -1,0 +1,11 @@
+/* Sólo las dos tarjetas nuevas; conserva el diseño y estilos existentes. */
+.final-simulation .ambient-chart { margin: 12px 0; color: #607752; font-size: 10px; }
+.final-simulation .ambient-chart svg { display: block; width: 100%; margin-top: 6px; overflow: visible; }
+.final-simulation .chart-grid { fill: none; stroke: #dce5d5; stroke-width: 1; }
+.final-simulation .chart-line { fill: none; stroke: #3b9777; stroke-width: 2; }
+.final-simulation .ambient-chart circle { fill: #3b9777; }
+.final-simulation .ambient-chart text { fill: #647a68; font: 10px sans-serif; }
+[data-ambient-panel][data-status="notice"] [data-ambient-temperature-state],
+[data-ambient-panel][data-status="notice"] [data-ambient-humidity-state] { color: #916820; }
+.final-simulation .proximity-toggle { display: flex; align-items: center; gap: 9px; padding: 9px 0; line-height: 1.6; }
+.final-simulation input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 auto; accent-color: #416b4c; }

@@ -1,0 +1,68 @@
+/* Sólo amplía el contenido de la tarjeta de semáforos existente. */
+.traffic-simulation { color: #435948; }
+.traffic-source { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #547a60; }
+.traffic-source-dot { width: 5px; height: 5px; border-radius: 50%; background: #769c6c; }
+.traffic-source > span:last-child { margin-left: auto; font-size: 7px; letter-spacing: 1px; color: #8b9a81; }
+.traffic-intro { font-size: 10px; color: #71816a; line-height: 1.65; margin: 9px 0 12px; }
+.traffic-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+.traffic-buttons button { border: 1px solid #dae5d4; border-radius: 6px; background: #f5f8f0; color: #536d47; font-size: 10px; padding: 10px 3px; min-height: 35px; }
+.traffic-buttons button:not(:disabled):hover { background: #e7f0df; }
+.traffic-buttons .traffic-primary { background: #416b4c; border-color: #416b4c; color: #fff; }
+.traffic-buttons .traffic-primary:not(:disabled):hover { background: #315d3c; }
+.traffic-buttons button:disabled { cursor: default; opacity: .45; }
+.traffic-clock { display: flex; align-items: center; justify-content: space-between; gap: 5px; margin: 13px 0; padding: 11px; background: #f2f6ed; border: 1px solid #e4eadb; border-radius: 7px; }
+.traffic-clock strong { font-size: 10px; font-weight: 600; display: block; }
+.traffic-clock [data-traffic-phase] { display: block; color: #75846c; font-size: 9px; margin-top: 5px; }
+.traffic-countdown { text-align: center; min-width: 38px; flex-shrink: 0; }
+.traffic-countdown output { font-size: 25px; line-height: 1; font-weight: 500; font-variant-numeric: tabular-nums; color: #577447; }
+.traffic-countdown small { display: block; font-size: 8px; color: #86967a; margin-top: 4px; }
+.traffic-scenario-label { display: block; font-size: 10px; color: #607752; }
+.traffic-scenario-label select { display: block; width: 100%; font: inherit; font-size: 10px; color: #415c36; border: 1px solid #dce5d5; border-radius: 6px; padding: 10px 5px; background: #fff; margin-top: 6px; cursor: pointer; }
+.traffic-simulation select:focus-visible, .traffic-simulation input:focus-visible { outline: 2px solid #249a73; outline-offset: 2px; }
+.traffic-streets { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 12px 0; }
+.traffic-street { padding: 10px; border: 1px solid #e1e9d9; border-radius: 7px; background: #fff; }
+.traffic-street-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 5px; }
+.traffic-street-heading strong { font-size: 11px; font-weight: 550; }
+.traffic-light-badge { font-size: 9px; padding: 3px 6px; border-radius: 5px; color: #95564d; background: #f8eeeb; }
+.traffic-light-badge[data-color="green"] { color: #38704d; background: #eaf4e9; }
+.traffic-light-badge[data-color="yellow"] { color: #92742a; background: #faf3da; }
+.traffic-location { display: block; color: #83927a; font-size: 8px; margin-top: 5px; min-height: 23px; }
+.traffic-occupancy { font-size: 10px; color: #5f7750; margin-top: 10px; }
+.traffic-turn { display: flex; justify-content: space-between; align-items: center; gap: 5px; font-size: 9px; color: #819176; margin: 7px 0 0; }
+.traffic-turn strong { color: #5c794e; font-size: 11px; font-weight: 550; white-space: nowrap; }
+.traffic-signal-pair { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 9px; }
+.traffic-mini-signal { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #e8eddf; border-radius: 9px; padding: 4px 7px; background: #f8faf5; }
+.traffic-mini-signal b { font-size: 8px; font-weight: 500; color: #87987a; margin-right: 2px; }
+.traffic-mini-signal i { width: 7px; height: 7px; border-radius: 50%; background: #d8dfd2; }
+.traffic-mini-signal[data-color="red"] [data-light="red"] { background: #da7565; box-shadow: 0 0 0 2px #da756514; }
+.traffic-mini-signal[data-color="yellow"] [data-light="yellow"] { background: #d8b246; box-shadow: 0 0 0 2px #d8b24614; }
+.traffic-mini-signal[data-color="green"] [data-light="green"] { background: #6aa46e; box-shadow: 0 0 0 2px #6aa46e14; }
+.traffic-timing-note { font-size: 9px; color: #76866b; line-height: 1.65; margin: 9px 0; }
+.traffic-sensor-controls { border-top: 1px solid #e1e8d9; margin-top: 11px; padding-top: 3px; }
+.traffic-sensor-controls > summary { padding: 10px 0; font-size: 10px; color: #637c55; display: flex; justify-content: space-between; gap: 5px; border-radius: 4px; }
+.traffic-sensor-controls > summary span { font-size: 15px; font-weight: 400; }
+.traffic-sensor-controls[open] > summary span { transform: rotate(45deg); }
+.traffic-sensor-list { display: grid; gap: 9px; }
+.traffic-sensor-row { display: flex; align-items: center; gap: 5px; cursor: pointer; padding: 7px 0; }
+.traffic-sensor-row strong { font-size: 10px; display: block; font-weight: 550; }
+.traffic-sensor-row small { display: block; font-size: 8px; color: #819075; margin-top: 3px; }
+.traffic-sensor-switch { margin-left: auto; position: relative; width: 29px; height: 17px; flex-shrink: 0; }
+.traffic-sensor-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; }
+.traffic-sensor-switch > span { display: block; width: 100%; height: 100%; border-radius: 10px; background: #d7dfd1; }
+.traffic-sensor-switch > span::after { content: ''; position: absolute; width: 11px; height: 11px; left: 3px; top: 3px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #35492925; }
+.traffic-sensor-switch input:checked + span { background: #6a975d; }
+.traffic-sensor-switch input:checked + span::after { transform: translateX(12px); }
+.traffic-sensor-switch input:focus-visible + span { outline: 2px solid #249a73; outline-offset: 3px; }
+.traffic-sensor-state { width: 31px; text-align: right; font-size: 8px; color: #7b8b70; }
+.traffic-pause-note { border-left: 2px solid #b0bf99; padding-left: 8px; font-size: 9px; color: #78856c; line-height: 1.6; }
+@media (max-width: 520px) {
+  .traffic-buttons button, .traffic-scenario-label select { font-size: 12px; min-height: 42px; }
+  .traffic-intro, .traffic-clock strong, .traffic-occupancy { font-size: 11px; }
+  .traffic-streets { grid-template-columns: 1fr 1fr; }
+  .traffic-location { font-size: 8px; min-height: 24px; }
+  .traffic-street-heading { flex-wrap: wrap; }
+  .traffic-turn { align-items: flex-start; }
+  .traffic-turn strong { white-space: nowrap; }
+  .traffic-signal-pair { gap: 3px; flex-wrap: wrap; }
+  .traffic-sensor-row { padding: 9px 0; }
+}

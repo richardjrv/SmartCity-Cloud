@@ -138,6 +138,9 @@
                 <button type="button" class="sidebar-link" data-sidebar-view="capas" onclick="navegarA('capas')" aria-label="Mapa por capas">
                     <span class="sidebar-icon" aria-hidden="true">▦</span><span class="sidebar-link-label">Mapa por capas</span>
                 </button>
+                <button type="button" class="sidebar-link" data-sidebar-view="maqueta" onclick="navegarA('maqueta')" aria-label="Explorador 3D interactivo">
+                    <span class="sidebar-icon" aria-hidden="true">🏙️</span><span class="sidebar-link-label">Explorador 3D</span>
+                </button>
                 <button id="btn-menu-alertas" type="button" class="sidebar-link" data-sidebar-view="alertas" onclick="navegarA('alertas')" aria-label="Centro de alertas">
                     <span class="sidebar-icon" aria-hidden="true">⚑</span><span id="sidebar-alertas-label" class="sidebar-link-label">Centro de alertas</span>
                     <span id="sensor-alert-badge" class="sidebar-alert-badge hidden" aria-label="0 lecturas fuera de rango">0</span>
@@ -266,6 +269,18 @@
         <!-- VISTA B: DASHBOARD (PANEL PRINCIPAL)       -->
         <!-- ========================================== -->
         <section id="vista-dashboard" class="hidden space-y-6">
+            <section id="interactive-model-panel" data-dashboard-panel="maqueta" class="interactive-model-panel" aria-labelledby="interactive-model-title">
+                <header class="interactive-model-heading">
+                    <div>
+                        <p class="dashboard-eyebrow">Simulación local · sin conexión física</p>
+                        <h2 id="interactive-model-title">Explorador 3D interactivo</h2>
+                        <p>Prueba los controles de semáforos, alumbrado, parqueadero, inundación, estación ambiental y residuos.</p>
+                    </div>
+                    <span class="interactive-model-badge">6 sistemas simulados</span>
+                </header>
+                <iframe id="companion-model-frame" class="interactive-model-frame" src="about:blank" data-src="maqueta3d/index.html" title="Maqueta 3D interactiva de SmartCity" loading="lazy" allow="fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                <p class="interactive-model-note">Estas funciones son una demostración. No envían órdenes a tus sensores ni reemplazan las lecturas reales del panel SmartCity Cloud.</p>
+            </section>
             <section id="dashboard-overview" data-dashboard-panel="dashboard" class="dashboard-overview" aria-labelledby="dashboard-title">
                 <div class="dashboard-overview-copy">
                     <p id="dashboard-eyebrow" class="dashboard-eyebrow">Monitoreo de la maqueta</p>
