@@ -266,6 +266,21 @@ function inicializarAnimacionLecturas() {
     });
 }
 
+function sincronizarVisorMaqueta(vista) {
+    const frame = document.getElementById("companion-model-frame");
+    if (!frame) return;
+    if (vista === "maqueta") {
+        if (frame.dataset.loaded !== "true") {
+            frame.src = frame.dataset.src;
+            frame.dataset.loaded = "true";
+        }
+        return;
+    }
+    if (frame.dataset.loaded === "true") {
+        frame.src = "about:blank";
+        frame.dataset.loaded = "false";
+    }
+}
 function navegarA(vista) {
     document.body.classList.toggle("login-only", vista === "auth");
     cerrarMobileNav();
@@ -274,9 +289,12 @@ function navegarA(vista) {
 
     // 🔒 Si no hay sesión activa y no está en 'auth', redirigir forzosamente al Login
     if (!token && vista !== "auth") {
+        sincronizarVisorMaqueta("auth");
         navegarA("auth");
         return;
     }
+
+    sincronizarVisorMaqueta(vista);
     document.body.classList.toggle("sidebar-fixed-layout", vista !== "auth");
 
     // Ocultar todas las secciones
@@ -299,7 +317,7 @@ function navegarA(vista) {
 
         document.getElementById("vista-auth")?.classList.remove("hidden");
         animarEntradaAuth();
-    } else if (["dashboard", "capas", "alertas", "sensores", "reportes", "graficas"].includes(vista)) {
+    } else if (["dashboard", "capas", "maqueta", "alertas", "sensores", "reportes", "graficas"].includes(vista)) {
         document.getElementById("app-sidebar")?.classList.remove("hidden");
         document.getElementById("vista-dashboard")?.classList.remove("hidden");
         const vistaDashboard = vista === "sensores" ? "dashboard" : vista;
@@ -338,7 +356,7 @@ function navegarA(vista) {
 
 function aplicarVistaDashboard(vista) {
     const dashboard = document.getElementById("vista-dashboard");
-    const vistasDisponibles = ["dashboard", "capas", "alertas", "reportes", "graficas"];
+    const vistasDisponibles = ["dashboard", "capas", "maqueta", "alertas", "reportes", "graficas"];
     const vistaActiva = vistasDisponibles.includes(vista) ? vista : "dashboard";
     dashboard?.setAttribute("data-current-view", vistaActiva);
     document.querySelectorAll("[data-dashboard-panel]").forEach(panel => {
@@ -500,7 +518,7 @@ function toggleSidebar() {
 }
 
 function actualizarNavegacionLateral(vista) {
-    const vistas = ["dashboard", "capas", "alertas", "reportes", "graficas", "admin-usuarios"];
+    const vistas = ["dashboard", "capas", "maqueta", "alertas", "reportes", "graficas", "admin-usuarios"];
     const activa = vistas.includes(vista) ? vista : null;
     const nav = document.querySelector(".sidebar-nav");
     document.querySelectorAll("[data-sidebar-view]").forEach(button => {
