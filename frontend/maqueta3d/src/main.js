@@ -16,6 +16,24 @@ let lightingFeature;
 let floodFeature;
 let ambientFeature;
 let wasteFeature;
+const SITE_THEME_STORAGE_KEY = 'smartcity_theme';
+let siteTheme = 'dark';
+try {
+  siteTheme = localStorage.getItem(SITE_THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark';
+} catch (error) {
+  // El visor mantiene el tema oscuro si el almacenamiento del navegador no está disponible.
+}
+document.documentElement.dataset.siteTheme = siteTheme;
+function applySiteTheme(theme) {
+  siteTheme = theme === 'light' ? 'light' : 'dark';
+  document.documentElement.dataset.siteTheme = siteTheme;
+  lightingFeature?.controller.setLdrReading(siteTheme === 'light' ? 100 : 0);
+}
+window.addEventListener('storage', (event) => {
+  if (event.key === SITE_THEME_STORAGE_KEY || event.key === null) {
+    applySiteTheme(event.key === null ? 'dark' : event.newValue);
+  }
+});
 const disposeSystems = () => { wasteFeature?.dispose(); ambientFeature?.dispose(); floodFeature?.dispose(); lightingFeature?.dispose(); parkingFeature?.dispose(); trafficFeature?.dispose(); };
 const dispose = () => { disposeSystems(); viewer?.dispose(); };
 try {
@@ -42,6 +60,7 @@ try {
   }
   try {
     lightingFeature = mountLightingSimulation(viewer.getModelRoot(), document.querySelector('[data-lighting-panel]'), viewer.setDaylight);
+    lightingFeature.controller.setLdrReading(siteTheme === 'light' ? 100 : 0);
   } catch (error) {
     console.error('No se pudo preparar el alumbrado:', error);
     document.querySelector('[data-lighting-message]').textContent = 'Alumbrado no disponible. Revisa la integridad del modelo.';

@@ -2,7 +2,7 @@ import { Color, MathUtils } from 'three';
 
 /** Cambiar únicamente la iluminación del visor, sin tocar cámaras ni geometría. */
 export function createDaylightEnvironment(scene, renderer, ambient, sun) {
-  const daySky = new Color(0x152742), nightSky = new Color(0x0b1428);
+  const daySky = new Color(0xdceaf4), nightSky = new Color(0x0b1428);
   const daySun = new Color(0xfff5e9), nightSun = new Color(0xaec7ff);
   return value => {
     const daylight = MathUtils.clamp(value, 0, 1);

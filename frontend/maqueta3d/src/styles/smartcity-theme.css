@@ -132,3 +132,101 @@ h1 > span { color: #60a5fa; }
   .panel-heading p { margin-bottom: 10px; }
   .mode-note { margin-bottom: 10px; }
 }
+
+/* Tema de día sincronizado con la preferencia SmartCity Cloud. */
+html[data-site-theme="light"] { color-scheme: light; }
+html[data-site-theme="light"],
+html[data-site-theme="light"] body,
+html[data-site-theme="light"] #app,
+html[data-site-theme="light"] .workspace,
+html[data-site-theme="light"] .explorer {
+  color: #1e293b; background-color: #f1f5f9;
+}
+html[data-site-theme="light"] .eyebrow,
+html[data-site-theme="light"] .model-badge,
+html[data-site-theme="light"] .explorer-heading p,
+html[data-site-theme="light"] .panel-heading p { color: #64748b; }
+html[data-site-theme="light"] h1,
+html[data-site-theme="light"] .panel-title h2 { color: #172b42; }
+html[data-site-theme="light"] h1 > span { color: #2563eb; }
+html[data-site-theme="light"] .eyebrow-line { background: #3b82f6; }
+html[data-site-theme="light"] .viewport-shell {
+  border-color: #cbd8e7; background-color: #e7f0f7;
+  background-image: linear-gradient(#6b8daf0d 1px, transparent 1px), linear-gradient(90deg, #6b8daf0d 1px, transparent 1px);
+}
+html[data-site-theme="light"] .viewport-topline { color: #52677e; }
+html[data-site-theme="light"] .view-label { color: #6b7f95; }
+html[data-site-theme="light"] .mouse-orbit-hint { color: #233b55; background: #ffffffdf; border-color: #cbd8e7; box-shadow: 0 6px 18px #3341551c; }
+html[data-site-theme="light"] .mouse-orbit-hint small { color: #64748b; }
+html[data-site-theme="light"] .mouse-orbit-icon .orbit-path { stroke: #8299b2; }
+html[data-site-theme="light"] .mouse-orbit-icon .orbit-arrow { stroke: #2563eb; }
+html[data-site-theme="light"] .mouse-orbit-icon .mouse-outline { fill: #eff6ff; stroke: #315274; }
+html[data-site-theme="light"] .mouse-orbit-icon .mouse-divider { stroke: #8299b2; }
+html[data-site-theme="light"] .mouse-orbit-icon .mouse-wheel { fill: #2563eb; stroke: #2563eb; }
+html[data-site-theme="light"] .loading-overlay { color: #1e293b; background: #f1f5f9ee; }
+html[data-site-theme="light"] .loading-card p { color: #64748b; }
+html[data-site-theme="light"] .loading-symbol { color: #2563eb; background: #dbeafe; }
+html[data-site-theme="light"] .progress-track { background: #dbe4ef; }
+html[data-site-theme="light"] .progress-track > span,
+html[data-site-theme="light"] .retry-button { background: #2563eb; }
+html[data-site-theme="light"] .scene-caption { color: #52677e; }
+html[data-site-theme="light"] .caption-line { background: #7b94ad; }
+html[data-site-theme="light"] .orientation { color: #52677e; }
+html[data-site-theme="light"] .orientation svg { stroke: #6b86a1; }
+html[data-site-theme="light"] .orientation .compass-arrow { fill: #2563eb; }
+html[data-site-theme="light"] .viewer-tools { background: #ffffffed; border-color: #cbd8e7; box-shadow: 0 8px 24px #33415520; }
+html[data-site-theme="light"] .preset,
+html[data-site-theme="light"] .icon-button { color: #52677e; }
+html[data-site-theme="light"] .preset:hover,
+html[data-site-theme="light"] .icon-button:hover { color: #1d4ed8; background: #eff6ff; }
+html[data-site-theme="light"] .preset.active { color: #fff; background: #2563eb; }
+html[data-site-theme="light"] .tools-divider { background: #dbe4ef; }
+html[data-site-theme="light"] .systems-panel { color: #1e293b; background: #fff; border-left-color: #dbe4ef; }
+html[data-site-theme="light"] .panel-heading .eyebrow { color: #64748b; }
+html[data-site-theme="light"] .section-count { color: #64748b; border-color: #dbe4ef; background: #f8fafc; }
+html[data-site-theme="light"] .mode-note { background: #f8fafc; border-color: #dbe4ef; }
+html[data-site-theme="light"] .mode-icon { color: #2563eb; }
+html[data-site-theme="light"] .mode-note strong,
+html[data-site-theme="light"] .system-card summary,
+html[data-site-theme="light"] .system-copy strong { color: #1e293b; }
+html[data-site-theme="light"] .mode-note p,
+html[data-site-theme="light"] .system-copy small,
+html[data-site-theme="light"] .card-meta,
+html[data-site-theme="light"] .card-body p,
+html[data-site-theme="light"] .card-body label,
+html[data-site-theme="light"] .card-footnote,
+html[data-site-theme="light"] .panel-footer p { color: #64748b; }
+html[data-site-theme="light"] .neutral-dot { background: #60a5fa; }
+html[data-site-theme="light"] .system-cards { scrollbar-color: #cbd8e7 #f8fafc; }
+html[data-site-theme="light"] .system-card { color: #1e293b; background: #fff; border-color: #dbe4ef; }
+html[data-site-theme="light"] .system-card[open] { background: #f8fafc; border-color: #b8cbe0; box-shadow: 0 4px 16px #33415512; }
+html[data-site-theme="light"] .system-card summary:hover { background: #f1f5f9; }
+html[data-site-theme="light"] .system-icon.mint,
+html[data-site-theme="light"] .system-icon.sand,
+html[data-site-theme="light"] .system-icon.blue,
+html[data-site-theme="light"] .system-icon.aqua,
+html[data-site-theme="light"] .system-icon.coral,
+html[data-site-theme="light"] .system-icon.sage { color: #2563eb; background: #eff6ff; }
+html[data-site-theme="light"] .system-card input,
+html[data-site-theme="light"] .system-card select,
+html[data-site-theme="light"] .system-card textarea,
+html[data-site-theme="light"] .system-card .form-control { color: #1e293b; background: #fff; border-color: #cbd8e7; }
+html[data-site-theme="light"] .system-card input::placeholder,
+html[data-site-theme="light"] .system-card textarea::placeholder { color: #94a3b8; }
+html[data-site-theme="light"] .system-card button { color: #334155; background: #f8fafc; border-color: #dbe4ef; }
+html[data-site-theme="light"] .system-card button:not(:disabled):hover { background: #eff6ff; }
+html[data-site-theme="light"] .system-card .parking-primary,
+html[data-site-theme="light"] .system-card .environment-primary,
+html[data-site-theme="light"] .system-card .primary-button { color: #fff; background: #2563eb; border-color: #3b82f6; }
+html[data-site-theme="light"] .signal-list,
+html[data-site-theme="light"] .parking-slots,
+html[data-site-theme="light"] .environment-readings,
+html[data-site-theme="light"] .panel-footer { color: #334155; background: #f8fafc; border-color: #dbe4ef; }
+html[data-site-theme="light"] .signal-lights { background: #f1f5f9; border-color: #cbd8e7; }
+html[data-site-theme="light"] .parking-slots > span { color: #334155; background: #fff; border-color: #dbe4ef; }
+html[data-site-theme="light"] .environment-simulation { color: #334155; }
+html[data-site-theme="light"] .environment-simulation label,
+html[data-site-theme="light"] .environment-simulation .simulation-settings > summary { color: #475569; }
+html[data-site-theme="light"] .environment-simulation select,
+html[data-site-theme="light"] .environment-simulation input[type="number"] { color: #1e293b; background: #fff; border-color: #cbd8e7; }
+html[data-site-theme="light"] .environment-simulation button { color: #334155; background: #f8fafc; border-color: #dbe4ef; }
