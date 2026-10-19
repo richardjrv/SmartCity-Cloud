@@ -4,11 +4,12 @@ import { AMBIENT_DEFAULTS } from './config.js';
 export function screenContent(state, context) {
   const light = context.lighting ? context.lighting.dayFactor <= .3 ? 'NOCHE' : 'DÍA' : '—';
   const flood = context.flooding;
+  const source = state.source === 'telemetry' ? 'LECTURA REAL · ESP32' : 'DATOS SIMULADOS';
   return [
-    ['ESTACIÓN AMBIENTAL', `TEMP: ${state.temperature.toFixed(1)} °C`, `HUM: ${state.humidity.toFixed(1)} %`, 'DATOS SIMULADOS'],
+    ['ESTACIÓN AMBIENTAL', `TEMP: ${state.temperature.toFixed(1)} °C`, `HUM: ${state.humidity.toFixed(1)} %`, source],
     ['ESTADO DE LA CIUDAD', `LUZ: ${light}`, `LLUVIA: ${flood ? flood.rain ? 'SÍ' : 'NO' : '—'}`,
       `AGUA: ${flood ? { normal: 'NORMAL', precaution: 'PRECAUCIÓN', critical: 'CRÍTICO' }[flood.severity] : '—'}`,
-      `AMBIENTE: ${state.status === 'normal' ? 'NORMAL' : 'AVISO'}`, 'DATOS SIMULADOS'],
+      `AMBIENTE: ${state.status === 'normal' ? 'NORMAL' : 'AVISO'}`, source],
   ];
 }
 
@@ -37,7 +38,7 @@ export function createEnvironmentalScreen(display, { createCanvas = () => docume
     } else {
       c.font = 'bold 67px sans-serif'; for (let i = 1; i <= 4; i++) c.fillText(lines[i], 54, 145 + i * 88);
     }
-    c.fillStyle = '#a7c1cc'; c.font = '35px sans-serif'; c.fillText('DATOS SIMULADOS', 54, 600);
+    c.fillStyle = '#a7c1cc'; c.font = '35px sans-serif'; c.fillText(lines.at(-1), 54, 600);
   }
   function composite() {
     ctx.globalAlpha = 1; ctx.fillStyle = '#0b1e2a'; ctx.fillRect(0, 0, 1200, 640);

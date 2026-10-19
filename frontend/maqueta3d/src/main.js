@@ -7,6 +7,7 @@ import { mountLightingSimulation } from './lighting/feature.js';
 import { mountFloodSimulation } from './flooding/feature.js';
 import { mountAmbientSimulation } from './ambient/feature.js';
 import { mountProximitySimulation } from './waste/feature.js';
+import { connectParentTelemetry } from './services/parent-telemetry.js';
 
 const ui = createDashboard(document.querySelector('#app'), createCityState());
 let viewer;
@@ -16,6 +17,7 @@ let lightingFeature;
 let floodFeature;
 let ambientFeature;
 let wasteFeature;
+let ambientTelemetry;
 const SITE_THEME_STORAGE_KEY = 'smartcity_theme';
 let siteTheme = 'dark';
 try {
@@ -34,7 +36,7 @@ window.addEventListener('storage', (event) => {
     applySiteTheme(event.key === null ? 'dark' : event.newValue);
   }
 });
-const disposeSystems = () => { wasteFeature?.dispose(); ambientFeature?.dispose(); floodFeature?.dispose(); lightingFeature?.dispose(); parkingFeature?.dispose(); trafficFeature?.dispose(); };
+const disposeSystems = () => { ambientTelemetry?.dispose(); ambientTelemetry = null; wasteFeature?.dispose(); ambientFeature?.dispose(); floodFeature?.dispose(); lightingFeature?.dispose(); parkingFeature?.dispose(); trafficFeature?.dispose(); };
 const dispose = () => { disposeSystems(); viewer?.dispose(); };
 try {
   viewer = createCityViewer(ui.viewport, { onViewChange: ui.onViewChange, onError: (error) => {
@@ -75,6 +77,7 @@ try {
     ambientFeature = mountAmbientSimulation(viewer.getModelRoot(), document.querySelector('[data-ambient-panel]'), {
       lighting: lightingFeature?.controller, flooding: floodFeature?.controller,
     });
+    ambientTelemetry = connectParentTelemetry(ambientFeature.controller);
   } catch (error) {
     console.error('No se pudo preparar la estación ambiental:', error);
     document.querySelector('[data-ambient-message]').textContent = 'Estación ambiental no disponible. Revisa el modelo y el soporte de canvas.';

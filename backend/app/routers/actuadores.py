@@ -128,6 +128,15 @@ def confirmar_orden_actuador(
                 (estado_deseado_actual, admin["user_id"], actuator_id),
             )
             estado = action
+        cursor.execute(
+            """
+            INSERT INTO public.comandos (id_actuador, accion, valor, origen, estado_ejecucion, solicitado_por)
+            VALUES (%s, %s, %s, 'panel', 'pendiente', %s)
+            RETURNING id_comando
+            """,
+            (actuator_id, action, estado_deseado_actual if action != "automatico" else None, admin["user_id"]),
+        )
+        command_id = cursor.fetchone()[0]
         descripcion = (
             f"Orden confirmada para {actuator[1]} ({sensor_id}): {estado}. "
             "Pendiente de confirmación del ESP32."
@@ -147,6 +156,7 @@ def confirmar_orden_actuador(
                 "Queda pendiente: todavía no se envía al ESP32 ni confirma un cambio físico."
             ),
             "sensor_id": sensor_id,
+            "id_comando": command_id,
             "estado_deseado": estado_deseado_actual,
             "estado_reportado": actuator[5],
             "modo": "auto" if action == "automatico" else "manual",

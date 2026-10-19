@@ -28,6 +28,15 @@ def obtener_ultimas_lecturas(usuario: dict = Depends(obtener_usuario_actual)):
         raise HTTPException(status_code=400, detail=f"Error en BD: {str(error)}") from error
 
 
+@router.get("/maqueta")
+def obtener_lectura_maqueta(usuario: dict = Depends(obtener_usuario_actual)):
+    """Lectura del controlador activo para enlazar los indicadores del explorador 3D."""
+    try:
+        return servicio_sensores.obtener_lectura_maqueta()
+    except Exception as error:
+        raise HTTPException(status_code=503, detail="No se pudo consultar el estado de la maqueta.") from error
+
+
 @router.get("/historial")
 def obtener_historial(
     desde: datetime,

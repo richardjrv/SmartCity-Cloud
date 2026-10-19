@@ -1,7 +1,17 @@
-# Integración futura
+# Integración de telemetría
 
-Esta etapa no incluye servicios de red ni bases de datos. Los semáforos, parqueadero,
-alumbrado e inundaciones disponen de fuentes virtuales identificadas en sus tarjetas.
+`parent-telemetry.js` consulta cada 15 segundos el endpoint autenticado
+`GET /sensores/maqueta` del sitio anfitrión. El sitio adjunta la sesión existente; el
+iframe no almacena ni recibe credenciales. Solo una lectura de menos de 10 minutos
+que incluya temperatura y humedad reemplaza los valores de la estación ambiental.
+Si falta el controlador o la lectura está antigua, la tarjeta indica la causa y sigue
+mostrando la simulación. El resto de los módulos conserva su comportamiento virtual.
+
+El endpoint selecciona el controlador marcado activo en `dispositivos_iot` y su última
+lectura en `lecturas_sensores`. `011_modelo_logico_sensores.sql` añade las entidades del
+diagrama lógico del proyecto, mientras conserva esas tablas antiguas para el firmware.
+El catálogo `sensores` queda listo para asociar sensores físicos y objetos del GLB cuando
+se conozcan los códigos, modelos, magnitudes y ubicaciones reales.
 
 Cuando se autorice la integración, este directorio podrá contener un cliente HTTP
 para una API ASP.NET Core. Ese cliente transformará las respuestas al contrato de
@@ -26,8 +36,9 @@ paquete válido su estado es `null`. No tiene reloj ni método de llenado tempor
 los porcentajes futuros serán mediciones recibidas, nunca resultados de un caudal
 ficticio. No envía órdenes físicas ni afirma que haya un ESP32 conectado.
 
-Una futura integración necesita definir transporte, calibración, pérdida de conexión,
-confirmación de actuadores y protecciones físicas. No basta con cambiar la etiqueta
-«simulación» ni montar el controlador temporal junto a sensores reales.
+La API registra cada orden confirmada en `comandos` con estado `pendiente`. Eso deja
+trazabilidad, pero no la envía al ESP32: se necesita implementar el transporte y el
+acuse físico antes de mostrar una ejecución como completada.
 
-Estación ambiental, residuos y pantalla digital permanecen pendientes.
+Sensores para semáforos, estacionamiento, alumbrado, inundación y residuos permanecen
+pendientes de identificar y calibrar. No se asignan a piezas 3D por suposición.

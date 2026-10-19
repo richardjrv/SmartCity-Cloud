@@ -14,6 +14,7 @@ Los archivos numerados documentan cambios de esquema en el orden previsto sobre 
 | `008_actuadores.sql` | Catálogo de dispositivos y actuadores. |
 | `009_smartcity_sensor_insights.sql` | Consultas e índices de apoyo para lecturas. |
 | `010_configuracion_sistema.sql` | Guarda límites compartidos y habilita RLS sin acceso público. |
+| `011_modelo_logico_sensores.sql` | Integra controladores, sensores, magnitudes, lecturas normalizadas y comandos pendientes sin reemplazar el formato que ya usa el ESP32. |
 
 `manual/admin_user_id_to_1.sql` es una corrección puntual de datos de cuenta; no la ejecutes como parte de una instalación nueva.
 
