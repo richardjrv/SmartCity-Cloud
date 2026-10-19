@@ -40,7 +40,7 @@ class ArquitecturaApiTests(unittest.TestCase):
 
 class ServiciosDominioTests(unittest.TestCase):
     def test_lectura_sin_mediciones_se_rechaza_antes_de_conectar(self):
-        lectura = LecturaSensorData(sensor_id="esp32-maqueta")
+        lectura = LecturaSensorData(sensor_id="ESP32")
         with patch("app.services.sensores.get_db_connection") as conectar:
             with self.assertRaisesRegex(ValueError, "al menos una medición"):
                 sensores.registrar_lectura(lectura)
@@ -48,9 +48,9 @@ class ServiciosDominioTests(unittest.TestCase):
 
     def test_lectura_se_serializa_con_valores_nulos(self):
         fecha = datetime(2026, 10, 14, tzinfo=timezone.utc)
-        fila = (1, "esp32-maqueta", 24, None, None, None, None, None, None, None, None, fecha)
+        fila = (1, "ESP32", 24, None, None, None, None, None, None, None, None, fecha)
         resultado = sensores.serializar_lectura(fila)
-        self.assertEqual(resultado["sensor_id"], "esp32-maqueta")
+        self.assertEqual(resultado["sensor_id"], "ESP32")
         self.assertEqual(resultado["temperatura"], 24.0)
         self.assertIsNone(resultado["humedad"])
         self.assertEqual(resultado["fecha_hora"], fecha.isoformat())

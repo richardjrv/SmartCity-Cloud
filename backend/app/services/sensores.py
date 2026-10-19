@@ -136,7 +136,7 @@ def obtener_ultimas_lecturas():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            f"SELECT {SELECT_LECTURAS} FROM public.lecturas_sensores ORDER BY fecha_hora DESC LIMIT 100"
+            f"SELECT {SELECT_LECTURAS} FROM public.lecturas_sensores WHERE sensor_id = 'ESP32' ORDER BY fecha_hora DESC LIMIT 100"
         )
         return [serializar_lectura(fila) for fila in cursor.fetchall()]
     finally:
@@ -147,7 +147,7 @@ def obtener_ultimas_lecturas():
 
 
 def obtener_lectura_maqueta():
-    """Devuelve la lectura más reciente del controlador activo de la maqueta."""
+    """Devuelve la lectura más reciente del único controlador ESP32 activo."""
     conn = cursor = None
     try:
         conn = get_db_connection()
@@ -167,7 +167,7 @@ def obtener_lectura_maqueta():
                 LIMIT 1
             ) AS l ON TRUE
             WHERE d.activo = TRUE
-            ORDER BY CASE WHEN d.sensor_id = 'ESP32-MAQUETA' THEN 0 ELSE 1 END, d.sensor_id
+            ORDER BY CASE WHEN d.sensor_id = 'ESP32' THEN 0 ELSE 1 END, d.sensor_id
             LIMIT 1
             """
         )
@@ -204,7 +204,7 @@ def obtener_historial(desde: datetime, hasta: datetime):
             f"""
             SELECT {SELECT_LECTURAS}
             FROM public.lecturas_sensores
-            WHERE fecha_hora >= %s AND fecha_hora <= %s
+            WHERE sensor_id = 'ESP32' AND fecha_hora >= %s AND fecha_hora <= %s
             ORDER BY fecha_hora ASC
             LIMIT %s
             """,

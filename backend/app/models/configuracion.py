@@ -10,5 +10,5 @@ class ConfiguracionSistemaData(BaseModel):
     airQualityMax: float = Field(default=100, ge=0, le=1000)
     refreshSeconds: Literal[30, 60, 300] = 60
     staleMinutes: int = Field(default=10, ge=2, le=180)
-    sensorLabel: str = Field(default="ESP32 de la maqueta", min_length=1, max_length=40)
+    sensorLabel: str = Field(default="ESP32", min_length=1, max_length=40)
     notificationsEnabled: bool = True

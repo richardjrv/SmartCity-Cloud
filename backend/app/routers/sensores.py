@@ -11,6 +11,8 @@ router = APIRouter(prefix="/sensores", tags=["Sensores IoT"])
 
 @router.post("")
 def registrar_lectura(lectura: LecturaSensorData):
+    if lectura.sensor_id.strip() != "ESP32":
+        raise HTTPException(status_code=422, detail="Este proyecto recibe un solo controlador. Usa sensor_id='ESP32'.")
     try:
         servicio_sensores.registrar_lectura(lectura)
         return {"mensaje": "Lectura de sensor almacenada correctamente en Supabase 📡"}

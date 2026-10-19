@@ -7,7 +7,7 @@ const OPERATOR_CONFIG_DEFAULTS = Object.freeze({
     airQualityMax: 100,
     refreshSeconds: 60,
     staleMinutes: 10,
-    sensorLabel: "ESP32 de la maqueta",
+    sensorLabel: "ESP32",
     notificationsEnabled: true
 });
 

@@ -3,7 +3,7 @@ const SENSOR_MAP_POSITIONS = [
     { x: 0.58, y: 1.2, z: 1.18 }
 ];
 
-const DEMO_SENSOR_ID = "DEMO-ESP32-MAQUETA";
+const DEMO_SENSOR_ID = "ESP32";
 const DEMO_SENSOR_COUNT = 1;
 const DEMO_HISTORY_STEP_MS = 30 * 60 * 1000;
 let sensoresEnMapa = [];
@@ -103,18 +103,18 @@ async function cargarMapaSensores() {
 
     let lecturasReales = [];
     try {
-        const respuesta = await apiFetch("/sensores/ultimas");
-        if (respuesta.ok && Array.isArray(respuesta.data)) lecturasReales = respuesta.data;
+        const respuesta = await apiFetch("/sensores/maqueta");
+        if (respuesta.ok && respuesta.data?.lectura) {
+            lecturasReales = [{ id: "ESP32", sensor_id: "ESP32", lectura: respuesta.data.lectura }];
+        }
     } catch (error) {
         console.info("Se mostrará el conjunto demostrativo porque no se pudo consultar el servicio de sensores.");
     }
 
     if (lecturasReales.length) {
         modoDemoSensores = false;
-        // La maqueta tiene una sola placa ESP32: conserva únicamente su lectura más reciente.
-        lecturasEnVivo = deduplicarLecturas(lecturasReales)
-            .sort((a, b) => new Date(b.lectura.fecha_hora || 0) - new Date(a.lectura.fecha_hora || 0))
-            .slice(0, 1);
+        // Un solo ESP32 concentra las mediciones de la maqueta.
+        lecturasEnVivo = deduplicarLecturas(lecturasReales).slice(0, 1);
         const fechaUltima = new Date(lecturasEnVivo[0]?.lectura?.fecha_hora || 0);
         const edadLectura = Date.now() - fechaUltima.getTime();
         const lecturaReciente = Number.isFinite(fechaUltima.getTime()) && edadLectura >= 0 && edadLectura <= 10 * 60 * 1000;
@@ -199,7 +199,7 @@ function actualizarFuenteDatos(texto, esDemo, esAntigua = false, ultimaLectura =
     const note = document.getElementById("alert-center-note");
     if (note) note.textContent = esDemo
         ? "Valores de demostración para un ESP32. No provienen de la maqueta ni sustituyen una evaluación ambiental."
-        : "Lecturas reportadas por el único ESP32 de la maqueta. Los colores no indican normalidad porque aún no hay umbrales calibrados.";
+        : "Lecturas reportadas por el ESP32. Los colores no indican normalidad porque aún no hay umbrales calibrados.";
 }
 
 function actualizarAntiguedadSensor() {
@@ -276,7 +276,7 @@ function renderizarMarcadoresSensores() {
         board.setAttribute("aria-hidden", "true");
         const label = document.createElement("span");
         label.className = "city-lamp-label";
-        label.textContent = modoDemoSensores ? "ESP32 · MAQUETA" : sensor.id;
+        label.textContent = "ESP32";
         marker.append(board, label);
         marker.addEventListener("click", () => mostrarDetalleSensor(sensor));
         markerLayer.appendChild(marker);
@@ -517,7 +517,7 @@ function mostrarDetalleSensor(sensor) {
     element("sensor-detail-message").textContent = modoDemoSensores
         ? "Valores de referencia para un ESP32; no provienen de la maqueta."
         : fechaDetalleAntigua ? "Se conserva el último dato recibido; revisa la conexión del ESP32."
-            : "Últimas lecturas reportadas por el ESP32 de la maqueta.";
+            : "Últimas lecturas reportadas por el ESP32.";
     element("sensor-detail-content").classList.remove("hidden");
     element("sensor-detail-temperature").textContent = `${formatearValorSensor(lectura.temperatura)} °C`;
     element("sensor-detail-humidity").textContent = `${formatearValorSensor(lectura.humedad)} %`;

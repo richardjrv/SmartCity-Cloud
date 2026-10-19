@@ -61,7 +61,7 @@ def obtener_contexto_ciudad_supabase():
             """SELECT sensor_id, temperatura, humedad, calidad_aire, distancia_cm,
                       lluvia_detectada, luminosidad, nivel_agua,
                       reflectancia_tcrt5000, tcrt5000_detectado, fecha_hora
-               FROM public.lecturas_sensores ORDER BY fecha_hora DESC LIMIT 1"""
+               FROM public.lecturas_sensores WHERE sensor_id = 'ESP32' ORDER BY fecha_hora DESC LIMIT 1"""
         )
         ultima = cursor.fetchone()
         cursor.execute(
@@ -70,10 +70,10 @@ def obtener_contexto_ciudad_supabase():
                       ROUND(AVG(distancia_cm)::numeric, 2), BOOL_OR(lluvia_detectada),
                       ROUND(AVG(luminosidad)::numeric, 2), ROUND(AVG(nivel_agua)::numeric, 2),
                       ROUND(AVG(reflectancia_tcrt5000)::numeric, 2), COUNT(*)
-               FROM public.lecturas_sensores WHERE fecha_hora >= NOW() - INTERVAL '24 hours'"""
+               FROM public.lecturas_sensores WHERE sensor_id = 'ESP32' AND fecha_hora >= NOW() - INTERVAL '24 hours'"""
         )
         stats_24h = cursor.fetchone()
-        cursor.execute("SELECT DISTINCT sensor_id FROM lecturas_sensores WHERE fecha_hora >= NOW() - INTERVAL '7 days'")
+        cursor.execute("SELECT DISTINCT sensor_id FROM lecturas_sensores WHERE sensor_id = 'ESP32' AND fecha_hora >= NOW() - INTERVAL '7 days'")
         sensores_activos = [s[0] for s in cursor.fetchall()]
         cursor.close()
         conn.close()
