@@ -3,11 +3,12 @@
 ## Estado actual
 
 - `frontend/index.html` contiene las vistas y estructura principal de la interfaz.
-- `frontend/assets/js/` ya separa autenticación, alertas, clima, gráficas, mapa, perfil, administración y acceso a la API.
-- Los estilos estaban en la raíz de `frontend/`; se agrupan ahora en `frontend/assets/css/`.
+- `frontend/assets/js/` separa autenticación, alertas/notificaciones, clima, gráficas, mapa, perfil, administración, configuración del operador y acceso a la API.
+- `frontend/assets/css/` contiene estilos compartidos y hojas por vista; `frontend/maqueta3d/src/styles/` contiene el tema del explorador 3D.
+- `frontend/assets/models/` guarda el GLB de la maqueta, cargado por `frontend/maqueta3d/src/scene/model-loader.js`.
 - `backend/main.py` crea la aplicación FastAPI e incluye routers.
-- `backend/app/` separa `routers`, `models`, `core`, `db` y `utils`.
-- Los routers de sensores y alertas todavía mezclaban HTTP con consultas SQL y conexión a Supabase.
+- `backend/app/` separa `routers`, `models`, `core`, `db`, `services` y `utils`.
+- Los servicios de dominio concentran consultas PostgreSQL; los routers validan HTTP y autorización.
 - Supabase se conecta desde FastAPI mediante PostgreSQL (`psycopg2`); el frontend no debe recibir credenciales privadas.
 
 ## Patrón recomendado
@@ -18,10 +19,12 @@ Usamos un monolito modular por dominio. Cada dominio conserva sus rutas HTTP y m
 frontend/
   index.html
   assets/
-    css/                 estilos globales y de cada vista
-    js/                  módulos de interfaz ya existentes
-      api.js             cliente HTTP común
-      sensores, alertas, clima, graficas, perfil...
+    models/              modelos 3D estáticos
+    vendor/              librerías de terceros locales
+    css/                 estilos globales y hojas de cada vista
+    js/                  módulos clásicos cargados en orden desde index.html
+  maqueta3d/
+    src/                 visor y sistemas de simulación por dominio
 backend/
   main.py                composición de FastAPI y middleware
   app/
@@ -31,9 +34,13 @@ backend/
     routers/             validación HTTP, dependencias y códigos HTTP
     services/            reglas de negocio y operaciones de dominio
     utils/               utilidades transversales
+  sql/                   scripts numerados y cambios manuales separados
 docs/
   arquitectura.md
+  migracion-supabase-auth.md
 ```
+
+La configuración del sistema se guarda en `public.configuracion_sistema`. FastAPI exige el rol Operador para modificarla; los clientes autenticados pueden consultarla para aplicar los mismos límites. La tabla tiene RLS activado y no concede permisos a las claves públicas del navegador.
 
 ## Configuración y controles
 
@@ -49,4 +56,4 @@ docs/
 2. La lógica de dominio va en `app/services/`; las dependencias HTTP (usuario, rol, parámetros) permanecen en `app/routers/`.
 3. Las llamadas del navegador pasan por `frontend/assets/js/api.js`.
 4. Antes de publicar, revisar configuración CORS, secretos y permisos de cada endpoint.
-5. Los cambios de base de datos deben documentarse y versionarse en `backend/sql/`.
+5. Los cambios de base de datos deben documentarse y versionarse en `backend/sql/`; consulta su README antes de ejecutar scripts y no vuelvas a aplicar cambios ya registrados.

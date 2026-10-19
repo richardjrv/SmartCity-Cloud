@@ -78,3 +78,10 @@ def requerir_gestor_alertas(usuario: dict = Depends(obtener_usuario_actual)) -> 
     if usuario.get("id_rol") not in (ROLE_ADMIN, ROLE_OPERATOR):
         raise HTTPException(status_code=403, detail="Acceso denegado: se requieren permisos de operación.")
     return usuario
+
+
+def requerir_operador(usuario: dict = Depends(obtener_usuario_actual)) -> dict:
+    """Only the operator role may change shared system configuration."""
+    if usuario.get("id_rol") != ROLE_OPERATOR:
+        raise HTTPException(status_code=403, detail="Acceso denegado: se requieren permisos de Operador.")
+    return usuario

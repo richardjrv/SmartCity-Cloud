@@ -12,8 +12,8 @@ La autenticación web usa Supabase Auth. `public.usuarios.id` continúa siendo e
    - `SUPABASE_SERVICE_ROLE_KEY`: secret/service_role key, solo para que el endpoint administrativo pueda eliminar usuarios Auth. Nunca la pongas en el frontend.
    - `FRONTEND_URL`: URL del sitio a la que Supabase debe regresar al completar recuperación de contraseña. Debe estar en Redirect URLs.
    - Conserva `DATABASE_URL` y las demás variables existentes.
-4. Revisa y ejecuta una sola vez `backend/sql/supabase_auth_migration.sql` en el SQL Editor del proyecto correcto. La transacción aborta si no encuentra el rol `id=2` o detecta correos duplicados normalizados.
-5. Para habilitar el segundo paso con PIN, ejecuta `backend/sql/auth_pin_session_gate.sql` en el mismo proyecto Supabase antes de publicar el backend actualizado.
+4. Revisa y ejecuta una sola vez `backend/sql/003_supabase_auth_migration.sql` en el SQL Editor del proyecto correcto. La transacción aborta si no encuentra el rol `id=2` o detecta correos duplicados normalizados.
+5. Para habilitar el segundo paso con PIN, ejecuta `backend/sql/005_auth_pin_session_gate.sql` en el mismo proyecto Supabase antes de publicar el backend actualizado. Esta migración depende de `004_pin_acceso.sql`.
 6. En Render, configura `PIN_PEPPER` con un secreto largo y aleatorio y consérvalo estable mientras existan PIN guardados. El backend puede usar temporalmente `SUPABASE_SERVICE_ROLE_KEY` como pepper si esta variable no está configurada.
 7. Publica el backend y el frontend actualizados.
 8. Crea una cuenta nueva desde el sitio y confirma el correo. El trigger enlaza la cuenta y crea su perfil interno. Si coincide con una fila de prueba existente, la enlaza, elimina sus hashes locales y le deja rol de usuario.

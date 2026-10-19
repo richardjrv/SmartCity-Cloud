@@ -1,5 +1,5 @@
 -- Add the server-side session gate for the post-login personal PIN step.
--- Safe to run after the original pin_acceso.sql migration.
+-- Safe to run after 004_pin_acceso.sql.
 
 begin;
 

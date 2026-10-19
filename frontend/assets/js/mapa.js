@@ -84,6 +84,10 @@ function deduplicarLecturas(lecturas) {
 }
 
 async function cargarMapaSensores() {
+    if (typeof cargarConfiguracionSistemaDesdeApi === "function") {
+        try { await cargarConfiguracionSistemaDesdeApi(); }
+        catch (error) { console.warn("Se aplicará la configuración guardada localmente mientras vuelve la API.", error); }
+    }
     const markerLayer = document.getElementById("sensor-map-model");
     const emptyState = document.getElementById("sensor-map-empty");
     if (!temporizadorAntiguedadSensor) {

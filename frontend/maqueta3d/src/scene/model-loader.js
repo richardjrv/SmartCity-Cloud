@@ -4,7 +4,7 @@ import { removeUnusedFloodBarrier } from './remove-unused-flood-barrier.js';
 
 export async function loadCityModel(onProgress) {
   const loader = new GLTFLoader();
-  const url = new URL(`../../../ciudad.glb`, import.meta.url).href;
+  const url = new URL(`../../../assets/models/ciudad.glb`, import.meta.url).href;
   const gltf = await loader.loadAsync(url, (event) => {
     onProgress?.(event.lengthComputable ? event.loaded / event.total : null);
   });

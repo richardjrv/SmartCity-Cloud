@@ -1,0 +1,28 @@
+/* Configuración operativa y gráficos adaptables a pantallas estrechas. */
+.operator-config-page { max-width: 72rem; margin-inline: auto; }
+.operator-config-heading { padding: clamp(1rem, 2vw, 1.5rem); border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border-color)); border-radius: 1.25rem; background: color-mix(in srgb, var(--bg-card) 88%, transparent); }
+.operator-config-heading h2 { margin: .3rem 0; color: var(--text-primary); font-size: clamp(1.35rem, 3vw, 1.8rem); font-weight: 800; }
+.operator-config-heading p:last-child { margin: .35rem 0 0; color: var(--text-secondary); font-size: .9rem; }
+.operator-config-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.operator-config-card { display: grid; align-content: start; gap: .75rem; min-width: 0; padding: clamp(1rem, 2vw, 1.4rem); border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent); border-radius: 1.1rem; background: color-mix(in srgb, var(--bg-card) 92%, transparent); }
+.operator-config-card--wide { grid-column: 1 / -1; }
+.operator-config-card h3 { margin: 0; color: var(--text-primary); font-size: 1rem; font-weight: 750; }
+.operator-config-card > p { margin: -.4rem 0 .15rem; color: var(--text-secondary); font-size: .78rem; line-height: 1.5; }
+.operator-config-card > label, .operator-config-two-cols > label { display: grid; gap: .4rem; min-width: 0; color: var(--text-primary); font-size: .82rem; font-weight: 600; }
+.operator-config-card input:not([type="checkbox"]), .operator-config-card select { width: 100%; min-height: 2.7rem; padding: .65rem .75rem; border: 1px solid var(--border-color); border-radius: .7rem; color: var(--text-primary); background: var(--bg-input); }
+.operator-config-two-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.operator-config-help { color: var(--text-muted); font-size: .72rem; line-height: 1.5; }
+.operator-config-toggle { display: flex !important; grid-template-columns: 1fr auto; align-items: center; justify-content: space-between; gap: 1rem !important; padding: .9rem; border: 1px solid var(--border-color); border-radius: .8rem; background: color-mix(in srgb, var(--bg-input) 70%, transparent); }
+.operator-config-toggle strong, .operator-config-toggle small { display: block; }
+.operator-config-toggle small { margin-top: .2rem; color: var(--text-secondary); font-size: .74rem; font-weight: 400; }
+.operator-config-toggle input { flex: 0 0 auto; width: 1.2rem; height: 1.2rem; accent-color: var(--accent); }
+.operator-config-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
+.operator-config-save, .operator-config-reset { min-height: 2.7rem; padding: .65rem .95rem; border: 1px solid var(--border-color); border-radius: .75rem; font-size: .82rem; font-weight: 700; }
+.operator-config-save { color: #fff; border-color: var(--accent); background: var(--accent); }
+.operator-config-reset { color: var(--text-primary); background: var(--bg-card); }
+.operator-config-actions span { flex: 1 1 100%; color: var(--success); font-size: .8rem; }
+@media (max-width: 640px) {
+    .operator-config-grid { grid-template-columns: minmax(0, 1fr); }
+    .operator-config-card--wide { grid-column: auto; }
+    .operator-config-two-cols { gap: .5rem; }
+}

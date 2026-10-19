@@ -1,0 +1,8 @@
+/* Gráficas: lienzos y resumen adaptados a pantallas estrechas. */
+.chart-canvas-wrap, .chart-sensor-chart-wrap { min-width: 0; width: 100%; }
+.chart-canvas-wrap canvas, .chart-sensor-chart-wrap canvas { max-width: 100%; }
+.chart-empty-state { line-height: 1.6; }
+@media (max-width: 640px) {
+    .charts-panel, .chart-overview-panel, .chart-sensors-section { min-width: 0; }
+    .chart-summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

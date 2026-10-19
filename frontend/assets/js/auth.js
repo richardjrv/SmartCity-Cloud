@@ -431,6 +431,7 @@ async function cerrarSesion(notifyServer = true) {
         } catch { /* La sesión local se limpia aunque el servidor no responda. */ }
     }
     await supabaseAuthClient?.auth.signOut({ scope: "local" }).catch(() => {});
+    if (typeof detenerMonitoreoSistema === "function") detenerMonitoreoSistema();
     if (typeof detenerEscuchaWakeBrunito === "function") detenerEscuchaWakeBrunito();
     ["token_cloud", "refresh_token_cloud", "token_expires_cloud", "user_role_cloud", "user_name_cloud", "user_id_cloud"].forEach(key => localStorage.removeItem(key));
     recoveryAccessToken = null;
