@@ -161,7 +161,6 @@ body.high-contrast .brunito-action-card :is(h3, p) {
     .dashboard-quick-action:hover,
     .notification-trigger:hover,
     header > div.max-w-7xl > .flex.items-center.gap-3:hover,
-    .map-layer-toolbar button:hover,
     .sidebar-tour-button:hover,
     #sensor-map-refresh:hover,
     #sensor-report-toolbar button:hover {
@@ -819,11 +818,6 @@ html[data-theme="dark"] .dashboard-metric-copy > span[data-source="api"] { color
     font-size: .7rem;
 }
 
-.map-layer-legend {
-    color: var(--text-secondary);
-    font-size: .72rem;
-}
-
 .sensor-map-details {
     border-radius: 1rem;
 }
@@ -846,10 +840,6 @@ html[data-theme="light"] #urban-pulse-strip {
 
 html[data-theme="light"] #urban-pulse-strip > .pulse-stat {
     border-left-color: #dbe3ed;
-}
-
-html[data-theme="light"] .map-layer-legend {
-    color: #475569;
 }
 
 @media (max-width: 900px) {
@@ -1442,8 +1432,6 @@ body.sidebar-collapsed .app-sidebar {
     }
     .sensor-map-canvas { height: min(58svh, 27rem) !important; min-height: 19rem; }
     #sensor-detail-content:not(.hidden) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .map-layer-toolbar { flex-wrap: nowrap; overflow-x: auto; padding: .15rem .1rem .5rem; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
-    .map-layer-toolbar button { min-height: 2.7rem; flex: 0 0 auto; padding-inline: .75rem; }
     .chart-metric-row { flex-wrap: nowrap; overflow-x: auto; padding: .15rem .1rem .45rem; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
     .chart-metric-button { min-height: 2.7rem; flex: 0 0 auto; }
     .weather-hourly-forecast { touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }

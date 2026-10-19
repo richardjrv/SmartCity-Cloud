@@ -14,7 +14,6 @@ let fechaUltimaLecturaSensor = null;
 let temporizadorAntiguedadSensor = null;
 let sensorEnDetalle = null;
 let mapaSensoresEventosInstalados = false;
-let capaMapaActual = "estado";
 
 function crearLecturaDemo(indice, fecha) {
     const hora = fecha.getHours() + fecha.getMinutes() / 60;
@@ -223,15 +222,6 @@ function instalarEventosMapaSensores() {
     document.getElementById("sensor-map-refresh")?.addEventListener("click", cargarMapaSensores);
 }
 
-function seleccionarCapaMapa(capa) {
-    if (!["estado", "temperatura", "humedad", "calidad_aire"].includes(capa)) return;
-    capaMapaActual = capa;
-    document.querySelectorAll("[data-map-layer]").forEach(button => {
-        button.setAttribute("aria-pressed", String(button.dataset.mapLayer === capa));
-    });
-    renderizarMarcadoresSensores();
-}
-
 function nivelLectura() {
     // No se muestran categorías de riesgo hasta acordar límites calibrados para esta maqueta.
     return "unknown";
@@ -253,7 +243,7 @@ function renderizarMarcadoresSensores() {
     visibles.forEach(sensor => {
         const position = SENSOR_MAP_POSITIONS[sensor.index % SENSOR_MAP_POSITIONS.length];
         const marker = document.createElement("button");
-        const level = nivelLectura(sensor.lectura, capaMapaActual);
+        const level = nivelLectura();
         marker.type = "button";
         marker.className = "city-lamp-marker" + (sensor.id === sensorEnDetalle ? " selected" : "");
         marker.dataset.level = level;
@@ -262,7 +252,7 @@ function renderizarMarcadoresSensores() {
         marker.dataset.normal = "0m 1m 0m";
         marker.slot = `hotspot-sensor-${sensor.index}`;
         marker.setAttribute("aria-label", `Controlador ESP32 ${sensor.id}; ${level === "unknown" ? "lectura disponible, sin umbrales configurados" : "estado no disponible"}. Ver lecturas.`);
-        marker.title = `${sensor.id} · ${capaMapaActual === "estado" ? "Estado" : capaMapaActual.replace("_", " ")}: ${formatearValorSensor(sensor.lectura[capaMapaActual] ?? sensor.lectura.temperatura)}`;
+        marker.title = `${sensor.id} · lectura disponible; revisa el panel del ESP32 para ver sus valores.`;
 
         const board = document.createElement("span");
         board.className = "esp32-map-icon";

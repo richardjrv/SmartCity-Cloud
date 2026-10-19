@@ -135,9 +135,6 @@
                 <button type="button" class="sidebar-link" data-sidebar-view="dashboard" onclick="navegarA('dashboard')" aria-label="Inicio">
                     <span class="sidebar-icon" aria-hidden="true">⌂</span><span class="sidebar-link-label">Inicio</span>
                 </button>
-                <button type="button" class="sidebar-link" data-sidebar-view="capas" onclick="navegarA('capas')" aria-label="Mapa por capas">
-                    <span class="sidebar-icon" aria-hidden="true">▦</span><span class="sidebar-link-label">Mapa por capas</span>
-                </button>
                 <button type="button" class="sidebar-link" data-sidebar-view="maqueta" onclick="navegarA('maqueta')" aria-label="Explorador 3D interactivo">
                     <span class="sidebar-icon" aria-hidden="true">🏙️</span><span class="sidebar-link-label">Explorador 3D</span>
                 </button>
@@ -462,7 +459,7 @@
             </section>
 
             <!-- Visor 3D Interactivo de la Ciudad -->
-            <div id="city-3d-panel" data-dashboard-panel="dashboard capas" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+            <div id="city-3d-panel" data-dashboard-panel="dashboard" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
                 <div class="dashboard-map-heading">
                     <div>
                         <p class="dashboard-eyebrow">Vista urbana · modelo 3D</p>
@@ -474,14 +471,6 @@
                         <span class="map-interaction-badge"><span aria-hidden="true">⤢</span> Interactivo 360°</span>
                     </div>
                 </div>
-
-    <div id="map-layer-toolbar" data-dashboard-panel="capas" class="map-layer-toolbar" role="group" aria-label="Capas del mapa">
-        <span class="map-toolbar-label">Visualizar</span>
-        <button type="button" data-map-layer="estado" aria-pressed="true" onclick="seleccionarCapaMapa('estado')">Estado</button>
-        <button type="button" data-map-layer="temperatura" aria-pressed="false" onclick="seleccionarCapaMapa('temperatura')">🌡️ Temperatura</button>
-        <button type="button" data-map-layer="humedad" aria-pressed="false" onclick="seleccionarCapaMapa('humedad')">💧 Humedad</button>
-        <button type="button" data-map-layer="calidad_aire" aria-pressed="false" onclick="seleccionarCapaMapa('calidad_aire')">🍃 Aire</button>
-    </div>
 
     <!-- Componente 3D -->
     <div id="sensor-map-canvas" class="sensor-map-canvas w-full bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-700/50">
@@ -503,12 +492,9 @@
         <span class="city-scene-label" aria-hidden="true">MODELO 3D · LUMINARIAS INTELIGENTES</span>
         <p id="sensor-map-empty" class="sensor-map-empty">Cargando lecturas de sensores…</p>
     </div>
-    <div class="map-layer-legend" data-dashboard-panel="capas" aria-label="Leyenda de colores de sensores">
-        <span><i class="legend-dot level-unknown"></i>Lectura disponible · sin umbrales calibrados</span>
-    </div>
             </div>
             <!-- Lecturas de los sensores representados en las luminarias del modelo 3D -->
-            <section id="sensor-map-section" data-dashboard-panel="dashboard capas" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl" aria-labelledby="sensor-map-title">
+            <section id="sensor-map-section" data-dashboard-panel="dashboard" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl" aria-labelledby="sensor-map-title">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                     <div>
                         <h2 id="sensor-map-title" class="text-xl font-bold text-white">📡 ESP32 de la maqueta</h2>

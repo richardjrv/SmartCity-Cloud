@@ -69,14 +69,14 @@ const INICIO_POR_ROL = {
         eyebrow: "TU ESPACIO DE MONITOREO",
         titulo: "Entérate de lo que pasa",
         descripcion: "Consulta las lecturas de la maqueta, revisa el clima y avisa al equipo si observas un problema.",
-        primary: ["Reportar observación", "alertas"], secondary: ["Ver sensores", "capas"],
+        primary: ["Reportar observación", "alertas"], secondary: ["Explorar maqueta", "maqueta"],
         bienvenida: "Consulta las mediciones y envía un reporte cuando notes algo que el equipo deba revisar."
     },
     3: {
         eyebrow: "CENTRO DE OPERACIONES",
         titulo: "Alertas listas para atender",
         descripcion: "Da seguimiento a los avisos, deja una nota en cada cambio y comprueba las lecturas de los sensores.",
-        primary: ["Atender alertas", "alertas"], secondary: ["Consultar sensores", "capas"],
+        primary: ["Atender alertas", "alertas"], secondary: ["Explorar maqueta", "maqueta"],
         bienvenida: "Empieza por las alertas pendientes; cada actualización queda registrada para el equipo."
     }
 };
@@ -317,7 +317,7 @@ function navegarA(vista) {
 
         document.getElementById("vista-auth")?.classList.remove("hidden");
         animarEntradaAuth();
-    } else if (["dashboard", "capas", "maqueta", "alertas", "sensores", "reportes", "graficas"].includes(vista)) {
+    } else if (["dashboard", "maqueta", "alertas", "sensores", "reportes", "graficas"].includes(vista)) {
         document.getElementById("app-sidebar")?.classList.remove("hidden");
         document.getElementById("vista-dashboard")?.classList.remove("hidden");
         const vistaDashboard = vista === "sensores" ? "dashboard" : vista;
@@ -330,7 +330,6 @@ function navegarA(vista) {
         if (vistaDashboard === "alertas" && typeof cargarAlertasCompartidas === "function") {
             void cargarAlertasCompartidas();
         }
-        if (vistaDashboard === "capas") seleccionarCapaMapa(capaMapaActual || "estado");
         if (vistaDashboard === "dashboard" && typeof cargarTendenciaInicio === "function") void cargarTendenciaInicio();
         if (vistaDashboard === "graficas" && typeof cargarGraficasSensores === "function") void cargarGraficasSensores();
         const behavior = document.body.classList.contains("reduce-motion") ? "auto" : "smooth";
@@ -356,7 +355,7 @@ function navegarA(vista) {
 
 function aplicarVistaDashboard(vista) {
     const dashboard = document.getElementById("vista-dashboard");
-    const vistasDisponibles = ["dashboard", "capas", "maqueta", "alertas", "reportes", "graficas"];
+    const vistasDisponibles = ["dashboard", "maqueta", "alertas", "reportes", "graficas"];
     const vistaActiva = vistasDisponibles.includes(vista) ? vista : "dashboard";
     dashboard?.setAttribute("data-current-view", vistaActiva);
     document.querySelectorAll("[data-dashboard-panel]").forEach(panel => {
@@ -518,7 +517,7 @@ function toggleSidebar() {
 }
 
 function actualizarNavegacionLateral(vista) {
-    const vistas = ["dashboard", "capas", "maqueta", "alertas", "reportes", "graficas", "admin-usuarios"];
+    const vistas = ["dashboard", "maqueta", "alertas", "reportes", "graficas", "admin-usuarios"];
     const activa = vistas.includes(vista) ? vista : null;
     const nav = document.querySelector(".sidebar-nav");
     document.querySelectorAll("[data-sidebar-view]").forEach(button => {
@@ -595,7 +594,7 @@ function iniciarRecorridoGuiado() {
     if (!obtenerToken()) { navegarA("auth"); return; }
     vistaAntesDelRecorrido = document.querySelector('.sidebar-link[aria-current="page"]')?.dataset.sidebarView
         || document.getElementById("vista-dashboard")?.dataset.currentView || "dashboard";
-    if (!["dashboard", "capas", "alertas", "reportes", "graficas", "admin-usuarios"].includes(vistaAntesDelRecorrido)) vistaAntesDelRecorrido = "dashboard";
+    if (!["dashboard", "maqueta", "alertas", "reportes", "graficas", "admin-usuarios"].includes(vistaAntesDelRecorrido)) vistaAntesDelRecorrido = "dashboard";
     pasosRecorridoActual = PASOS_RECORRIDO_POR_ROL[Number(localStorage.getItem("user_role_cloud"))] || PASOS_RECORRIDO_POR_ROL[2];
     cerrarMobileNav();
     pasoRecorridoActual = 0;
@@ -651,7 +650,7 @@ function cerrarRecorridoGuiado() {
     overlay.setAttribute("aria-hidden", "true");
     document.querySelectorAll(".tour-highlight").forEach(element => element.classList.remove("tour-highlight"));
     if (vistaAntesDelRecorrido === "admin-usuarios") navegarA("dashboard");
-    else if (["dashboard", "capas", "alertas", "reportes", "graficas"].includes(vistaAntesDelRecorrido)) navegarA(vistaAntesDelRecorrido);
+    else if (["dashboard", "maqueta", "alertas", "reportes", "graficas"].includes(vistaAntesDelRecorrido)) navegarA(vistaAntesDelRecorrido);
 }
 
 // Inicialización de la aplicación al cargar el DOM
