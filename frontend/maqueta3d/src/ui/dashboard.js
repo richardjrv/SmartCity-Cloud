@@ -31,6 +31,16 @@ export function createDashboard(root, state) {
         </div>
         <div class="viewport-shell">
           <div class="viewport-topline"><span>${icon('cube')} MAQUETA INTERACTIVA</span><span class="view-label" id="view-label">ISOMÉTRICA</span></div>
+          <div class="mouse-orbit-hint" role="note" aria-label="Usa la rueda del mouse para acercar y arrastra para orbitar la maqueta">
+            <svg class="mouse-orbit-icon" viewBox="0 0 40 40" aria-hidden="true">
+              <path class="orbit-path" d="M7.5 20a12.5 12.5 0 0 1 22-8.2M32.5 20a12.5 12.5 0 0 1-22 8.2" />
+              <path class="orbit-arrow" d="m26.8 7.8 4.8 3.7-5.8 1.2M13.2 32.2l-4.8-3.7 5.8-1.2" />
+              <rect class="mouse-outline" x="14" y="10" width="12" height="20" rx="6" />
+              <path class="mouse-divider" d="M20 10v8" />
+              <circle class="mouse-wheel" cx="20" cy="14" r="1.4" />
+            </svg>
+            <span><strong>Gira la maqueta</strong><small>Arrastra para orbitar · rueda para acercar</small></span>
+          </div>
           <div id="city-viewport" class="city-viewport" data-model-status="loading" aria-busy="true"></div>
           <div class="loading-overlay" id="loading-overlay" role="status" aria-live="polite">
             <div class="loading-card"><span class="loading-symbol">${icon('city')}</span><h2 id="loading-title">Preparando tu ciudad</h2><p id="loading-detail">Cargando la maqueta 3D…</p><div class="progress-track" id="progress-track"><span id="loading-progress"></span></div><button class="retry-button" id="retry-load" hidden>Volver a cargar</button></div>
