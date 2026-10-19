@@ -1463,3 +1463,6 @@ body.sidebar-collapsed .app-sidebar {
     .interactive-model-heading { flex-direction: column; }
     .interactive-model-frame { height: 82vh; min-height: 650px; border-radius: 1rem; }
 }
+
+/* Fondo de espera coherente con el visor nocturno de SmartCity Cloud. */
+.interactive-model-frame { background: #0b1428; color-scheme: dark; }

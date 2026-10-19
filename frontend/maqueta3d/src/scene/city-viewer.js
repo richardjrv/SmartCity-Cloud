@@ -18,7 +18,7 @@ export function createCityViewer(container, { onViewChange, onError } = {}) {
   renderer.shadowMap.enabled = true;
   // Three r186 ya sustituye PCFSoft por PCF; usar directamente el filtro vigente.
   renderer.shadowMap.type = THREE.PCFShadowMap;
-  renderer.setClearColor(0xf0f3ef, 0);
+  renderer.setClearColor(0x12213a, 1);
   const canvas = renderer.domElement;
   canvas.tabIndex = 0;
   canvas.setAttribute('aria-label', 'Maqueta 3D. Arrastra para girar; usa la rueda para acercar o alejar. También puedes usar los botones de vista.');
@@ -92,7 +92,7 @@ export function createCityViewer(container, { onViewChange, onError } = {}) {
     controls.enableDamping = false;
     controls.update();
     controls.target.copy(center);
-    const distance = getFramingDistance(modelBounds, viewDirections[view], camera.fov, camera.aspect);
+    const distance = getFramingDistance(modelBounds, viewDirections[view], camera.fov, camera.aspect) * 0.78;
     camera.position.copy(center).addScaledVector(viewDirections[view], distance);
     camera.lookAt(center);
     controls.update();
