@@ -301,6 +301,7 @@ function navegarA(vista) {
     document.getElementById("vista-dashboard")?.classList.add("hidden");
     document.getElementById("vista-perfil")?.classList.add("hidden");
     document.getElementById("vista-configuracion")?.classList.add("hidden");
+    document.getElementById("vista-operador-config")?.classList.add("hidden");
     document.getElementById("vista-admin-usuarios")?.classList.add("hidden");
     document.getElementById("vista-auth")?.classList.add("hidden");
     cerrarAccountMenu();
@@ -317,7 +318,7 @@ function navegarA(vista) {
 
         document.getElementById("vista-auth")?.classList.remove("hidden");
         animarEntradaAuth();
-    } else if (["dashboard", "maqueta", "alertas", "sensores", "reportes", "graficas"].includes(vista)) {
+    } else if (["dashboard", "maqueta", "clima", "alertas", "sensores", "reportes", "graficas"].includes(vista)) {
         document.getElementById("app-sidebar")?.classList.remove("hidden");
         document.getElementById("vista-dashboard")?.classList.remove("hidden");
         const vistaDashboard = vista === "sensores" ? "dashboard" : vista;
@@ -340,6 +341,14 @@ function navegarA(vista) {
     } else if (vista === "configuracion") {
         document.getElementById("vista-configuracion")?.classList.remove("hidden");
         cargarConfiguracionEnControles();
+    } else if (vista === "operador-config") {
+        if (Number(localStorage.getItem("user_role_cloud")) !== 3) {
+            alert("⛔ Esta configuración está disponible solo para el rol Operador.");
+            navegarA("dashboard");
+            return;
+        }
+        document.getElementById("vista-operador-config")?.classList.remove("hidden");
+        cargarConfiguracionOperadorEnControles();
     } else if (vista === "admin-usuarios") {
         const rol = Number(localStorage.getItem("user_role_cloud"));
         if (rol !== 1) {
@@ -355,7 +364,7 @@ function navegarA(vista) {
 
 function aplicarVistaDashboard(vista) {
     const dashboard = document.getElementById("vista-dashboard");
-    const vistasDisponibles = ["dashboard", "maqueta", "alertas", "reportes", "graficas"];
+    const vistasDisponibles = ["dashboard", "maqueta", "clima", "alertas", "reportes", "graficas"];
     const vistaActiva = vistasDisponibles.includes(vista) ? vista : "dashboard";
     dashboard?.setAttribute("data-current-view", vistaActiva);
     document.querySelectorAll("[data-dashboard-panel]").forEach(panel => {
@@ -401,7 +410,14 @@ function mostrarDashboard(nombre, idRol) {
         }
     }
 
+    const btnOperador = document.getElementById("btn-menu-operador");
+    btnOperador?.classList.toggle("hidden", Number(idRol) !== 3);
+    if (Number(idRol) !== 3 && document.getElementById("vista-operador-config")?.classList.contains("hidden") === false) {
+        document.getElementById("vista-operador-config")?.classList.add("hidden");
+    }
+
     navegarA("dashboard");
+    configurarMonitoreoOperador();
     if (typeof prepararActivacionWakeBrunito === "function") prepararActivacionWakeBrunito();
 }
 
@@ -517,7 +533,7 @@ function toggleSidebar() {
 }
 
 function actualizarNavegacionLateral(vista) {
-    const vistas = ["dashboard", "maqueta", "alertas", "reportes", "graficas", "admin-usuarios"];
+    const vistas = ["dashboard", "maqueta", "clima", "alertas", "reportes", "graficas", "operador-config", "admin-usuarios"];
     const activa = vistas.includes(vista) ? vista : null;
     const nav = document.querySelector(".sidebar-nav");
     document.querySelectorAll("[data-sidebar-view]").forEach(button => {
@@ -692,7 +708,19 @@ const SETTINGS_KEYS = {
     soundFeedback: "smartcity_sound_feedback",
     hapticFeedback: "smartcity_haptic_feedback"
 };
+const OPERATOR_CONFIG_KEY = "smartcity_operator_system_config_v1";
+const OPERATOR_CONFIG_DEFAULTS = Object.freeze({
+    temperatureMax: 35,
+    humidityMin: 30,
+    humidityMax: 70,
+    airQualityMax: 100,
+    refreshSeconds: 60,
+    staleMinutes: 10,
+    sensorLabel: "ESP32 de la maqueta",
+    notificationsEnabled: true
+});
 let dashboardRefreshTimer = null;
+let operatorSensorTimer = null;
 let jsPDFLoadPromise = null;
 let dashboardClockTimer = null;
 let feedbackAudioContext = null;
@@ -970,6 +998,7 @@ function abrirNotificacion(id) {
 }
 
 function registrarNotificacionesSensores(sensores, esDemo = false) {
+    const notificationsEnabled = obtenerConfiguracionOperador().notificationsEnabled !== false;
     const estadoKey = claveNotificacionesUsuario("alertas_activas");
     let anteriores = {};
     try {
@@ -982,11 +1011,11 @@ function registrarNotificacionesSensores(sensores, esDemo = false) {
     const actuales = {};
     const eventos = [];
     sensores.forEach(({ id, lectura }) => {
-        valoresFueraDeRango(lectura).forEach(valor => {
+        (esDemo ? [] : valoresFueraDeRango(lectura)).forEach(valor => {
             const metrica = valor.split(/\s+/)[0];
             const key = `${id}::${metrica}`;
             actuales[key] = { sensorId: id, valor };
-            if (!anteriores[key]) {
+            if (notificationsEnabled && !anteriores[key]) {
                 eventos.push({ titulo: "Lectura fuera de rango", mensaje: `${id}: ${valor}`, sensorId: id, demo: esDemo });
             }
         });
@@ -994,7 +1023,7 @@ function registrarNotificacionesSensores(sensores, esDemo = false) {
 
     // No emitir alertas de normalización mientras no existan umbrales calibrados.
     try {
-        localStorage.setItem(estadoKey, JSON.stringify(actuales));
+        localStorage.setItem(estadoKey, JSON.stringify(notificationsEnabled ? actuales : {}));
     } catch (error) {
         console.warn("No se pudo actualizar el estado de las alertas.", error);
     }
@@ -1010,6 +1039,49 @@ function registrarNotificacionesSensores(sensores, esDemo = false) {
         }));
         guardarNotificacionesUsuario([...nuevas, ...existentes]);
     }
+    renderizarNotificaciones();
+}
+
+function registrarEstadoConexionSensor({ sensorId, ultimaLectura, huboRespuestaReal }) {
+    const settings = obtenerConfiguracionOperador();
+    const lastSeenKey = claveNotificacionesUsuario("sensor_ultima_lectura");
+    const offlineKey = claveNotificacionesUsuario("sensor_sin_datos");
+    const label = String(settings.sensorLabel || sensorId || "ESP32");
+    if (huboRespuestaReal && ultimaLectura) {
+        const timestamp = new Date(ultimaLectura).getTime();
+        if (Number.isFinite(timestamp)) {
+            try { localStorage.setItem(lastSeenKey, String(timestamp)); }
+            catch (error) { console.warn("No se pudo guardar la última lectura recibida.", error); }
+        }
+    }
+    let lastSeen = 0;
+    try { lastSeen = Number(localStorage.getItem(lastSeenKey) || 0); }
+    catch (error) { /* La detección de desconexión queda desactivada si el almacenamiento no está disponible. */ }
+    const ageMs = Date.now() - lastSeen;
+    const limitMs = Math.max(2, Number(settings.staleMinutes) || 10) * 60_000;
+    const stale = lastSeen > 0 && ageMs >= limitMs;
+    let wasOffline = false;
+    try { wasOffline = localStorage.getItem(offlineKey) === "true"; }
+    catch (error) { /* La notificación se conserva en memoria si no se puede leer el estado. */ }
+
+    if (!stale) {
+        try { localStorage.removeItem(offlineKey); } catch (error) { /* No afecta al panel. */ }
+        return;
+    }
+    if (!settings.notificationsEnabled || wasOffline) return;
+
+    const minutes = Math.floor(ageMs / 60_000);
+    const notification = {
+        id: `sensor-sin-datos-${Date.now()}`,
+        titulo: `Sin datos · ${label}`,
+        mensaje: `No llegan lecturas desde hace ${minutes} min. Revisa la conexión del ESP32.`,
+        sensorId: String(sensorId || label),
+        fecha: new Date().toISOString(),
+        leida: false,
+        origen: "sensor"
+    };
+    guardarNotificacionesUsuario([notification, ...leerNotificacionesUsuario()]);
+    try { localStorage.setItem(offlineKey, "true"); } catch (error) { /* Puede repetirse en el siguiente ciclo si el almacenamiento está lleno. */ }
     renderizarNotificaciones();
 }
 
@@ -1104,6 +1176,90 @@ function configureDashboardRefresh(seconds) {
     }, seconds * 1000);
 }
 
+function obtenerConfiguracionOperador() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(OPERATOR_CONFIG_KEY) || "{}");
+        return { ...OPERATOR_CONFIG_DEFAULTS, ...(saved && typeof saved === "object" ? saved : {}) };
+    } catch (error) {
+        return { ...OPERATOR_CONFIG_DEFAULTS };
+    }
+}
+
+function configurarMonitoreoOperador(seconds = obtenerConfiguracionOperador().refreshSeconds) {
+    if (operatorSensorTimer) clearInterval(operatorSensorTimer);
+    operatorSensorTimer = null;
+    if (Number(localStorage.getItem("user_role_cloud")) !== 3) return;
+    const interval = Number(seconds);
+    if (![30, 60, 300].includes(interval)) return;
+    operatorSensorTimer = window.setInterval(() => {
+        if (!document.hidden && obtenerToken() && typeof cargarMapaSensores === "function") {
+            void cargarMapaSensores();
+        }
+    }, interval * 1000);
+}
+
+function cargarConfiguracionOperadorEnControles() {
+    const settings = obtenerConfiguracionOperador();
+    const values = {
+        "operator-temp-max": settings.temperatureMax,
+        "operator-humidity-min": settings.humidityMin,
+        "operator-humidity-max": settings.humidityMax,
+        "operator-air-max": settings.airQualityMax,
+        "operator-refresh-interval": settings.refreshSeconds,
+        "operator-stale-minutes": settings.staleMinutes,
+        "operator-sensor-label": settings.sensorLabel
+    };
+    Object.entries(values).forEach(([id, value]) => {
+        const control = document.getElementById(id);
+        if (control) control.value = String(value);
+    });
+    const notifications = document.getElementById("operator-notifications-enabled");
+    if (notifications) notifications.checked = settings.notificationsEnabled !== false;
+}
+
+function guardarConfiguracionOperador(event) {
+    event.preventDefault();
+    if (Number(localStorage.getItem("user_role_cloud")) !== 3) {
+        mostrarNotificacion("Solo el rol Operador puede guardar estos límites.", "error");
+        return;
+    }
+    const form = document.getElementById("operator-config-form");
+    const status = document.getElementById("operator-config-status");
+    const config = {
+        temperatureMax: Number(document.getElementById("operator-temp-max")?.value),
+        humidityMin: Number(document.getElementById("operator-humidity-min")?.value),
+        humidityMax: Number(document.getElementById("operator-humidity-max")?.value),
+        airQualityMax: Number(document.getElementById("operator-air-max")?.value),
+        refreshSeconds: Number(document.getElementById("operator-refresh-interval")?.value),
+        staleMinutes: Number(document.getElementById("operator-stale-minutes")?.value),
+        sensorLabel: String(document.getElementById("operator-sensor-label")?.value || "").trim(),
+        notificationsEnabled: Boolean(document.getElementById("operator-notifications-enabled")?.checked)
+    };
+    if (!form?.reportValidity()) return;
+    if (config.humidityMin >= config.humidityMax) {
+        if (status) status.textContent = "La humedad mínima debe ser menor que la máxima.";
+        document.getElementById("operator-humidity-min")?.focus();
+        return;
+    }
+    try {
+        localStorage.setItem(OPERATOR_CONFIG_KEY, JSON.stringify(config));
+        configurarMonitoreoOperador(config.refreshSeconds);
+        if (typeof cargarMapaSensores === "function") void cargarMapaSensores();
+        if (status) status.textContent = "Configuración guardada. Los avisos se actualizarán con la próxima lectura.";
+    } catch (error) {
+        if (status) status.textContent = "No se pudo guardar en este navegador.";
+    }
+}
+
+function restablecerConfiguracionOperador() {
+    if (Number(localStorage.getItem("user_role_cloud")) !== 3) return;
+    localStorage.removeItem(OPERATOR_CONFIG_KEY);
+    cargarConfiguracionOperadorEnControles();
+    configurarMonitoreoOperador(OPERATOR_CONFIG_DEFAULTS.refreshSeconds);
+    const status = document.getElementById("operator-config-status");
+    if (status) status.textContent = "Se restauraron los valores sugeridos.";
+}
+
 function initDashboardSettings() {
     document.getElementById("footer-year").textContent = String(new Date().getFullYear());
     document.querySelectorAll("[data-accent-option]").forEach(button => {
@@ -1141,6 +1297,8 @@ function initDashboardSettings() {
         mostrarEstadoConfiguracion("Periodo inicial del reporte guardado.");
     });
     document.getElementById("config-reset")?.addEventListener("click", restablecerConfiguracion);
+    document.getElementById("operator-config-form")?.addEventListener("submit", guardarConfiguracionOperador);
+    document.getElementById("operator-config-reset")?.addEventListener("click", restablecerConfiguracionOperador);
     instalarFeedbackInteractivo();
     inicializarPantallaCompletaDashboard();
     cargarConfiguracionEnControles();

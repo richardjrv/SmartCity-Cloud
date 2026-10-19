@@ -47,7 +47,7 @@ function formatoFechaGrafica(date, period) {
 
 function prepararCanvas(canvas, height) {
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
-    const width = Math.max(260, canvas.parentElement?.clientWidth || canvas.clientWidth || 260);
+    const width = Math.max(1, Math.floor(canvas.parentElement?.clientWidth || canvas.clientWidth || 1));
     canvas.width = Math.round(width * ratio);
     canvas.height = Math.round(height * ratio);
     canvas.style.height = `${height}px`;
@@ -64,7 +64,7 @@ function dibujarActividadGeneral() {
     if (!canvas) return;
     if (!chartReadings.length) {
         canvas.classList.add("hidden");
-        if (empty) { empty.classList.remove("hidden"); empty.textContent = "No hay registros en este periodo. Cuando el ESP32 envíe lecturas, aparecerán aquí."; }
+        if (empty) { empty.classList.remove("hidden"); empty.textContent = "No hay registros reales en este periodo. Amplía el rango o confirma que el ESP32 y la API estén guardando el historial."; }
         const summary = document.getElementById("chart-data-summary");
         if (summary) summary.textContent = "Sin registros en el periodo seleccionado.";
         return;
@@ -132,7 +132,7 @@ function dibujarGraficaCampo(canvas, empty, summary, config) {
     if (!points.length) {
         canvas.classList.add("hidden");
         empty.classList.remove("hidden");
-        empty.textContent = `Sin lecturas de ${config.label.toLowerCase()} en este periodo.`;
+        empty.textContent = `No hay lecturas de ${config.label.toLowerCase()} en el rango elegido. Prueba otro periodo o espera el próximo envío del ESP32.`;
         summary.textContent = "Sin datos en el periodo seleccionado.";
         return false;
     }
@@ -332,7 +332,7 @@ function dibujarTendenciaInicio() {
     }
     canvas.classList.remove("hidden");
     empty?.classList.add("hidden");
-    const width = Math.max(280, canvas.clientWidth);
+    const width = Math.max(1, Math.floor(canvas.clientWidth || canvas.parentElement?.clientWidth || 1));
     const height = 132;
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(width * ratio);

@@ -7,7 +7,6 @@
     <meta name="theme-color" content="#0b0f17">
     <title>SmartCity Cloud - Monitoreo Urbano e IoT</title>
     <!-- Cargar librería nativa para modelos 3D .GLB / .GLTF -->
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -138,6 +137,9 @@
                 <button type="button" class="sidebar-link" data-sidebar-view="maqueta" onclick="navegarA('maqueta')" aria-label="Explorador 3D interactivo">
                     <span class="sidebar-icon" aria-hidden="true">🏙️</span><span class="sidebar-link-label">Explorador 3D</span>
                 </button>
+                <button type="button" class="sidebar-link" data-sidebar-view="clima" onclick="navegarA('clima')" aria-label="Clima local">
+                    <span class="sidebar-icon" aria-hidden="true">🌦️</span><span class="sidebar-link-label">Clima local</span>
+                </button>
                 <button id="btn-menu-alertas" type="button" class="sidebar-link" data-sidebar-view="alertas" onclick="navegarA('alertas')" aria-label="Centro de alertas">
                     <span class="sidebar-icon" aria-hidden="true">⚑</span><span id="sidebar-alertas-label" class="sidebar-link-label">Centro de alertas</span>
                     <span id="sensor-alert-badge" class="sidebar-alert-badge hidden" aria-label="0 lecturas fuera de rango">0</span>
@@ -145,8 +147,11 @@
                 <button type="button" class="sidebar-link" data-sidebar-view="reportes" onclick="navegarA('reportes')" aria-label="Reportes">
                     <span class="sidebar-icon" aria-hidden="true">▤</span><span class="sidebar-link-label">Reportes</span>
                 </button>
-                <button type="button" class="sidebar-link" data-sidebar-view="graficas" onclick="navegarA('graficas')" aria-label="Gráficas">
-                    <span class="sidebar-icon" aria-hidden="true">⌁</span><span class="sidebar-link-label">Gráficas</span>
+                <button type="button" class="sidebar-link" data-sidebar-view="graficas" onclick="navegarA('graficas')" aria-label="Gráficas y análisis">
+                    <span class="sidebar-icon" aria-hidden="true">⌁</span><span class="sidebar-link-label">Gráficas y análisis</span>
+                </button>
+                <button id="btn-menu-operador" type="button" class="sidebar-link hidden" data-sidebar-view="operador-config" onclick="navegarA('operador-config')" aria-label="Configuración del sistema">
+                    <span class="sidebar-icon" aria-hidden="true">⚙️</span><span class="sidebar-link-label">Configuración del sistema</span>
                 </button>
                 <button id="btn-menu-admin" type="button" class="sidebar-link hidden" data-sidebar-view="admin-usuarios" onclick="navegarA('admin-usuarios')" aria-label="Gestión de usuarios">
                     <span class="sidebar-icon" aria-hidden="true">♙</span><span class="sidebar-link-label">Gestión de usuarios</span>
@@ -296,7 +301,7 @@
                 <div class="dashboard-welcome-actions"><button id="dashboard-welcome-tour" type="button">Ver guía rápida</button><button id="dashboard-welcome-dismiss" type="button" aria-label="Cerrar bienvenida">Ahora no</button></div>
             </aside>
 
-            <section id="weather-local-panel" data-dashboard-panel="dashboard" class="dashboard-feature-panel weather-panel" aria-labelledby="weather-title">
+            <section id="weather-local-panel" data-dashboard-panel="clima" class="dashboard-feature-panel weather-panel" aria-labelledby="weather-title">
                 <div class="feature-panel-heading">
                     <div>
                         <p class="feature-eyebrow">Clima local</p>
@@ -458,47 +463,12 @@
                 <time id="pulse-updated">Esperando actualización</time>
             </section>
 
-            <!-- Visor 3D Interactivo de la Ciudad -->
-            <div id="city-3d-panel" data-dashboard-panel="dashboard" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
-                <div class="dashboard-map-heading">
-                    <div>
-                        <p class="dashboard-eyebrow">Vista urbana · modelo 3D</p>
-                        <h3>🏙️ Pulso de la ciudad</h3>
-                        <p id="city-pulse-summary">Un ESP32 recopila las lecturas de los sensores distribuidos en la maqueta.</p>
-                    </div>
-                    <div class="dashboard-map-badges">
-                        <span id="sensor-data-source" class="data-source-badge checking-source">COMPROBANDO FUENTE</span>
-                        <span class="map-interaction-badge"><span aria-hidden="true">⤢</span> Interactivo 360°</span>
-                    </div>
-                </div>
-
-    <!-- Componente 3D -->
-    <div id="sensor-map-canvas" class="sensor-map-canvas w-full bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-700/50">
-        <model-viewer id="sensor-map-model"
-            src="ciudad.glb" 
-            alt="Modelo 3D de SmartCity con luminarias inteligentes seleccionables"
-            camera-controls 
-            camera-orbit="35deg 70deg 18m"
-            min-camera-orbit="auto 20deg 5m"
-            max-camera-orbit="auto 85deg 40m"
-            interaction-prompt="none"
-            shadow-intensity="1"
-            touch-action="pan-y"
-            environment-image="neutral"
-            exposure="0.8"
-            loading="lazy">
-            <span slot="fallback" class="model-fallback">No se pudo cargar ciudad.glb. Verifica que el archivo frontend/ciudad.glb esté disponible.</span>
-        </model-viewer>
-        <span class="city-scene-label" aria-hidden="true">MODELO 3D · LUMINARIAS INTELIGENTES</span>
-        <p id="sensor-map-empty" class="sensor-map-empty">Cargando lecturas de sensores…</p>
-    </div>
-            </div>
-            <!-- Lecturas de los sensores representados en las luminarias del modelo 3D -->
+            <!-- Lecturas reales y demostrativas del ESP32 -->
             <section id="sensor-map-section" data-dashboard-panel="dashboard" class="bg-slate-800/60 border border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-xl" aria-labelledby="sensor-map-title">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                     <div>
-                        <h2 id="sensor-map-title" class="text-xl font-bold text-white">📡 ESP32 de la maqueta</h2>
-                        <p class="text-sm text-slate-400 mt-1">Selecciona el punto del controlador para revisar las lecturas de todos sus sensores.</p>
+                        <h2 id="sensor-map-title" class="text-xl font-bold text-white">📡 Lecturas del ESP32</h2>
+                        <p class="text-sm text-slate-400 mt-1">Consulta las mediciones reportadas por el controlador y la hora de su última lectura.</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         <button id="sensor-map-refresh" type="button" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition" aria-label="Actualizar lectura del ESP32">↻ Actualizar lectura</button>
@@ -508,12 +478,12 @@
                 <aside class="sensor-map-details bg-slate-900/70 border border-slate-700/60 rounded-2xl p-5" aria-live="polite">
                         <div class="flex items-start justify-between gap-3 mb-4">
                             <div>
-                                <p class="text-xs uppercase tracking-wider text-slate-400">Controlador seleccionado</p>
-                                <h3 id="sensor-detail-id" class="text-lg font-bold text-white mt-1">Elige un marcador</h3>
+                                <p class="text-xs uppercase tracking-wider text-slate-400">Controlador</p>
+                                <h3 id="sensor-detail-id" class="text-lg font-bold text-white mt-1">Esperando lecturas</h3>
                             </div>
                             <span id="sensor-detail-status" class="sensor-detail-status">—</span>
                         </div>
-                        <p id="sensor-detail-message" class="text-sm text-slate-400">Sus lecturas aparecerán aquí.</p>
+                        <p id="sensor-detail-message" class="text-sm text-slate-400">Las lecturas aparecerán aquí cuando el ESP32 las envíe.</p>
                         <div id="sensor-detail-content" class="hidden mt-5">
                             <div class="sensor-reading-row"><span>🌡️ Temperatura</span><strong id="sensor-detail-temperature">—</strong></div>
                             <div class="sensor-reading-row"><span>💧 Humedad</span><strong id="sensor-detail-humidity">—</strong></div>
@@ -620,7 +590,7 @@
 
             <section id="charts-panel" data-dashboard-panel="graficas" class="charts-panel hidden" aria-labelledby="charts-title">
                 <div class="charts-heading">
-                    <div><p class="feature-eyebrow">HISTORIAL DEL ESP32</p><h2 id="charts-title">Gráficas de mediciones</h2><p>Consulta la actividad general y la evolución de cada sensor de la maqueta.</p></div>
+                    <div><p class="feature-eyebrow">HISTORIAL DEL ESP32</p><h2 id="charts-title">Gráficas y análisis</h2><p>Compara las lecturas recibidas, revisa tendencias y detecta periodos sin datos.</p></div>
                     <div class="charts-controls">
                         <label for="chart-period">Periodo</label><select id="chart-period"><option value="1">Última hora</option><option value="10">Últimas 10 horas</option><option value="24" selected>Últimas 24 horas</option><option value="168">Últimos 7 días</option></select>
                         <button id="chart-refresh" type="button" class="chart-refresh-button">Actualizar</button>
@@ -768,6 +738,46 @@
             </div>
         </section>
 
+
+        <section id="vista-operador-config" class="hidden operator-config-page space-y-6" aria-labelledby="operator-config-title">
+            <header class="operator-config-heading">
+                <p class="feature-eyebrow">CENTRO DE OPERACIONES</p>
+                <h2 id="operator-config-title">⚙️ Configuración del sistema</h2>
+                <p>Define límites de aviso y el ritmo de consulta de los sensores. Estos ajustes se guardan en este navegador.</p>
+            </header>
+            <form id="operator-config-form" class="operator-config-grid">
+                <section class="operator-config-card" aria-labelledby="operator-limits-title">
+                    <h3 id="operator-limits-title">Límites de medición</h3>
+                    <p>Se enviará una notificación cuando una lectura nueva cruce estos límites.</p>
+                    <label>Temperatura máxima (°C)<input id="operator-temp-max" name="temperatureMax" type="number" min="-20" max="80" step="0.5" required></label>
+                    <div class="operator-config-two-cols">
+                        <label>Humedad mínima (%)<input id="operator-humidity-min" name="humidityMin" type="number" min="0" max="100" step="1" required></label>
+                        <label>Humedad máxima (%)<input id="operator-humidity-max" name="humidityMax" type="number" min="0" max="100" step="1" required></label>
+                    </div>
+                    <label>Calidad del aire: máximo permitido<input id="operator-air-max" name="airQualityMax" type="number" min="0" max="1000" step="1" required></label>
+                    <small class="operator-config-help">Confirma la escala del sensor de aire antes de usar este límite: puede ser una lectura cruda y no un ICA calibrado.</small>
+                </section>
+                <section class="operator-config-card" aria-labelledby="operator-sensor-title">
+                    <h3 id="operator-sensor-title">Actualización y sensores</h3>
+                    <p>La conexión se revisa mientras la sesión esté abierta y el navegador visible.</p>
+                    <label>Intervalo de actualización
+                        <select id="operator-refresh-interval" name="refreshSeconds"><option value="30">Cada 30 segundos</option><option value="60">Cada minuto</option><option value="300">Cada 5 minutos</option></select>
+                    </label>
+                    <label>Avisar si no llegan datos después de (minutos)<input id="operator-stale-minutes" name="staleMinutes" type="number" min="2" max="180" step="1" required></label>
+                    <label>Nombre del controlador<input id="operator-sensor-label" name="sensorLabel" type="text" maxlength="40" required></label>
+                </section>
+                <section class="operator-config-card operator-config-card--wide" aria-labelledby="operator-notifications-title">
+                    <h3 id="operator-notifications-title">Configuración de notificaciones</h3>
+                    <p>Los avisos aparecen en la campana de SmartCity Cloud y se conservan en la cuenta abierta en este navegador.</p>
+                    <label class="operator-config-toggle"><span><strong>Activar avisos de sensores</strong><small>Temperatura, humedad, calidad del aire y pérdida de comunicación.</small></span><input id="operator-notifications-enabled" name="notificationsEnabled" type="checkbox"></label>
+                </section>
+                <div class="operator-config-actions operator-config-card--wide">
+                    <button type="submit" class="operator-config-save">Guardar configuración</button>
+                    <button id="operator-config-reset" type="button" class="operator-config-reset">Restaurar valores sugeridos</button>
+                    <span id="operator-config-status" role="status" aria-live="polite"></span>
+                </div>
+            </form>
+        </section>
 
         <!-- ========================================== -->
         <!-- VISTA E: GESTIÓN DE USUARIOS (ADMIN FASE 3)-->

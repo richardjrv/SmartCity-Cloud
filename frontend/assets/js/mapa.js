@@ -86,14 +86,15 @@ function deduplicarLecturas(lecturas) {
 async function cargarMapaSensores() {
     const markerLayer = document.getElementById("sensor-map-model");
     const emptyState = document.getElementById("sensor-map-empty");
-    if (!markerLayer || !emptyState) return;
     if (!temporizadorAntiguedadSensor) {
         temporizadorAntiguedadSensor = window.setInterval(actualizarAntiguedadSensor, 30_000);
     }
 
-    emptyState.textContent = "Cargando lecturas de sensores…";
-    emptyState.classList.remove("hidden");
-    markerLayer.querySelectorAll(".city-lamp-marker").forEach(marker => marker.remove());
+    if (emptyState) {
+        emptyState.textContent = "Cargando lecturas de sensores…";
+        emptyState.classList.remove("hidden");
+    }
+    markerLayer?.querySelectorAll(".city-lamp-marker").forEach(marker => marker.remove());
     instalarEventosMapaSensores();
 
     let lecturasReales = [];
@@ -128,6 +129,17 @@ async function cargarMapaSensores() {
     if (typeof registrarNotificacionesSensores === "function") {
         registrarNotificacionesSensores(sensoresEnMapa, modoDemoSensores);
     }
+    if (typeof registrarEstadoConexionSensor === "function") {
+        const ultimaLecturaReal = lecturasReales.length > 0 ? lecturasEnVivo[0] : null;
+        const sensorLabel = typeof obtenerConfiguracionOperador === "function"
+            ? obtenerConfiguracionOperador().sensorLabel
+            : "ESP32";
+        registrarEstadoConexionSensor({
+            sensorId: ultimaLecturaReal?.id || sensorLabel,
+            ultimaLectura: ultimaLecturaReal?.lectura?.fecha_hora || null,
+            huboRespuestaReal: lecturasReales.length > 0
+        });
+    }
     if (typeof cargarAlertasCompartidas === "function") {
         await cargarAlertasCompartidas({ silencioso: true });
     }
@@ -137,7 +149,7 @@ async function cargarMapaSensores() {
     if (seleccionado) mostrarDetalleSensor(seleccionado);
     else if (sensoresEnMapa.length) mostrarDetalleSensor(sensoresEnMapa[0]);
     else mostrarDetalleVacio("Aún no hay lecturas para mostrar.");
-    emptyState.classList.toggle("hidden", sensoresEnMapa.length > 0);
+    emptyState?.classList.toggle("hidden", sensoresEnMapa.length > 0);
 
     const actualizado = document.getElementById("sensor-map-updated");
     if (actualizado) actualizado.textContent = modoDemoSensores
@@ -268,8 +280,24 @@ function renderizarMarcadoresSensores() {
 }
 
 function valoresFueraDeRango(lectura) {
-    // No generar alertas automáticas hasta definir rangos verificados para sensores calibrados.
-    return [];
+    const settings = typeof obtenerConfiguracionOperador === "function"
+        ? obtenerConfiguracionOperador()
+        : { temperatureMax: 35, humidityMin: 30, humidityMax: 70, airQualityMax: 100 };
+    const alerts = [];
+    const toNumber = value => value === null || value === undefined || value === "" ? NaN : Number(value);
+    const temperature = toNumber(lectura?.temperatura);
+    const humidity = toNumber(lectura?.humedad);
+    const airQuality = toNumber(lectura?.calidad_aire);
+    if (Number.isFinite(temperature) && temperature > Number(settings.temperatureMax)) {
+        alerts.push(`Temperatura ${temperature.toFixed(1)} °C (máx. ${settings.temperatureMax} °C)`);
+    }
+    if (Number.isFinite(humidity) && (humidity < Number(settings.humidityMin) || humidity > Number(settings.humidityMax))) {
+        alerts.push(`Humedad ${humidity.toFixed(1)} % (rango ${settings.humidityMin}–${settings.humidityMax} %)`);
+    }
+    if (Number.isFinite(airQuality) && airQuality > Number(settings.airQualityMax)) {
+        alerts.push(`Calidad del aire ${airQuality} (máx. ${settings.airQualityMax})`);
+    }
+    return alerts;
 }
 
 function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
@@ -294,14 +322,17 @@ function actualizarVistaSensores({ fechaTexto = "Ahora" } = {}) {
             : "Se muestra la última lectura almacenada. La conexión del ESP32 necesita revisión.";
     if (strip) strip.dataset.source = modoDemoSensores ? "demo" : lecturaApiReciente ? "api" : "stale";
     if (count) count.textContent = String(sensoresEnMapa.length);
-    if (alerts) alerts.textContent = String(sensoresEnMapa.filter(sensor => valoresFueraDeRango(sensor.lectura).length).length);
+    const observacionesSensores = modoDemoSensores
+        ? []
+        : sensoresEnMapa.flatMap(sensor => valoresFueraDeRango(sensor.lectura)
+            .map(valor => ({ sensor, valor, metrica: valor.split(/\s+/)[0] })));
+    if (alerts) alerts.textContent = String(observacionesSensores.length);
     if (updated) updated.textContent = `${fechaTexto} · actualización ${ahora}`;
 
     const lista = document.getElementById("alert-center-list");
     const total = document.getElementById("alert-center-count");
     if (!lista) return;
-    const observaciones = sensoresEnMapa.flatMap(sensor => valoresFueraDeRango(sensor.lectura)
-        .map(valor => ({ sensor, valor, metrica: valor.split(/\s+/)[0] })));
+    const observaciones = observacionesSensores;
     lista.replaceChildren();
     const hayReportesDeUsuarios = typeof alertasCompartidas !== "undefined"
         && alertasCompartidas.some(alerta => alerta.origen === "usuario");
@@ -385,10 +416,10 @@ function actualizarResumenEstadosAlertas() {
 function actualizarBadgeAlertasSensores(sensores) {
     const badge = document.getElementById("sensor-alert-badge");
     if (!badge) return;
-    const fueraDeRango = sensores.filter(({ lectura }) => valoresFueraDeRango(lectura).length).length;
+    const fueraDeRango = modoDemoSensores ? 0 : sensores.filter(({ lectura }) => valoresFueraDeRango(lectura).length).length;
     badge.textContent = fueraDeRango > 99 ? "99+" : String(fueraDeRango);
     badge.setAttribute("aria-label", `${fueraDeRango} lecturas fuera de umbrales configurados`);
-    badge.title = "No hay umbrales calibrados. Los avisos los reportan los usuarios; el administrador actualiza su estado.";
+    badge.title = "Lecturas que superan los límites definidos en Configuración del sistema.";
     badge.classList.toggle("hidden", fueraDeRango === 0);
 }
 
