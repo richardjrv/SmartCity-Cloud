@@ -1182,6 +1182,7 @@ function inicializarCursorOrbital() {
     if (!cursor) return;
 
     const ring = cursor.querySelector(".orbital-cursor__ring");
+    const frame = document.getElementById("companion-model-frame");
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let pointerInside = false;
@@ -1191,10 +1192,30 @@ function inicializarCursorOrbital() {
     let ringY = 0;
     let animationFrame = 0;
 
+    const bridgeFrameCursor = () => {
+        if (!frame) return;
+        try {
+            const frameDocument = frame.contentDocument;
+            if (!frameDocument) return;
+            let bridgeStyle = frameDocument.getElementById("orbital-cursor-bridge-style");
+            if (!bridgeStyle) {
+                bridgeStyle = frameDocument.createElement("style");
+                bridgeStyle.id = "orbital-cursor-bridge-style";
+                bridgeStyle.textContent = "html.orbital-cursor-bridged, html.orbital-cursor-bridged * { cursor: none !important; } html.orbital-cursor-bridged :is(input, textarea, [contenteditable='true']) { cursor: text !important; } html.orbital-cursor-bridged select { cursor: pointer !important; }";
+                frameDocument.head?.append(bridgeStyle);
+            }
+            const enabled = finePointer.matches && !reducedMotion.matches && !document.body.classList.contains("reduce-motion");
+            frameDocument.documentElement?.classList.toggle("orbital-cursor-bridged", enabled);
+        } catch (error) {
+            // El iframe puede estar cargando o en otro origen; el cursor principal sigue funcionando fuera de él.
+        }
+    };
+
     const sincronizarVisibilidad = () => {
         const enabled = finePointer.matches && !reducedMotion.matches && !document.body.classList.contains("reduce-motion");
         document.body.classList.toggle("cursor-orbit-enabled", enabled);
         cursor.classList.toggle("is-visible", enabled && pointerInside);
+        bridgeFrameCursor();
         if (!enabled && animationFrame) {
             cancelAnimationFrame(animationFrame);
             animationFrame = 0;
@@ -1219,10 +1240,16 @@ function inicializarCursorOrbital() {
         }
     };
 
-    document.addEventListener("pointermove", event => {
+    const actualizarPosicion = (event, frameElement = null) => {
         if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
-        x = event.clientX;
-        y = event.clientY;
+        if (frameElement) {
+            const bounds = frameElement.getBoundingClientRect();
+            x = bounds.left + event.clientX;
+            y = bounds.top + event.clientY;
+        } else {
+            x = event.clientX;
+            y = event.clientY;
+        }
         cursor.style.setProperty("--cursor-x", `${x}px`);
         cursor.style.setProperty("--cursor-y", `${y}px`);
         if (!pointerInside) {
@@ -1234,13 +1261,39 @@ function inicializarCursorOrbital() {
         pointerInside = true;
         sincronizarVisibilidad();
 
-        const target = event.target instanceof Element ? event.target : null;
+        const target = event.target && typeof event.target.closest === "function" ? event.target : null;
         cursor.classList.toggle("is-paused", Boolean(target?.closest('input, textarea, select, [contenteditable="true"]')));
         cursor.classList.toggle("is-hovering", Boolean(target?.closest("a, button, [role='button'], .cursor-pointer")));
         if (!animationFrame && finePointer.matches && !reducedMotion.matches && !document.body.classList.contains("reduce-motion")) {
             animationFrame = requestAnimationFrame(seguirOrbita);
         }
-    }, { passive: true });
+    };
+
+    document.addEventListener("pointermove", event => actualizarPosicion(event), { passive: true });
+
+    if (frame) {
+        const conectarEventosDelFrame = () => {
+            bridgeFrameCursor();
+            try {
+                const frameDocument = frame.contentDocument;
+                if (!frameDocument || frame._orbitalCursorDocument === frameDocument) return;
+                frame._orbitalCursorDocument = frameDocument;
+                frameDocument.addEventListener("pointermove", event => actualizarPosicion(event, frame), { passive: true });
+                frameDocument.addEventListener("pointerdown", event => {
+                    if (event.pointerType === "mouse" || event.pointerType === "pen") cursor.classList.add("is-pressed");
+                });
+                frameDocument.addEventListener("pointerup", () => cursor.classList.remove("is-pressed"));
+            } catch (error) {
+                // Se reintentará cuando el iframe vuelva a cargar.
+            }
+        };
+        frame.addEventListener("load", conectarEventosDelFrame);
+        conectarEventosDelFrame();
+        frame.addEventListener("pointerleave", () => {
+            pointerInside = false;
+            cursor.classList.remove("is-visible", "is-hovering", "is-pressed", "is-paused");
+        });
+    }
 
     document.addEventListener("pointerdown", event => {
         if (event.pointerType === "mouse" || event.pointerType === "pen") cursor.classList.add("is-pressed");
