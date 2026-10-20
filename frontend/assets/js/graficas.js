@@ -21,6 +21,7 @@ let homeTrendReadings = [];
 let homeTrendLoadedAt = 0;
 let homeTrendRequest = null;
 let chartRefreshTimer = null;
+let homeTrendCoordinates = {};
 
 function chartCssColor(name, fallback) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
@@ -327,8 +328,26 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
     });
     const tooltip = canvas.closest(".chart-sensor-chart-wrap")?.querySelector("[data-chart-tooltip]");
     if (tooltip) {
+        const wrap = canvas.closest(".chart-sensor-chart-wrap");
+        let guide = wrap?.querySelector("[data-chart-hover-guide]");
+        let marker = wrap?.querySelector("[data-chart-hover-dot]");
+        if (wrap && !guide) {
+            guide = document.createElement("span");
+            guide.className = "chart-hover-guide";
+            guide.dataset.chartHoverGuide = "";
+            guide.setAttribute("aria-hidden", "true");
+            wrap.appendChild(guide);
+        }
+        if (wrap && !marker) {
+            marker = document.createElement("span");
+            marker.className = "chart-hover-dot";
+            marker.dataset.chartHoverDot = "";
+            marker.setAttribute("aria-hidden", "true");
+            wrap.appendChild(marker);
+        }
         canvas.onpointermove = event => {
             const bounds = canvas.getBoundingClientRect();
+            const wrapBounds = wrap.getBoundingClientRect();
             const pointerX = event.clientX - bounds.left;
             let closest = 0;
             let distance = Infinity;
@@ -337,11 +356,29 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
                 if (delta < distance) { closest = index; distance = delta; }
             });
             const point = points[closest];
+            const pointX = bounds.left - wrapBounds.left + xFor(closest) * (bounds.width / width);
+            const pointY = bounds.top - wrapBounds.top + yFor(point.value) * (bounds.height / height);
+            if (guide) {
+                guide.style.left = `${pointX}px`;
+                guide.style.top = `${bounds.top - wrapBounds.top + padding.top * (bounds.height / height)}px`;
+                guide.style.bottom = `${wrapBounds.height - (bounds.top - wrapBounds.top + (height - padding.bottom) * (bounds.height / height))}px`;
+                guide.classList.add("is-visible");
+            }
+            if (marker) {
+                marker.style.left = `${pointX}px`;
+                marker.style.top = `${pointY}px`;
+                marker.style.setProperty("--chart-point-color", config.color);
+                marker.classList.add("is-visible");
+            }
             tooltip.textContent = `${point.date.toLocaleString("es-EC", { dateStyle: "medium", timeStyle: "short" })} · ${formatoValorGrafica(point.value, config)}`;
             tooltip.style.left = `${Math.max(8, Math.min(bounds.width - 190, pointerX + 10))}px`;
             tooltip.classList.add("is-visible");
         };
-        canvas.onpointerleave = () => tooltip.classList.remove("is-visible");
+        canvas.onpointerleave = () => {
+            tooltip.classList.remove("is-visible");
+            guide?.classList.remove("is-visible");
+            marker?.classList.remove("is-visible");
+        };
     }
     if (config.kind === "boolean") {
         const detections = points.filter(point => point.value === 1).length;
@@ -552,6 +589,7 @@ function dibujarTendenciaInicio() {
     const plotWidth = width - padding.left - padding.right;
     const plotHeight = height - padding.top - padding.bottom;
     const colors = { temperatura: "#38bdf8", humedad: "#34d399" };
+    homeTrendCoordinates = {};
     context.strokeStyle = chartCssColor("--border-color", "#334155");
     context.globalAlpha = .48;
     for (let row = 0; row < 3; row += 1) {
@@ -574,6 +612,7 @@ function dibujarTendenciaInicio() {
                 y: padding.top + (1 - ((value - min + spread * .08) / (spread * 1.16))) * plotHeight
             } : null;
         });
+        homeTrendCoordinates[key] = coords;
         context.beginPath();
         let drawing = false;
         coords.forEach(point => {
@@ -593,10 +632,48 @@ function dibujarTendenciaInicio() {
     context.textAlign = "right"; context.fillText("Ahora", width - padding.right, height - 1);
     const tooltip = document.getElementById("sensor-trend-tooltip");
     if (tooltip) {
+        const wrap = canvas.closest(".dashboard-trend-chart-wrap");
+        let guide = wrap?.querySelector("[data-chart-hover-guide]");
+        let markers = wrap?.querySelectorAll("[data-trend-hover-dot]");
+        if (wrap && !guide) {
+            guide = document.createElement("span");
+            guide.className = "chart-hover-guide";
+            guide.dataset.chartHoverGuide = "";
+            guide.setAttribute("aria-hidden", "true");
+            wrap.appendChild(guide);
+        }
+        if (wrap && (!markers || markers.length !== 2)) {
+            wrap.querySelectorAll("[data-trend-hover-dot]").forEach(dot => dot.remove());
+            ["temperatura", "humedad"].forEach(key => {
+                const dot = document.createElement("span");
+                dot.className = "chart-hover-dot chart-hover-dot--trend";
+                dot.dataset.trendHoverDot = key;
+                dot.setAttribute("aria-hidden", "true");
+                wrap.appendChild(dot);
+            });
+            markers = wrap.querySelectorAll("[data-trend-hover-dot]");
+        }
         canvas.onpointermove = event => {
             const bounds = canvas.getBoundingClientRect();
+            const wrapBounds = wrap.getBoundingClientRect();
             const x = event.clientX - bounds.left;
             const index = Math.max(0, Math.min(readings.length - 1, Math.round((x - padding.left) / plotWidth * (readings.length - 1))));
+            const selectedX = bounds.left - wrapBounds.left + padding.left + (readings.length === 1 ? .5 : index / (readings.length - 1)) * plotWidth;
+            if (guide) {
+                guide.style.left = `${selectedX}px`;
+                guide.style.top = `${bounds.top - wrapBounds.top + padding.top}px`;
+                guide.style.bottom = `${wrapBounds.height - (bounds.top - wrapBounds.top + height - padding.bottom)}px`;
+                guide.classList.add("is-visible");
+            }
+            markers?.forEach(dot => {
+                const coords = homeTrendCoordinates[dot.dataset.trendHoverDot];
+                const point = coords?.[index];
+                if (!point) { dot.classList.remove("is-visible"); return; }
+                dot.style.left = `${bounds.left - wrapBounds.left + point.x}px`;
+                dot.style.top = `${bounds.top - wrapBounds.top + point.y}px`;
+                dot.style.setProperty("--chart-point-color", colors[dot.dataset.trendHoverDot]);
+                dot.classList.add("is-visible");
+            });
             const row = readings[index];
             const date = new Date(row.fecha_hora);
             const temperature = convertirNumeroLectura(row.temperatura);
@@ -606,7 +683,11 @@ function dibujarTendenciaInicio() {
             tooltip.style.left = `${Math.max(8, Math.min(bounds.width - 260, x + 10))}px`;
             tooltip.classList.add("is-visible");
         };
-        canvas.onpointerleave = () => tooltip.classList.remove("is-visible");
+        canvas.onpointerleave = () => {
+            tooltip.classList.remove("is-visible");
+            guide?.classList.remove("is-visible");
+            markers?.forEach(dot => dot.classList.remove("is-visible"));
+        };
     }
     const lastReading = readings.at(-1);
     const temperaturaValor = convertirNumeroLectura(lastReading.temperatura);
