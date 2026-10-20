@@ -17,9 +17,28 @@
 .chart-tooltip { position: absolute; z-index: 2; top: 3px; left: 8px; max-width: calc(100% - 16px); padding: .35rem .55rem; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border-color)); border-radius: .55rem; color: var(--text-primary); background: color-mix(in srgb, var(--bg-main) 94%, transparent); box-shadow: 0 6px 20px rgb(0 0 0 / 18%); font-size: .65rem; font-weight: 700; opacity: 0; pointer-events: none; transform: translateY(-3px); transition: opacity .12s ease, transform .12s ease; white-space: nowrap; }
 .chart-tooltip.is-visible { opacity: 1; transform: translateY(0); }
 .chart-sensor-summary { padding-top: .2rem; }
+.chart-filter-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .7rem; margin-top: 1rem; padding: .85rem; border: 1px solid var(--border-color); border-radius: .9rem; background: color-mix(in srgb, var(--bg-main) 68%, var(--bg-card)); }
+.chart-filter-bar label { display: grid; gap: .32rem; min-width: 0; color: var(--text-secondary); font-size: .7rem; font-weight: 700; }
+.chart-filter-bar input, .chart-filter-bar select { width: 100%; min-width: 0; min-height: 2.5rem; padding: .45rem .6rem; border: 1px solid var(--border-color); border-radius: .65rem; color: var(--text-primary); background: var(--bg-input); font: inherit; font-size: .75rem; }
+.chart-summary-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.chart-summary-item { border-color: color-mix(in srgb, var(--border-color) 88%, transparent); background: var(--bg-card); }
+.chart-summary-item::after { display: none; }
+.chart-summary-alerts strong { color: #d97706; }
+.chart-overview-panel { border-color: var(--border-color); background: var(--bg-card); }
+.chart-overview-panel::before { display: none; }
+.chart-sensor-card { box-shadow: none; }
+.chart-sensor-card:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgb(15 23 42 / 8%); }
+.chart-sensor-status.has-data { color: #047857; background: rgb(16 185 129 / 8%); }
+.chart-canvas-wrap, .chart-sensor-chart-wrap, .dashboard-trend-chart-wrap { position: relative; }
+.dashboard-trend-chart-wrap .chart-tooltip { top: 0; }
+@media (max-width: 760px) {
+    .chart-filter-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .chart-summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 640px) {
     .charts-panel, .chart-overview-panel, .chart-sensors-section { min-width: 0; }
     .chart-summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .chart-filter-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .chart-sensor-grid { grid-template-columns: minmax(0, 1fr); }
     .chart-canvas-wrap { min-height: 260px; }
     .chart-canvas-wrap canvas { height: 260px; }

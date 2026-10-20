@@ -1,24 +1,26 @@
 // Historial real del único ESP32. Cada variable mantiene su escala y unidad.
 const chartSensorConfig = [
-    { id: "hc-sr04", name: "HC-SR04", icon: "📏", description: "Distancia de proximidad", fields: [{ key: "distancia_cm", label: "Distancia", unit: "cm", color: "#c084fc" }] },
-    { id: "lluvia", name: "Sensor de lluvia", icon: "🌧️", description: "Presencia de lluvia", fields: [{ key: "lluvia_detectada", label: "Detección", kind: "boolean", trueLabel: "Sí", falseLabel: "No", color: "#38bdf8" }] },
-    { id: "ldr", name: "LDR", icon: "☀️", description: "Luminosidad; lectura sin calibrar", fields: [{ key: "luminosidad", label: "Luminosidad", unit: "lectura", color: "#fbbf24" }] },
-    { id: "nivel-agua", name: "Nivel de agua", icon: "💧", description: "Lectura cruda; requiere calibración para expresarla en porcentaje", fields: [{ key: "nivel_agua", label: "Nivel", unit: "lectura", color: "#2dd4bf" }] },
-    { id: "dht22", name: "DHT22", icon: "🌡️", description: "Temperatura y humedad ambiental", fields: [
+    { id: "hc-sr04", area: "movilidad", name: "HC-SR04", icon: "📏", description: "Distancia de proximidad", fields: [{ key: "distancia_cm", label: "Distancia", unit: "cm", color: "#8b5cf6" }] },
+    { id: "lluvia", area: "ambiental", name: "Sensor de lluvia", icon: "🌧️", description: "Presencia de lluvia", fields: [{ key: "lluvia_detectada", label: "Detección", kind: "boolean", trueLabel: "Sí", falseLabel: "No", color: "#0284c7" }] },
+    { id: "ldr", area: "ambiental", name: "LDR", icon: "☀️", description: "Luminosidad; lectura sin calibrar", fields: [{ key: "luminosidad", label: "Luminosidad", unit: "lectura", color: "#d97706" }] },
+    { id: "nivel-agua", area: "agua", name: "Nivel de agua", icon: "💧", description: "Lectura cruda; requiere calibración para expresarla en porcentaje", fields: [{ key: "nivel_agua", label: "Nivel", unit: "lectura", color: "#0f9f92" }] },
+    { id: "dht22", area: "ambiental", name: "DHT22", icon: "🌡️", description: "Temperatura y humedad ambiental", fields: [
         { key: "temperatura", label: "Temperatura", unit: "°C", color: "#38bdf8" },
         { key: "humedad", label: "Humedad", unit: "%", color: "#34d399" }
     ] },
-    { id: "tcrt5000", name: "TCRT5000", icon: "🚘", description: "Reflectancia infrarroja y detección", fields: [
+    { id: "tcrt5000", area: "movilidad", name: "TCRT5000", icon: "🚘", description: "Reflectancia infrarroja y detección", fields: [
         { key: "reflectancia_tcrt5000", label: "Reflectancia", unit: "lectura", color: "#fb7185" },
         { key: "tcrt5000_detectado", label: "Detección", kind: "boolean", trueLabel: "Sí", falseLabel: "No", color: "#f97316" }
     ] },
-    { id: "calidad-aire", name: "Calidad del aire", icon: "🍃", description: "Dato adicional; solo aparece si el ESP32 lo reporta", optional: true, fields: [{ key: "calidad_aire", label: "Respuesta del sensor", unit: "lectura", color: "#a3e635" }] }
+    { id: "calidad-aire", area: "ambiental", name: "Calidad del aire", icon: "🍃", description: "Dato adicional; solo aparece si el ESP32 lo reporta", optional: true, fields: [{ key: "calidad_aire", label: "Respuesta del sensor", unit: "lectura", color: "#65a30d" }] }
 ];
 const convertirNumeroLectura = valor => valor === null || valor === undefined || valor === "" ? NaN : Number(valor);
 let chartReadings = [];
+let chartAllReadings = [];
 let homeTrendReadings = [];
 let homeTrendLoadedAt = 0;
 let homeTrendRequest = null;
+let chartRefreshTimer = null;
 
 function chartCssColor(name, fallback) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
@@ -39,10 +41,82 @@ function puntosCampoGrafica(config) {
         .filter(point => Number.isFinite(point.value) && !Number.isNaN(point.date.getTime()));
 }
 
+function esLecturaConAlerta(row, area = "todos") {
+    if (area === "agua" || area === "movilidad") return false;
+    const settings = typeof obtenerConfiguracionOperador === "function" ? obtenerConfiguracionOperador() : { temperatureMax: 35, humidityMin: 30, humidityMax: 70, airQualityMax: 100 };
+    const temperature = convertirNumeroLectura(row.temperatura);
+    const humidity = convertirNumeroLectura(row.humedad);
+    const air = convertirNumeroLectura(row.calidad_aire);
+    return (Number.isFinite(temperature) && temperature > Number(settings.temperatureMax))
+        || (Number.isFinite(humidity) && (humidity < Number(settings.humidityMin) || humidity > Number(settings.humidityMax)))
+        || (Number.isFinite(air) && air > Number(settings.airQualityMax));
+}
+
+function areaTieneDatos(row, area) {
+    if (area === "ambiental") return ["temperatura", "humedad", "calidad_aire", "lluvia_detectada", "luminosidad"].some(key => Number.isFinite(valorCampoGrafica(row[key], { kind: key === "lluvia_detectada" ? "boolean" : undefined })));
+    if (area === "agua") return Number.isFinite(convertirNumeroLectura(row.nivel_agua));
+    if (area === "movilidad") return ["distancia_cm", "reflectancia_tcrt5000", "tcrt5000_detectado"].some(key => Number.isFinite(valorCampoGrafica(row[key], { kind: key === "tcrt5000_detectado" ? "boolean" : undefined })));
+    return true;
+}
+
+function actualizarFiltrosLocales() {
+    const area = document.getElementById("chart-area-filter")?.value || "todos";
+    const state = document.getElementById("chart-state-filter")?.value || "todos";
+    chartReadings = chartAllReadings.filter(row => (area === "todos" || areaTieneDatos(row, area))
+        && (state === "todos" || (state === "alerta") === esLecturaConAlerta(row, area)));
+    document.querySelectorAll("[data-chart-sensor]").forEach(card => {
+        const sensor = chartSensorConfig.find(item => item.id === card.dataset.chartSensor);
+        card.dataset.areaHidden = String(area !== "todos" && sensor?.area !== area);
+    });
+    dibujarTodasLasGraficas();
+    const total = document.getElementById("chart-total-readings");
+    if (total) total.textContent = String(chartReadings.length);
+    const activeCount = chartSensorConfig.filter(sensor => sensor.area === area || area === "todos")
+        .filter(sensor => chartReadings.some(row => sensor.fields.some(field => Number.isFinite(valorCampoGrafica(row[field.key], field)))))
+        .length;
+    const active = document.getElementById("chart-active-sensors");
+    if (active) active.textContent = String(activeCount);
+    const alertCount = document.getElementById("chart-alert-readings");
+    if (alertCount) {
+        if (area === "todos" || area === "ambiental") {
+            const alerts = chartAllReadings.filter(row => (area === "todos" || areaTieneDatos(row, area)) && esLecturaConAlerta(row, area)).length;
+            const relevantTotal = chartAllReadings.filter(row => area === "todos" || areaTieneDatos(row, area)).length;
+            const percentage = relevantTotal ? Math.round((alerts / relevantTotal) * 100) : 0;
+            alertCount.textContent = `${alerts} · ${percentage}%`;
+        } else alertCount.textContent = "Sin límites configurados";
+    }
+    const lastReading = document.getElementById("chart-last-reading");
+    if (lastReading) lastReading.textContent = chartReadings.length ? new Date(chartReadings.at(-1).fecha_hora).toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" }) : "Sin lecturas";
+}
+
+function valorLocalParaInput(date) {
+    const adjusted = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+    return adjusted.toISOString().slice(0, 16);
+}
+
+function aplicarPeriodoRapido() {
+    const period = document.getElementById("chart-period")?.value;
+    if (!period || period === "custom") return;
+    const until = new Date();
+    const since = new Date(until.getTime() - Number(period) * 3_600_000);
+    const start = document.getElementById("chart-start-date");
+    const end = document.getElementById("chart-end-date");
+    if (start) start.value = valorLocalParaInput(since);
+    if (end) end.value = valorLocalParaInput(until);
+}
+
 function formatoFechaGrafica(date, period) {
     const format = { hour: "2-digit", minute: "2-digit" };
     if (period >= 24) { format.day = "2-digit"; format.month = "short"; }
     return date.toLocaleString("es-EC", format);
+}
+
+function periodoGraficaHoras() {
+    const start = document.getElementById("chart-start-date")?.value;
+    const end = document.getElementById("chart-end-date")?.value;
+    if (start && end) return Math.max(1, (new Date(end) - new Date(start)) / 3_600_000);
+    const value = Number(document.getElementById("chart-period")?.value || 24);
+    return Number.isFinite(value) ? value : 24;
 }
 
 function formatoValorGrafica(valor, config) {
@@ -87,11 +161,12 @@ function dibujarActividadGeneral() {
     const result = prepararCanvas(canvas, 300);
     if (!result) return;
     const { context, width, height } = result;
-    const period = Number(document.getElementById("chart-period")?.value || 24);
+    const period = periodoGraficaHoras();
     const bucketCount = period <= 1 ? 6 : period <= 10 ? 10 : period <= 24 ? 12 : 14;
     const values = Array(bucketCount).fill(0);
-    const start = Date.now() - period * 60 * 60 * 1000;
-    const duration = period * 60 * 60 * 1000;
+    const start = document.getElementById("chart-start-date")?.value ? new Date(document.getElementById("chart-start-date").value).getTime() : Date.now() - period * 3_600_000;
+    const end = document.getElementById("chart-end-date")?.value ? new Date(document.getElementById("chart-end-date").value).getTime() : Date.now();
+    const duration = Math.max(1, end - start);
     chartReadings.forEach(row => {
         const date = new Date(row.fecha_hora).getTime();
         if (!Number.isFinite(date)) return;
@@ -139,7 +214,7 @@ function dibujarActividadGeneral() {
         }
     });
     context.fillStyle = text; context.textBaseline = "top";
-    const last = new Date();
+    const last = new Date(end);
     const first = new Date(start);
     const middle = new Date(start + duration / 2);
     [first, middle, last].forEach((date, index) => {
@@ -147,6 +222,20 @@ function dibujarActividadGeneral() {
         context.textAlign = index === 0 ? "left" : index === 1 ? "center" : "right";
         context.fillText(formatoFechaGrafica(date, period), x, height - padding.bottom + 14);
     });
+    const tooltip = document.getElementById("chart-overview-tooltip");
+    if (tooltip) {
+        canvas.onpointermove = event => {
+            const bounds = canvas.getBoundingClientRect();
+            const x = event.clientX - bounds.left;
+            const index = Math.max(0, Math.min(bucketCount - 1, Math.floor((x - padding.left) / slot)));
+            const from = new Date(start + duration / bucketCount * index);
+            const to = new Date(start + duration / bucketCount * (index + 1));
+            tooltip.textContent = `${from.toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" })} – ${to.toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })} · ${values[index]} registros`;
+            tooltip.style.left = `${Math.max(8, Math.min(bounds.width - 250, x + 10))}px`;
+            tooltip.classList.add("is-visible");
+        };
+        canvas.onpointerleave = () => tooltip.classList.remove("is-visible");
+    }
     const summary = document.getElementById("chart-data-summary");
     const activeIntervals = values.filter(value => value > 0).length;
     const peak = Math.max(...values);
@@ -186,7 +275,7 @@ function dibujarGraficaCampo(canvas, empty, summary, config) {
         valueEl.textContent = formatoValorGrafica(points.at(-1).value, config);
         valueEl.title = `Última lectura: ${points.at(-1).date.toLocaleString("es-EC")}`;
     }
-    canvas.setAttribute("aria-label", `${config.label}: ${points.length} lecturas; última ${formatoValorGrafica(points.at(-1).value, config)}; ${formatoFechaGrafica(points.at(-1).date, Number(document.getElementById("chart-period")?.value || 24))}.`);
+    canvas.setAttribute("aria-label", `${config.label}: ${points.length} lecturas; última ${formatoValorGrafica(points.at(-1).value, config)}; ${formatoFechaGrafica(points.at(-1).date, periodoGraficaHoras())}.`);
     context.font = "10px system-ui, sans-serif";
     context.textAlign = "right"; context.textBaseline = "middle";
     for (let tick = 0; tick <= 3; tick += 1) {
@@ -234,7 +323,7 @@ function dibujarGraficaCampo(canvas, empty, summary, config) {
         const point = points[index];
         const x = xFor(index);
         context.textAlign = index === 0 ? "left" : index === points.length - 1 ? "right" : "center";
-        context.fillText(formatoFechaGrafica(point.date, Number(document.getElementById("chart-period")?.value || 24)), x, height - padding.bottom + 10);
+        context.fillText(formatoFechaGrafica(point.date, periodoGraficaHoras()), x, height - padding.bottom + 10);
     });
     const tooltip = canvas.closest(".chart-sensor-chart-wrap")?.querySelector("[data-chart-tooltip]");
     if (tooltip) {
@@ -248,7 +337,7 @@ function dibujarGraficaCampo(canvas, empty, summary, config) {
                 if (delta < distance) { closest = index; distance = delta; }
             });
             const point = points[closest];
-            tooltip.textContent = `${formatoFechaGrafica(point.date, Number(document.getElementById("chart-period")?.value || 24))} · ${formatoValorGrafica(point.value, config)}`;
+            tooltip.textContent = `${point.date.toLocaleString("es-EC", { dateStyle: "medium", timeStyle: "short" })} · ${formatoValorGrafica(point.value, config)}`;
             tooltip.style.left = `${Math.max(8, Math.min(bounds.width - 190, pointerX + 10))}px`;
             tooltip.classList.add("is-visible");
         };
@@ -310,6 +399,7 @@ function actualizarResumenSensores() {
         const card = document.querySelector(`[data-chart-sensor="${sensor.id}"]`);
         if (!card) return;
         const hasData = sensor.fields.some(field => puntosCampoGrafica(field).length > 0);
+        if (card.dataset.areaHidden === "true") { card.hidden = true; return; }
         if (sensor.optional && !hasData) { card.hidden = true; return; }
         card.hidden = false;
         const status = card.querySelector("[data-chart-sensor-status]");
@@ -325,6 +415,8 @@ function dibujarTodasLasGraficas() {
     document.querySelectorAll("[data-chart-sensor]").forEach(card => {
         const sensor = chartSensorConfig.find(item => item.id === card.dataset.chartSensor);
         if (!sensor) return;
+        const hiddenByArea = card.dataset.areaHidden === "true";
+        if (hiddenByArea) { card.hidden = true; return; }
         if (sensor.optional) {
             const hasAnyData = sensor.fields.some(field => puntosCampoGrafica(field).length > 0);
             card.hidden = !hasAnyData;
@@ -350,32 +442,35 @@ async function cargarGraficasSensores() {
     const summary = document.getElementById("chart-data-summary");
     const updated = document.getElementById("chart-updated-at");
     const button = document.getElementById("chart-refresh");
-    const period = Number(document.getElementById("chart-period")?.value || 24);
-    const until = new Date();
-    const since = new Date(until.getTime() - period * 60 * 60 * 1000);
+    const startInput = document.getElementById("chart-start-date");
+    const endInput = document.getElementById("chart-end-date");
+    const startValue = startInput?.value ? new Date(startInput.value) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const endValue = endInput?.value ? new Date(endInput.value) : new Date();
+    if (!Number.isFinite(startValue.getTime()) || !Number.isFinite(endValue.getTime()) || startValue >= endValue) {
+        if (empty) { empty.classList.remove("hidden"); empty.textContent = "El rango no es válido. La fecha inicial debe ser anterior a la fecha final."; }
+        return;
+    }
     if (button) { button.disabled = true; button.setAttribute("aria-busy", "true"); }
     if (empty) { empty.textContent = "Consultando historial…"; empty.classList.remove("hidden"); }
     document.getElementById("chart-overview-canvas")?.classList.add("hidden");
     try {
-        const query = new URLSearchParams({ desde: since.toISOString(), hasta: until.toISOString() });
+        const query = new URLSearchParams({ desde: startValue.toISOString(), hasta: endValue.toISOString() });
         const result = await apiFetch(`/sensores/historial?${query.toString()}`);
         if (!result.ok) throw new Error(result.data?.detail || "No se pudo consultar el historial.");
         if (!Array.isArray(result.data)) throw new Error("La respuesta del historial no tiene el formato esperado.");
-        chartReadings = result.data.filter(row => row && row.fecha_hora).sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
-        dibujarTodasLasGraficas();
-        const total = document.getElementById("chart-total-readings");
-        if (total) total.textContent = String(chartReadings.length);
-        const latest = chartReadings.at(-1);
-        const lastReading = document.getElementById("chart-last-reading");
-        if (lastReading) lastReading.textContent = latest ? new Date(latest.fecha_hora).toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" }) : "Sin lecturas";
+        chartAllReadings = result.data.filter(row => row && row.fecha_hora).sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
+        actualizarFiltrosLocales();
         if (updated) updated.textContent = `Actualizado ${new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}`;
     } catch (error) {
+        chartAllReadings = [];
         chartReadings = [];
         dibujarTodasLasGraficas();
         const total = document.getElementById("chart-total-readings");
         if (total) total.textContent = "—";
         const active = document.getElementById("chart-active-sensors");
         if (active) active.textContent = "—";
+        const alerts = document.getElementById("chart-alert-readings");
+        if (alerts) alerts.textContent = "—";
         const latest = document.getElementById("chart-last-reading");
         if (latest) latest.textContent = "—";
         if (empty) { empty.classList.remove("hidden"); empty.textContent = error.message || "No se pudo conectar con el historial de sensores."; }
@@ -445,13 +540,32 @@ function dibujarTendenciaInicio() {
             else context.lineTo(point.x, point.y);
         });
         context.strokeStyle = colors[key]; context.lineWidth = 2.3; context.lineJoin = "round"; context.lineCap = "round"; context.stroke();
-        const last = coords.at(-1);
-        if (last) { context.beginPath(); context.arc(last.x, last.y, 3.2, 0, Math.PI * 2); context.fillStyle = colors[key]; context.fill(); }
+        coords.forEach(point => {
+            if (!point) return;
+            context.beginPath(); context.arc(point.x, point.y, 2.5, 0, Math.PI * 2); context.fillStyle = colors[key]; context.fill();
+        });
     });
     context.fillStyle = chartCssColor("--text-secondary", "#94a3b8");
     context.font = "10px system-ui, sans-serif"; context.textBaseline = "bottom";
     context.textAlign = "left"; context.fillText("Hace 24 h", padding.left, height - 1);
     context.textAlign = "right"; context.fillText("Ahora", width - padding.right, height - 1);
+    const tooltip = document.getElementById("sensor-trend-tooltip");
+    if (tooltip) {
+        canvas.onpointermove = event => {
+            const bounds = canvas.getBoundingClientRect();
+            const x = event.clientX - bounds.left;
+            const index = Math.max(0, Math.min(readings.length - 1, Math.round((x - padding.left) / plotWidth * (readings.length - 1))));
+            const row = readings[index];
+            const date = new Date(row.fecha_hora);
+            const temperature = convertirNumeroLectura(row.temperatura);
+            const humidity = convertirNumeroLectura(row.humedad);
+            const values = [Number.isFinite(temperature) ? `${temperature.toFixed(1)} °C` : null, Number.isFinite(humidity) ? `${humidity.toFixed(1)} %` : null].filter(Boolean).join(" · ");
+            tooltip.textContent = `${date.toLocaleString("es-EC", { dateStyle: "medium", timeStyle: "short" })} · ${values}`;
+            tooltip.style.left = `${Math.max(8, Math.min(bounds.width - 260, x + 10))}px`;
+            tooltip.classList.add("is-visible");
+        };
+        canvas.onpointerleave = () => tooltip.classList.remove("is-visible");
+    }
     const lastReading = readings.at(-1);
     const temperaturaValor = convertirNumeroLectura(lastReading.temperatura);
     const humedadValor = convertirNumeroLectura(lastReading.humedad);
@@ -491,8 +605,23 @@ async function cargarTendenciaInicio({ forzar = false } = {}) {
 
 function inicializarGraficasSensores() {
     crearTarjetasSensores();
+    aplicarPeriodoRapido();
     document.getElementById("chart-refresh")?.addEventListener("click", cargarGraficasSensores);
-    document.getElementById("chart-period")?.addEventListener("change", cargarGraficasSensores);
+    document.getElementById("chart-period")?.addEventListener("change", () => { aplicarPeriodoRapido(); void cargarGraficasSensores(); });
+    ["chart-start-date", "chart-end-date"].forEach(id => document.getElementById(id)?.addEventListener("change", () => {
+        const period = document.getElementById("chart-period");
+        if (period) period.value = "custom";
+        void cargarGraficasSensores();
+    }));
+    ["chart-area-filter", "chart-state-filter"].forEach(id => document.getElementById(id)?.addEventListener("change", actualizarFiltrosLocales));
+    if (chartRefreshTimer) clearInterval(chartRefreshTimer);
+    const configuredInterval = typeof obtenerConfiguracionOperador === "function" ? Number(obtenerConfiguracionOperador().refreshSeconds) : 60;
+    const refreshMs = Math.max(30, Math.min(300, Number.isFinite(configuredInterval) ? configuredInterval : 60)) * 1000;
+    chartRefreshTimer = window.setInterval(() => {
+        if (document.hidden || !document.getElementById("charts-panel")?.getClientRects().length) return;
+        if (document.getElementById("chart-period")?.value !== "custom") aplicarPeriodoRapido();
+        void cargarGraficasSensores();
+    }, refreshMs);
     window.addEventListener("resize", () => {
         if (document.getElementById("charts-panel")?.getClientRects().length) dibujarTodasLasGraficas();
         if (document.getElementById("dashboard-trends")?.getClientRects().length) dibujarTendenciaInicio();
