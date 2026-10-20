@@ -45,6 +45,19 @@ function formatoFechaGrafica(date, period) {
     return date.toLocaleString("es-EC", format);
 }
 
+function formatoValorGrafica(valor, config) {
+    if (config.kind === "boolean") return valor === 1 ? config.trueLabel : config.falseLabel;
+    const decimals = config.unit === "lectura" ? 0 : 1;
+    return `${Number(valor).toFixed(decimals)}${config.unit ? ` ${config.unit}` : ""}`;
+}
+
+function colorConAlpha(color, alpha) {
+    const match = String(color).match(/^#([\da-f]{6})$/i);
+    if (!match) return color;
+    const value = Number.parseInt(match[1], 16);
+    return `rgba(${value >> 16}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;
+}
+
 function prepararCanvas(canvas, height) {
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
     const width = Math.max(1, Math.floor(canvas.parentElement?.clientWidth || canvas.clientWidth || 1));
@@ -64,7 +77,7 @@ function dibujarActividadGeneral() {
     if (!canvas) return;
     if (!chartReadings.length) {
         canvas.classList.add("hidden");
-        if (empty) { empty.classList.remove("hidden"); empty.textContent = "No hay registros reales en este periodo. Amplía el rango o confirma que el ESP32 y la API estén guardando el historial."; }
+        if (empty) { empty.classList.remove("hidden"); empty.textContent = "No hay lecturas en este periodo. Amplía el rango o revisa que el ESP32 esté enviando datos."; }
         const summary = document.getElementById("chart-data-summary");
         if (summary) summary.textContent = "Sin registros en el periodo seleccionado.";
         return;
@@ -110,21 +123,34 @@ function dibujarActividadGeneral() {
         const x = padding.left + index * slot + Math.max(2, slot * .16);
         const barWidth = Math.max(2, slot * .68);
         const y = padding.top + plotHeight - barHeight;
-        context.fillStyle = "#38bdf8";
-        context.globalAlpha = value ? .82 : .2;
-        context.fillRect(x, y, barWidth, Math.max(value ? 2 : 1, barHeight));
-        context.globalAlpha = 1;
+        if (value) {
+            const gradient = context.createLinearGradient(0, y, 0, padding.top + plotHeight);
+            gradient.addColorStop(0, "#38bdf8");
+            gradient.addColorStop(1, "rgba(56, 189, 248, .18)");
+            context.fillStyle = gradient;
+            context.beginPath();
+            context.roundRect(x, y, barWidth, Math.max(3, barHeight), Math.min(7, barWidth / 2));
+            context.fill();
+            context.fillStyle = text;
+            context.textAlign = "center";
+            context.textBaseline = "bottom";
+            context.font = "10px system-ui, sans-serif";
+            context.fillText(String(value), x + barWidth / 2, y - 4);
+        }
     });
-    context.fillStyle = text; context.textAlign = "center"; context.textBaseline = "top";
+    context.fillStyle = text; context.textBaseline = "top";
     const last = new Date();
     const first = new Date(start);
     const middle = new Date(start + duration / 2);
     [first, middle, last].forEach((date, index) => {
         const x = index === 0 ? padding.left : index === 1 ? padding.left + plotWidth / 2 : padding.left + plotWidth;
+        context.textAlign = index === 0 ? "left" : index === 1 ? "center" : "right";
         context.fillText(formatoFechaGrafica(date, period), x, height - padding.bottom + 14);
     });
     const summary = document.getElementById("chart-data-summary");
-    if (summary) summary.textContent = `${chartReadings.length} registros · actividad agrupada en ${bucketCount} intervalos`;
+    const activeIntervals = values.filter(value => value > 0).length;
+    const peak = Math.max(...values);
+    if (summary) summary.textContent = `${chartReadings.length} registros · ${activeIntervals} intervalos con actividad · máximo ${peak} registros`;
 }
 
 function dibujarGraficaCampo(canvas, empty, summary, config) {
@@ -155,6 +181,12 @@ function dibujarGraficaCampo(canvas, empty, summary, config) {
     const xFor = index => points.length < 2 ? padding.left + plotWidth / 2
         : padding.left + (lastTime === firstTime ? index / (points.length - 1) : (points[index].date.getTime() - firstTime) / (lastTime - firstTime)) * plotWidth;
     const yFor = value => padding.top + ((max - value) / (max - min || 1)) * plotHeight;
+    const valueEl = canvas.closest(".chart-sensor-field")?.querySelector("[data-chart-current-value]");
+    if (valueEl) {
+        valueEl.textContent = formatoValorGrafica(points.at(-1).value, config);
+        valueEl.title = `Última lectura: ${points.at(-1).date.toLocaleString("es-EC")}`;
+    }
+    canvas.setAttribute("aria-label", `${config.label}: ${points.length} lecturas; última ${formatoValorGrafica(points.at(-1).value, config)}; ${formatoFechaGrafica(points.at(-1).date, Number(document.getElementById("chart-period")?.value || 24))}.`);
     context.font = "10px system-ui, sans-serif";
     context.textAlign = "right"; context.textBaseline = "middle";
     for (let tick = 0; tick <= 3; tick += 1) {
@@ -175,25 +207,60 @@ function dibujarGraficaCampo(canvas, empty, summary, config) {
             context.lineTo(x, y);
         } else context.lineTo(x, y);
     });
-    context.strokeStyle = config.color; context.lineWidth = 2.2; context.lineJoin = "round"; context.lineCap = "round"; context.stroke();
+    if (config.kind !== "boolean") {
+        const fill = context.createLinearGradient(0, padding.top, 0, padding.top + plotHeight);
+        fill.addColorStop(0, colorConAlpha(config.color, .25));
+        fill.addColorStop(1, colorConAlpha(config.color, .015));
+        context.lineTo(xFor(points.length - 1), padding.top + plotHeight);
+        context.lineTo(xFor(0), padding.top + plotHeight);
+        context.closePath();
+        context.fillStyle = fill;
+        context.fill();
+        context.beginPath();
+        points.forEach((point, index) => {
+            const x = xFor(index); const y = yFor(point.value);
+            if (index === 0) context.moveTo(x, y); else context.lineTo(x, y);
+        });
+    }
+    context.strokeStyle = config.color; context.lineWidth = 2.5; context.lineJoin = "round"; context.lineCap = "round"; context.stroke();
     points.forEach((point, index) => {
         if (points.length > 30 && index % Math.ceil(points.length / 15) !== 0 && index !== points.length - 1) return;
         context.beginPath(); context.arc(xFor(index), yFor(point.value), 2.7, 0, Math.PI * 2);
         context.fillStyle = config.color; context.fill();
     });
-    context.fillStyle = text; context.textAlign = "center"; context.textBaseline = "top";
-    [points[0], points[Math.floor((points.length - 1) / 2)], points.at(-1)].forEach((point, index) => {
-        const x = index === 0 ? padding.left : index === 1 ? padding.left + plotWidth / 2 : padding.left + plotWidth;
+    context.fillStyle = text; context.textBaseline = "top";
+    const dateTicks = [...new Set([0, Math.floor((points.length - 1) / 2), points.length - 1])];
+    dateTicks.forEach(index => {
+        const point = points[index];
+        const x = xFor(index);
+        context.textAlign = index === 0 ? "left" : index === points.length - 1 ? "right" : "center";
         context.fillText(formatoFechaGrafica(point.date, Number(document.getElementById("chart-period")?.value || 24)), x, height - padding.bottom + 10);
     });
+    const tooltip = canvas.closest(".chart-sensor-chart-wrap")?.querySelector("[data-chart-tooltip]");
+    if (tooltip) {
+        canvas.onpointermove = event => {
+            const bounds = canvas.getBoundingClientRect();
+            const pointerX = event.clientX - bounds.left;
+            let closest = 0;
+            let distance = Infinity;
+            points.forEach((point, index) => {
+                const delta = Math.abs(xFor(index) - pointerX);
+                if (delta < distance) { closest = index; distance = delta; }
+            });
+            const point = points[closest];
+            tooltip.textContent = `${formatoFechaGrafica(point.date, Number(document.getElementById("chart-period")?.value || 24))} · ${formatoValorGrafica(point.value, config)}`;
+            tooltip.style.left = `${Math.max(8, Math.min(bounds.width - 190, pointerX + 10))}px`;
+            tooltip.classList.add("is-visible");
+        };
+        canvas.onpointerleave = () => tooltip.classList.remove("is-visible");
+    }
     if (config.kind === "boolean") {
         const detections = points.filter(point => point.value === 1).length;
         summary.textContent = `${detections} detecciones · ${points.length} lecturas registradas`;
     } else {
         const values = points.map(point => point.value);
         const average = values.reduce((sum, value) => sum + value, 0) / values.length;
-        const unit = config.unit ? ` ${config.unit}` : "";
-        summary.textContent = `${points.length} lecturas · promedio ${average.toFixed(1)}${unit} · mín. ${Math.min(...values).toFixed(1)} · máx. ${Math.max(...values).toFixed(1)}`;
+        summary.textContent = `${points.length} lecturas · promedio ${formatoValorGrafica(average, config)} · mín. ${formatoValorGrafica(Math.min(...values), config)} · máx. ${formatoValorGrafica(Math.max(...values), config)}`;
     }
     return true;
 }
@@ -219,13 +286,18 @@ function crearTarjetasSensores() {
         sensor.fields.forEach(field => {
             const fieldSection = document.createElement("section"); fieldSection.className = "chart-sensor-field";
             const fieldTitle = document.createElement("h5"); fieldTitle.textContent = field.label;
+            const fieldHeading = document.createElement("div"); fieldHeading.className = "chart-field-heading";
+            const current = document.createElement("strong"); current.className = "chart-current-value"; current.dataset.chartCurrentValue = ""; current.textContent = "—"; current.setAttribute("aria-label", "Última lectura");
+            fieldHeading.append(fieldTitle, current);
             const wrap = document.createElement("div"); wrap.className = "chart-sensor-chart-wrap";
             const canvas = document.createElement("canvas"); canvas.className = "chart-sensor-canvas hidden"; canvas.setAttribute("role", "img");
+            canvas.tabIndex = 0;
             canvas.setAttribute("aria-label", `Historial de ${field.label.toLowerCase()} del sensor ${sensor.name}`);
             const empty = document.createElement("p"); empty.className = "chart-sensor-empty"; empty.setAttribute("role", "status"); empty.textContent = "Esperando historial…";
-            wrap.append(canvas, empty);
+            const tooltip = document.createElement("span"); tooltip.className = "chart-tooltip"; tooltip.dataset.chartTooltip = ""; tooltip.setAttribute("aria-hidden", "true");
+            wrap.append(canvas, empty, tooltip);
             const summary = document.createElement("p"); summary.className = "chart-sensor-summary";
-            fieldSection.append(fieldTitle, wrap, summary);
+            fieldSection.append(fieldHeading, wrap, summary);
             card.appendChild(fieldSection);
         });
         container.appendChild(card);
