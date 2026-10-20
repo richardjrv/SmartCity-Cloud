@@ -58,19 +58,21 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             
             <!-- Logo & Marca -->
-            <button type="button" class="brand-home-button flex items-center gap-3" onclick="navegarA('dashboard')" aria-label="Ir al inicio de SmartCity Cloud">
-                <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xl brand-cloud-scene" aria-hidden="true">
-                    <svg viewBox="0 0 48 48" class="brand-cloud-icon" focusable="false"><path d="M14 34h21a8 8 0 0 0 1-16 12 12 0 0 0-23-2 9 9 0 0 0 1 18Z" fill="currentColor"/><path d="M14 34h21a8 8 0 0 0 1-16 12 12 0 0 0-23-2 9 9 0 0 0 1 18Z" fill="url(#brandCloudGradient)"/><defs><linearGradient id="brandCloudGradient" x1="10" y1="12" x2="39" y2="37"><stop stop-color="#fff" stop-opacity=".82"/><stop offset="1" stop-color="#60a5fa" stop-opacity=".28"/></linearGradient></defs></svg>
-                    <span class="brand-cloud-orbit"></span>
-                </div>
-                <div>
-                    <h1 class="font-bold text-base tracking-wide text-white">SmartCity Cloud</h1>
-                    <p class="text-xs text-slate-400 hidden sm:block">Plataforma IoT & Nube</p>
-                </div>
-            </button>
+            <div id="header-brand-group" class="header-brand-group">
+                <button type="button" class="brand-home-button flex items-center gap-3" onclick="navegarA('dashboard')" aria-label="Ir al inicio de SmartCity Cloud">
+                    <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xl brand-cloud-scene" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" class="brand-cloud-icon" focusable="false"><path d="M14 34h21a8 8 0 0 0 1-16 12 12 0 0 0-23-2 9 9 0 0 0 1 18Z" fill="currentColor"/><path d="M14 34h21a8 8 0 0 0 1-16 12 12 0 0 0-23-2 9 9 0 0 0 1 18Z" fill="url(#brandCloudGradient)"/><defs><linearGradient id="brandCloudGradient" x1="10" y1="12" x2="39" y2="37"><stop stop-color="#fff" stop-opacity=".82"/><stop offset="1" stop-color="#60a5fa" stop-opacity=".28"/></linearGradient></defs></svg>
+                        <span class="brand-cloud-orbit"></span>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-base tracking-wide text-white">SmartCity Cloud</h1>
+                        <p class="text-xs text-slate-400 hidden sm:block">Plataforma IoT & Nube</p>
+                    </div>
+                </button>
+                <button id="btn-mobile-nav" type="button" class="hidden md:hidden px-3 py-2 rounded-lg border border-slate-600 text-slate-200" aria-expanded="false" aria-controls="app-sidebar" aria-label="Abrir navegación" onclick="toggleMobileNav()">☰</button>
+            </div>
 
             <div class="flex items-center gap-2 sm:gap-3">
-                <button id="btn-mobile-nav" type="button" class="hidden md:hidden px-3 py-2 rounded-lg border border-slate-600 text-slate-200" aria-expanded="false" aria-controls="app-sidebar" aria-label="Abrir navegación" onclick="toggleMobileNav()">☰</button>
                 <div id="dashboard-header-context" class="dashboard-header-context hidden" aria-label="Ubicación, fecha y hora local">
                     <span id="header-weather-location" class="dashboard-header-location">📍 Puerto Francisco de Orellana, Ecuador</span>
                     <time id="dashboard-clock-time" class="dashboard-header-time">--:--:--</time>

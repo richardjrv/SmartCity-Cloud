@@ -1466,3 +1466,80 @@ body.sidebar-collapsed .app-sidebar {
 
 /* Fondo de espera coherente con el visor nocturno de SmartCity Cloud. */
 .interactive-model-frame { background: #0b1428; color-scheme: dark; }
+
+/* Encabezado, navegación y maqueta ajustados para móviles. */
+.header-brand-group { display: flex; min-width: 0; flex: 0 0 auto; align-items: center; gap: .6rem; }
+.header-brand-group .brand-home-button { min-width: 0; }
+.header-brand-group .brand-home-button h1 { white-space: nowrap; }
+@media (max-width: 767px) {
+    body > header { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); }
+    header > div.max-w-7xl {
+        box-sizing: border-box;
+        width: 100%;
+        height: 4rem;
+        min-height: 4rem;
+        gap: .5rem;
+        padding: 0 .75rem;
+    }
+    .header-brand-group { gap: .5rem; }
+    .header-brand-group .brand-home-button { gap: .55rem; }
+    .header-brand-group .brand-home-button > div:first-child { flex: 0 0 2.35rem; width: 2.35rem; height: 2.35rem; }
+    .header-brand-group .brand-home-button h1 { font-size: .95rem; letter-spacing: -.025em; }
+    #btn-mobile-nav { width: 2.75rem; height: 2.75rem; min-width: 2.75rem; min-height: 2.75rem; }
+    header > div.max-w-7xl > .flex.items-center.gap-2 {
+        min-width: 0;
+        flex: 1 1 auto;
+        justify-content: flex-end;
+        gap: .4rem;
+    }
+    .dashboard-header-context { max-width: 5.5rem; }
+    .dashboard-header-location,
+    .dashboard-header-date { display: none; }
+    .dashboard-header-time { font-size: .69rem; }
+    #usuario-badge { min-height: 2.65rem; max-width: 8.5rem; gap: .4rem; padding: .45rem .55rem; }
+    #nav-usuario-nombre { max-width: 5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .notification-trigger { width: 2.65rem; height: 2.65rem; flex: 0 0 2.65rem; }
+
+    .app-sidebar,
+    body.sidebar-collapsed .app-sidebar {
+        top: calc(4rem + env(safe-area-inset-top, 0px));
+        bottom: env(safe-area-inset-bottom, 0px);
+        width: min(19rem, calc(100vw - 3rem));
+        max-height: none;
+        overscroll-behavior: contain;
+    }
+    .sidebar-backdrop:not(.hidden) { inset: calc(4rem + env(safe-area-inset-top, 0px)) 0 0; }
+    body.mobile-sidebar-open { overflow: hidden; }
+
+    .interactive-model-heading { align-items: stretch; gap: .65rem; padding: .95rem; }
+    .interactive-model-heading h2 { font-size: 1.15rem; }
+    .interactive-model-heading p:not(.dashboard-eyebrow) { font-size: .78rem; line-height: 1.5; }
+    .interactive-model-badge { align-self: flex-start; white-space: normal; }
+    .interactive-model-frame { height: min(76svh, 42rem); min-height: 34rem; border-radius: .9rem; }
+    .interactive-model-note { font-size: .7rem; }
+    .main-content { min-width: 0; }
+    .main-content :is(.dashboard-feature-panel, .chart-overview-panel, .chart-sensors-section, .operator-config-card) { min-width: 0; }
+    #btn-chat-launcher.chat-floating-btn { right: .75rem !important; bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)) !important; width: 3.25rem; height: 3.25rem; }
+    #brunito-chat-window { right: .75rem !important; bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px)) !important; width: min(26rem, calc(100vw - 1.5rem)); max-height: min(70dvh, 34rem); }
+}
+
+@media (max-width: 520px) {
+    header > div.max-w-7xl { padding-inline: .6rem; }
+    .header-brand-group { gap: .4rem; }
+    .header-brand-group .brand-home-button { gap: .45rem; }
+    .header-brand-group .brand-home-button h1 { font-size: .88rem; }
+    #btn-mobile-nav { width: 2.55rem; height: 2.55rem; min-width: 2.55rem; min-height: 2.55rem; }
+    .dashboard-header-context { display: none !important; }
+    #usuario-badge { max-width: 7rem; }
+    #nav-usuario-nombre { max-width: 3.5rem; }
+    .main-content { padding: .6rem !important; }
+    .interactive-model-panel { gap: .65rem; }
+    .interactive-model-frame { height: min(72svh, 38rem); min-height: 32rem; border-radius: .8rem; }
+}
+
+@media (max-width: 360px) {
+    .header-brand-group .brand-home-button h1 { font-size: .8rem; }
+    .header-brand-group .brand-home-button > div:first-child { flex-basis: 2.1rem; width: 2.1rem; height: 2.1rem; }
+    #usuario-badge { max-width: 5.8rem; }
+    #nav-usuario-nombre { max-width: 2.5rem; }
+}
