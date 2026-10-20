@@ -1030,6 +1030,17 @@
         </section>
     </div>
 
+    <div id="chart-focus-layer" class="chart-focus-layer" hidden aria-hidden="true">
+        <section class="chart-focus-dialog" role="dialog" aria-modal="true" aria-labelledby="chart-focus-title" aria-describedby="chart-focus-hint">
+            <header class="chart-focus-header">
+                <div><p class="feature-eyebrow">VISTA AMPLIADA</p><h2 id="chart-focus-title">Gráfica del sensor</h2><p id="chart-focus-hint">Usa el cursor sobre la línea para consultar la fecha y el valor exactos.</p></div>
+                <button id="chart-focus-back" class="chart-focus-back" type="button">← Volver a todas las gráficas</button>
+            </header>
+            <div class="chart-focus-chart chart-sensor-chart-wrap"><canvas id="chart-focus-canvas" class="chart-sensor-canvas" role="img" tabindex="0"></canvas><span class="chart-tooltip" data-chart-tooltip aria-hidden="true"></span></div>
+            <p id="chart-focus-summary" class="chart-sensor-summary"></p>
+        </section>
+    </div>
+
 
     <!-- ============================================================ -->
     <!-- 5. SCRIPTS JS MODULARES EN ORDEN                             -->

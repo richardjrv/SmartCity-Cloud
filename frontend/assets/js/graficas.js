@@ -242,7 +242,7 @@ function dibujarActividadGeneral() {
     if (summary) summary.textContent = `${chartReadings.length} registros · ${activeIntervals} intervalos con actividad · máximo ${peak} registros`;
 }
 
-function dibujarGraficaCampo(canvas, empty, summary, config) {
+function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) {
     const points = puntosCampoGrafica(config);
     if (!points.length) {
         canvas.classList.add("hidden");
@@ -253,7 +253,7 @@ function dibujarGraficaCampo(canvas, empty, summary, config) {
     }
     canvas.classList.remove("hidden");
     empty.classList.add("hidden");
-    const result = prepararCanvas(canvas, 174);
+    const result = prepararCanvas(canvas, chartHeight);
     if (!result) return false;
     const { context, width, height } = result;
     const text = chartCssColor("--text-secondary", "#94a3b8");
@@ -388,9 +388,51 @@ function crearTarjetasSensores() {
             const summary = document.createElement("p"); summary.className = "chart-sensor-summary";
             fieldSection.append(fieldHeading, wrap, summary);
             card.appendChild(fieldSection);
+            let hoverTimer = null;
+            const expandAfterDelay = () => {
+                window.clearTimeout(hoverTimer);
+                hoverTimer = window.setTimeout(() => card.classList.add("is-hover-expanded"), 2000);
+            };
+            canvas.addEventListener("pointerenter", expandAfterDelay);
+            canvas.addEventListener("pointerleave", () => { window.clearTimeout(hoverTimer); card.classList.remove("is-hover-expanded"); });
+            canvas.addEventListener("dblclick", () => abrirGraficaAmpliada(sensor, field, canvas));
+            canvas.addEventListener("keydown", event => {
+                if (event.key === "Enter" || event.key === " ") { event.preventDefault(); abrirGraficaAmpliada(sensor, field, canvas); }
+            });
+            canvas.title = "Mantén el cursor 2 segundos para resaltar. Doble clic para ampliar.";
         });
         container.appendChild(card);
     });
+}
+
+let graficaOrigenEnfocada = null;
+let overflowAnteriorAlEnfocar = "";
+
+function abrirGraficaAmpliada(sensor, field, sourceCanvas) {
+    const layer = document.getElementById("chart-focus-layer");
+    const canvas = document.getElementById("chart-focus-canvas");
+    const summary = document.getElementById("chart-focus-summary");
+    const title = document.getElementById("chart-focus-title");
+    if (!layer || !canvas || !summary || !title) return;
+    graficaOrigenEnfocada = sourceCanvas;
+    title.textContent = `${sensor.name} · ${field.label}`;
+    layer.hidden = false;
+    layer.setAttribute("aria-hidden", "false");
+    overflowAnteriorAlEnfocar = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const height = Math.max(280, Math.min(560, window.innerHeight * 0.58));
+    dibujarGraficaCampo(canvas, { classList: { add() {}, remove() {} }, textContent: "" }, summary, field, height);
+    document.getElementById("chart-focus-back")?.focus();
+}
+
+function cerrarGraficaAmpliada() {
+    const layer = document.getElementById("chart-focus-layer");
+    if (!layer || layer.hidden) return;
+    layer.hidden = true;
+    layer.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = overflowAnteriorAlEnfocar;
+    graficaOrigenEnfocada?.focus();
+    graficaOrigenEnfocada = null;
 }
 
 function actualizarResumenSensores() {
@@ -614,6 +656,13 @@ function inicializarGraficasSensores() {
         void cargarGraficasSensores();
     }));
     ["chart-area-filter", "chart-state-filter"].forEach(id => document.getElementById(id)?.addEventListener("change", actualizarFiltrosLocales));
+    document.getElementById("chart-focus-back")?.addEventListener("click", cerrarGraficaAmpliada);
+    document.getElementById("chart-focus-layer")?.addEventListener("click", event => {
+        if (event.target.id === "chart-focus-layer") cerrarGraficaAmpliada();
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") cerrarGraficaAmpliada();
+    });
     if (chartRefreshTimer) clearInterval(chartRefreshTimer);
     const configuredInterval = typeof obtenerConfiguracionOperador === "function" ? Number(obtenerConfiguracionOperador().refreshSeconds) : 60;
     const refreshMs = Math.max(30, Math.min(300, Number.isFinite(configuredInterval) ? configuredInterval : 60)) * 1000;
