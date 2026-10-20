@@ -1,10 +1,10 @@
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import List, Literal, Optional
 
 class MessageHistory(BaseModel):
-    role: str  # "user" o "assistant"
-    content: str
+    role: Literal["user", "assistant", "model"]
+    content: str = Field(min_length=1, max_length=2000)
 
 class ChatRequest(BaseModel):
-    message: str
-    history: Optional[List[MessageHistory]] = None  # Evita usar listas mutables en defaults
+    message: str = Field(min_length=1, max_length=4000)
+    history: Optional[List[MessageHistory]] = Field(default=None, max_length=24)

@@ -8,6 +8,7 @@ let brunitoListening = false;
 let brunitoWakeRecognition = null;
 let brunitoWakeEnabled = false;
 let brunitoWakeStarting = false;
+let brunitoWakeSpeaking = false;
 let brunitoWakeRestartTimer = null;
 let brunitoWakeRestartDelay = 700;
 let brunitoWakeCommandTimer = null;
@@ -41,12 +42,48 @@ function limpiarEsperaComandoWakeBrunito() {
 }
 
 function programarReinicioWakeBrunito() {
-    if (!brunitoWakeEnabled || brunitoWakeRestartTimer) return;
+    if (!brunitoWakeEnabled || brunitoWakeSpeaking || brunitoWakeRestartTimer) return;
     brunitoWakeRestartTimer = window.setTimeout(() => {
         brunitoWakeRestartTimer = null;
         crearReconocimientoWakeBrunito();
     }, brunitoWakeRestartDelay);
     brunitoWakeRestartDelay = Math.min(brunitoWakeRestartDelay * 2, 5600);
+}
+
+function anunciarEsperaWakeBrunito(texto) {
+    agregarMensajeBrunito("model", texto);
+    const SpeechSynthesisUtterance = window.SpeechSynthesisUtterance;
+    if (!window.speechSynthesis || !SpeechSynthesisUtterance) {
+        actualizarEstadoVozBrunito(texto);
+        return;
+    }
+
+    const reconocimiento = brunitoWakeRecognition;
+    brunitoWakeSpeaking = true;
+    if (reconocimiento) {
+        try { reconocimiento.stop(); } catch (error) { /* El reconocimiento ya estaba detenido. */ }
+    }
+
+    const respuesta = new SpeechSynthesisUtterance(texto);
+    respuesta.lang = "es-EC";
+    respuesta.rate = 1;
+    respuesta.pitch = 1;
+    const vozEspanol = window.speechSynthesis.getVoices()
+        .find(voz => voz.lang?.toLowerCase().startsWith("es"));
+    if (vozEspanol) respuesta.voice = vozEspanol;
+
+    const finalizar = () => {
+        brunitoWakeSpeaking = false;
+        if (brunitoWakeEnabled) programarReinicioWakeBrunito();
+    };
+    respuesta.onend = finalizar;
+    respuesta.onerror = finalizar;
+    try {
+        window.speechSynthesis.speak(respuesta);
+    } catch (error) {
+        finalizar();
+        actualizarEstadoVozBrunito(texto);
+    }
 }
 
 function extraerComandoWakeBrunito(transcripcion) {
@@ -88,7 +125,7 @@ function procesarResultadoWakeBrunito(transcripcion) {
     }
 
     brunitoWakeWaitingForCommand = true;
-    actualizarEstadoVozBrunito("Aquí estoy. Dime tu consulta ahora.");
+    anunciarEsperaWakeBrunito("Dime, ¿alguna duda? ¿En qué puedo ayudarte?");
     if (brunitoWakeCommandTimer) window.clearTimeout(brunitoWakeCommandTimer);
     brunitoWakeCommandTimer = window.setTimeout(() => {
         limpiarEsperaComandoWakeBrunito();
@@ -403,11 +440,16 @@ function esConsultaClimaBrunito(texto) {
 
 function esConsultaSensoresBrunito(texto) {
     const consulta = normalizarConsultaClimaBrunito(texto);
-    const consultaDeSensor = /\b(sensor|sensores|esp32|dht22|lectura|lecturas|datos guardados|registrados)\b/.test(consulta);
+    const consultaConceptual = /\b(que es|que significa|como funciona|para que sirve|explica|definicion|diferencia entre|que mide)\b/.test(consulta);
+    if (consultaConceptual) return false;
+    const mencionaSensor = /\b(sensor|sensores|esp32|dht22)\b/.test(consulta);
+    const pideLecturaGuardada = /\b(lectura|lecturas|datos guardados|registrados|ultima medicion|reporta)\b/.test(consulta);
     const consultaDeMetrica = /\b(temperatura|humedad|calidad del aire|calidad aire|distancia|lluvia|luminosidad|luz|nivel de agua|reflectancia|tcrt5000)\b/.test(consulta);
     const consultaMeteorologica = /\b(clima|tiempo|weather|pronostico|prevision|open meteo)\b/.test(consulta);
     const consultaUbicada = /\b(?:en|de|para)\s+(?:puerto francisco de orellana|francisco de orellana|orellana|el coca)\b/.test(consulta);
-    return consultaDeSensor || (consultaDeMetrica && !consultaMeteorologica && !consultaUbicada);
+    const pideLecturaActual = /\b(actual|ahora|ultima|ultimo|marca|mide|lectura|lecturas|valor|dato|registrado|reporta|hay|cual es|cuanto|cuanta|como esta)\b/.test(consulta);
+    return pideLecturaGuardada || (mencionaSensor && pideLecturaActual)
+        || (consultaDeMetrica && pideLecturaActual && !consultaMeteorologica && !consultaUbicada);
 }
 
 function responderConsultaNotificacionesBrunito(texto, typing) {
@@ -629,7 +671,7 @@ async function procesarMensajeBrunito(texto) {
             timeoutMs: 45000,
             body: JSON.stringify({
                 message: texto,
-                history: brunitoHistory
+                history: brunitoHistory.slice(-24)
             })
         });
 
