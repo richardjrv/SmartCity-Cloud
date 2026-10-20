@@ -27,6 +27,12 @@ def _session_response(session: dict):
         raise HTTPException(status_code=401, detail="Supabase Auth no devolvió un token válido.")
     try:
         auth_user, _, _ = validar_token_y_obtener_sesion(access_token)
+    except SupabaseAuthError as error:
+        if error.status == 429 or error.status >= 500:
+            raise public_auth_error(error, session=True) from error
+        raise HTTPException(status_code=401, detail="La sesión de Supabase no es válida.") from error
+    except HTTPException:
+        raise
     except Exception as error:
         raise HTTPException(status_code=401, detail="No se pudo validar la sesión de Supabase.") from error
 
@@ -99,7 +105,7 @@ def renovar_sesion(datos: RefreshData):
     try:
         session = refresh_session(datos.refresh_token)
     except SupabaseAuthError as error:
-        raise public_auth_error(error, login=True) from error
+        raise public_auth_error(error, session=True) from error
     return _session_response(session)
 
 
@@ -109,7 +115,7 @@ def logout(authorization: str = Header(...)):
     try:
         sign_out(access_token)
     except SupabaseAuthError as error:
-        raise public_auth_error(error, login=True) from error
+        raise public_auth_error(error, session=True) from error
     return {"mensaje": "Sesión cerrada."}
 
 

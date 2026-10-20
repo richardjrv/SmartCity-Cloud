@@ -72,7 +72,9 @@ def get_user(access_token: str):
 
 
 def sign_out(access_token: str):
-    return _request("POST", "/auth/v1/logout", access_token=access_token)
+    # The app's logout button should revoke only this browser's refresh token.
+    # Supabase defaults to global logout, which would sign the user out on every device.
+    return _request("POST", "/auth/v1/logout?scope=local", access_token=access_token)
 
 
 def update_password(access_token: str, password: str, current_password: str | None = None):
@@ -91,10 +93,23 @@ def delete_user(user_id: str):
     return _request("DELETE", f"/auth/v1/admin/users/{quote(user_id, safe='')}", admin=True)
 
 
-def public_auth_error(error: SupabaseAuthError, *, login: bool = False) -> HTTPException:
+def public_auth_error(
+    error: SupabaseAuthError,
+    *,
+    login: bool = False,
+    session: bool = False,
+) -> HTTPException:
     if error.status in (400, 401, 403, 422):
-        message = "Correo o contraseña incorrectos." if login else error.message
-        return HTTPException(status_code=401 if login else 400, detail=message)
+        if login:
+            message = (
+                "Correo o contraseña incorrectos. Si tu cuenta usa Google o Facebook, "
+                "entra con ese proveedor o restablece tu contraseña."
+            )
+        elif session:
+            message = "La sesión venció o ya no es válida. Inicia sesión nuevamente."
+        else:
+            message = error.message
+        return HTTPException(status_code=401 if login or session else 400, detail=message)
     if error.status == 429:
         return HTTPException(status_code=429, detail="Demasiados intentos. Espera un momento e inténtalo otra vez.")
     return HTTPException(status_code=503, detail="Supabase Auth no pudo completar la solicitud.")
