@@ -5,18 +5,22 @@ const chartSensorConfig = [
     { id: "ldr", area: "ambiental", name: "LDR", icon: "☀️", description: "Luminosidad; lectura sin calibrar", fields: [{ key: "luminosidad", label: "Luminosidad", unit: "lectura", color: "#d97706" }] },
     { id: "nivel-agua", area: "agua", name: "Nivel de agua", icon: "💧", description: "Lectura cruda; requiere calibración para expresarla en porcentaje", fields: [{ key: "nivel_agua", label: "Nivel", unit: "lectura", color: "#0f9f92" }] },
     { id: "dht22", area: "ambiental", name: "DHT22", icon: "🌡️", description: "Temperatura y humedad ambiental", fields: [
-        { key: "temperatura", label: "Temperatura", unit: "°C", color: "#38bdf8" },
-        { key: "humedad", label: "Humedad", unit: "%", color: "#34d399" }
+        { key: "temperatura", label: "Temperatura", unit: "°C", color: "#38bdf8", threshold: "temperatura" },
+        { key: "humedad", label: "Humedad", unit: "%", color: "#34d399", threshold: "humedad" }
     ] },
     { id: "tcrt5000", area: "movilidad", name: "TCRT5000", icon: "🚘", description: "Reflectancia infrarroja y detección", fields: [
         { key: "reflectancia_tcrt5000", label: "Reflectancia", unit: "lectura", color: "#fb7185" },
         { key: "tcrt5000_detectado", label: "Detección", kind: "boolean", trueLabel: "Sí", falseLabel: "No", color: "#f97316" }
     ] },
-    { id: "calidad-aire", area: "ambiental", name: "Calidad del aire", icon: "🍃", description: "Dato adicional; solo aparece si el ESP32 lo reporta", optional: true, fields: [{ key: "calidad_aire", label: "Respuesta del sensor", unit: "lectura", color: "#65a30d" }] }
+    { id: "calidad-aire", area: "ambiental", name: "Calidad del aire", icon: "🍃", description: "Dato adicional; solo aparece si el ESP32 lo reporta", optional: true, fields: [{ key: "calidad_aire", label: "Respuesta del sensor", unit: "lectura", color: "#65a30d", threshold: "calidad_aire" }] }
 ];
 const convertirNumeroLectura = valor => valor === null || valor === undefined || valor === "" ? NaN : Number(valor);
 let chartReadings = [];
 let chartAllReadings = [];
+let chartAllPreviousReadings = [];
+let chartPreviousReadings = [];
+let chartLatestReading = null;
+let chartLoading = false;
 let homeTrendReadings = [];
 let homeTrendLoadedAt = 0;
 let homeTrendRequest = null;
@@ -37,14 +41,26 @@ function valorCampoGrafica(valor, config) {
     return convertirNumeroLectura(valor);
 }
 
-function puntosCampoGrafica(config) {
-    return chartReadings.map(row => ({ date: new Date(row.fecha_hora), value: valorCampoGrafica(row[config.key], config) }))
+function puntosCampoGrafica(config, readings = chartReadings) {
+    return readings.map(row => ({ date: new Date(row.fecha_hora), value: valorCampoGrafica(row[config.key], config) }))
         .filter(point => Number.isFinite(point.value) && !Number.isNaN(point.date.getTime()));
+}
+
+function ajustesRangoGrafica() {
+    return typeof obtenerConfiguracionOperador === "function" ? obtenerConfiguracionOperador() : { temperatureMax: 35, humidityMin: 30, humidityMax: 70, airQualityMax: 100, staleMinutes: 10 };
+}
+
+function umbralesCampoGrafica(config) {
+    const settings = ajustesRangoGrafica();
+    if (config.threshold === "temperatura") return { min: null, max: Number(settings.temperatureMax) };
+    if (config.threshold === "humedad") return { min: Number(settings.humidityMin), max: Number(settings.humidityMax) };
+    if (config.threshold === "calidad_aire") return { min: null, max: Number(settings.airQualityMax) };
+    return null;
 }
 
 function esLecturaConAlerta(row, area = "todos") {
     if (area === "agua" || area === "movilidad") return false;
-    const settings = typeof obtenerConfiguracionOperador === "function" ? obtenerConfiguracionOperador() : { temperatureMax: 35, humidityMin: 30, humidityMax: 70, airQualityMax: 100 };
+    const settings = ajustesRangoGrafica();
     const temperature = convertirNumeroLectura(row.temperatura);
     const humidity = convertirNumeroLectura(row.humedad);
     const air = convertirNumeroLectura(row.calidad_aire);
@@ -63,8 +79,10 @@ function areaTieneDatos(row, area) {
 function actualizarFiltrosLocales() {
     const area = document.getElementById("chart-area-filter")?.value || "todos";
     const state = document.getElementById("chart-state-filter")?.value || "todos";
-    chartReadings = chartAllReadings.filter(row => (area === "todos" || areaTieneDatos(row, area))
-        && (state === "todos" || (state === "alerta") === esLecturaConAlerta(row, area)));
+    const cumpleFiltrosLocales = row => (area === "todos" || areaTieneDatos(row, area))
+        && (state === "todos" || (state === "alerta") === esLecturaConAlerta(row, area));
+    chartReadings = chartAllReadings.filter(cumpleFiltrosLocales);
+    chartPreviousReadings = chartAllPreviousReadings.filter(cumpleFiltrosLocales);
     document.querySelectorAll("[data-chart-sensor]").forEach(card => {
         const sensor = chartSensorConfig.find(item => item.id === card.dataset.chartSensor);
         card.dataset.areaHidden = String(area !== "todos" && sensor?.area !== area);
@@ -88,6 +106,46 @@ function actualizarFiltrosLocales() {
     }
     const lastReading = document.getElementById("chart-last-reading");
     if (lastReading) lastReading.textContent = chartReadings.length ? new Date(chartReadings.at(-1).fecha_hora).toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" }) : "Sin lecturas";
+    actualizarResumenPeriodo(area);
+    redibujarGraficaAmpliada();
+}
+
+function promedioCampo(config, readings) {
+    const values = puntosCampoGrafica(config, readings).map(point => point.value);
+    return values.length ? values.reduce((total, value) => total + value, 0) / values.length : NaN;
+}
+
+function actualizarResumenPeriodo(area) {
+    const insight = document.getElementById("chart-period-insight");
+    if (!insight) return;
+    if (!chartReadings.length) {
+        insight.textContent = "No hay lecturas con los filtros seleccionados. Ajusta el rango o el estado para ver el resumen.";
+        return;
+    }
+    const pieces = [`${chartReadings.length} lecturas coinciden con los filtros`];
+    const temperature = chartSensorConfig.find(sensor => sensor.id === "dht22").fields[0];
+    const humidity = chartSensorConfig.find(sensor => sensor.id === "dht22").fields[1];
+    const metrics = area === "todos" || area === "ambiental" ? [temperature, humidity] : [];
+    let hasComparison = false;
+    metrics.forEach(config => {
+        const current = promedioCampo(config, chartReadings);
+        const previous = promedioCampo(config, chartPreviousReadings);
+        if (!Number.isFinite(current)) return;
+        const unit = config.unit;
+        if (!Number.isFinite(previous)) {
+            pieces.push(`${config.label}: promedio ${formatoValorGrafica(current, config)}`);
+            return;
+        }
+        hasComparison = true;
+        const difference = current - previous;
+        const percent = Math.abs(previous) > 0.0001 ? Math.abs((difference / previous) * 100) : null;
+        const direction = Math.abs(difference) < 0.05 ? "se mantuvo estable" : difference > 0 ? "subió" : "bajó";
+        pieces.push(`${config.label} ${direction}${direction === "se mantuvo estable" ? "" : ` ${Math.abs(difference).toFixed(1)} ${unit}${percent === null ? "" : ` (${percent.toFixed(0)}%)`}`}`);
+    });
+    if (metrics.length && !hasComparison) pieces.push("aún no hay datos anteriores suficientes para comparar");
+    const alerts = chartAllReadings.filter(row => (area === "todos" || areaTieneDatos(row, area)) && esLecturaConAlerta(row, area)).length;
+    if (area === "todos" || area === "ambiental") pieces.push(`${alerts} lecturas ambientales fuera de límite`);
+    insight.textContent = `${pieces.join(" · ")}.`;
 }
 
 function valorLocalParaInput(date) {
@@ -240,7 +298,10 @@ function dibujarActividadGeneral() {
     const summary = document.getElementById("chart-data-summary");
     const activeIntervals = values.filter(value => value > 0).length;
     const peak = Math.max(...values);
-    if (summary) summary.textContent = `${chartReadings.length} registros · ${activeIntervals} intervalos con actividad · máximo ${peak} registros`;
+    const previousTotal = chartPreviousReadings.length;
+    const totalDelta = chartReadings.length - previousTotal;
+    const comparison = previousTotal ? ` · ${totalDelta > 0 ? `↑ ${totalDelta} más` : totalDelta < 0 ? `↓ ${Math.abs(totalDelta)} menos` : "→ mismo total"} que el periodo anterior` : " · sin registros del periodo anterior para comparar";
+    if (summary) summary.textContent = `${chartReadings.length} registros · ${activeIntervals} intervalos con actividad · máximo ${peak} registros${comparison}`;
 }
 
 function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) {
@@ -262,15 +323,65 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
     const padding = { top: 15, right: 12, bottom: 32, left: config.kind === "boolean" ? 58 : 48 };
     const plotWidth = width - padding.left - padding.right;
     const plotHeight = height - padding.top - padding.bottom;
-    let min = config.kind === "boolean" ? 0 : Math.min(...points.map(point => point.value));
-    let max = config.kind === "boolean" ? 1 : Math.max(...points.map(point => point.value));
+    const thresholds = umbralesCampoGrafica(config);
+    const thresholdValues = thresholds ? [thresholds.min, thresholds.max].filter(Number.isFinite) : [];
+    let min = config.kind === "boolean" ? 0 : Math.min(...points.map(point => point.value), ...thresholdValues);
+    let max = config.kind === "boolean" ? 1 : Math.max(...points.map(point => point.value), ...thresholdValues);
     const spread = max - min || Math.max(Math.abs(max) * .12, 1);
     if (config.kind !== "boolean") { min -= spread * .14; max += spread * .14; }
     const firstTime = points[0].date.getTime();
     const lastTime = points.at(-1).date.getTime();
-    const xFor = index => points.length < 2 ? padding.left + plotWidth / 2
-        : padding.left + (lastTime === firstTime ? index / (points.length - 1) : (points[index].date.getTime() - firstTime) / (lastTime - firstTime)) * plotWidth;
+    const xForTime = time => points.length < 2 ? padding.left + plotWidth / 2
+        : padding.left + (lastTime === firstTime ? .5 : (time - firstTime) / (lastTime - firstTime)) * plotWidth;
+    const xFor = index => xForTime(points[index].date.getTime());
     const yFor = value => padding.top + ((max - value) / (max - min || 1)) * plotHeight;
+    const staleMinutes = Number(ajustesRangoGrafica().staleMinutes) || 10;
+    let gapCount = 0;
+    const gapPoints = puntosCampoGrafica(config, chartAllReadings);
+    if (points.length > 1 && gapPoints.length > 1) {
+        context.save();
+        context.fillStyle = "rgba(239, 68, 68, .08)";
+        context.strokeStyle = "rgba(248, 113, 113, .55)";
+        context.setLineDash([3, 4]);
+        gapPoints.slice(1).forEach((point, index) => {
+            const previous = gapPoints[index];
+            if (point.date.getTime() - previous.date.getTime() <= staleMinutes * 60_000) return;
+            gapCount += 1;
+            const left = xForTime(previous.date.getTime());
+            const right = xForTime(point.date.getTime());
+            context.fillRect(left, padding.top, Math.max(2, right - left), plotHeight);
+            context.beginPath(); context.moveTo(left, padding.top); context.lineTo(left, padding.top + plotHeight); context.stroke();
+            context.beginPath(); context.moveTo(right, padding.top); context.lineTo(right, padding.top + plotHeight); context.stroke();
+        });
+        context.restore();
+    }
+    if (thresholds && config.kind !== "boolean") {
+        const plotBottom = padding.top + plotHeight;
+        context.save();
+        context.fillStyle = "rgba(16, 185, 129, .075)";
+        context.strokeStyle = "rgba(245, 158, 11, .8)";
+        context.setLineDash([5, 4]);
+        if (Number.isFinite(thresholds.min) && Number.isFinite(thresholds.max)) {
+            const upperY = yFor(thresholds.max);
+            const lowerY = yFor(thresholds.min);
+            context.fillStyle = "rgba(239, 68, 68, .065)";
+            context.fillRect(padding.left, padding.top, plotWidth, Math.max(0, upperY - padding.top));
+            context.fillRect(padding.left, lowerY, plotWidth, Math.max(0, plotBottom - lowerY));
+            context.fillStyle = "rgba(16, 185, 129, .075)";
+            context.fillRect(padding.left, upperY, plotWidth, lowerY - upperY);
+            [thresholds.min, thresholds.max].forEach(value => {
+                const y = yFor(value);
+                context.beginPath(); context.moveTo(padding.left, y); context.lineTo(width - padding.right, y); context.stroke();
+            });
+        } else if (Number.isFinite(thresholds.max)) {
+            const limitY = yFor(thresholds.max);
+            context.fillRect(padding.left, limitY, plotWidth, Math.max(0, plotBottom - limitY));
+            context.fillStyle = "rgba(239, 68, 68, .07)";
+            context.fillRect(padding.left, padding.top, plotWidth, Math.max(0, limitY - padding.top));
+            context.beginPath(); context.moveTo(padding.left, limitY); context.lineTo(width - padding.right, limitY); context.stroke();
+        }
+        context.restore();
+    }
     const valueEl = canvas.closest(".chart-sensor-field")?.querySelector("[data-chart-current-value]");
     if (valueEl) {
         valueEl.textContent = formatoValorGrafica(points.at(-1).value, config);
@@ -318,6 +429,30 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
         context.beginPath(); context.arc(xFor(index), yFor(point.value), 2.7, 0, Math.PI * 2);
         context.fillStyle = config.color; context.fill();
     });
+    if (config.kind !== "boolean") {
+        const values = points.map(point => point.value);
+        const extrema = [
+            { label: "Máx", index: values.indexOf(Math.max(...values)), color: "#b45309", verticalOffset: -17 },
+            { label: "Mín", index: values.indexOf(Math.min(...values)), color: "#0f766e", verticalOffset: 14 }
+        ];
+        context.save();
+        context.font = "bold 9px system-ui, sans-serif";
+        extrema.forEach(item => {
+            const point = points[item.index];
+            const x = xFor(item.index);
+            const y = yFor(point.value);
+            context.beginPath(); context.arc(x, y, 5.5, 0, Math.PI * 2); context.fillStyle = "#fff"; context.fill();
+            context.beginPath(); context.arc(x, y, 3.5, 0, Math.PI * 2); context.fillStyle = config.color; context.fill();
+            const labelWidth = context.measureText(item.label).width + 10;
+            const labelX = Math.max(padding.left, Math.min(width - padding.right - labelWidth, x + 7));
+            const labelY = Math.max(padding.top, Math.min(height - padding.bottom - 13, y + item.verticalOffset));
+            context.fillStyle = colorConAlpha(item.color, .94);
+            context.beginPath(); context.roundRect(labelX, labelY - 9, labelWidth, 14, 5); context.fill();
+            context.fillStyle = "#fff"; context.textAlign = "center"; context.textBaseline = "middle";
+            context.fillText(item.label, labelX + labelWidth / 2, labelY - 2);
+        });
+        context.restore();
+    }
     context.fillStyle = text; context.textBaseline = "top";
     const dateTicks = [...new Set([0, Math.floor((points.length - 1) / 2), points.length - 1])];
     dateTicks.forEach(index => {
@@ -382,11 +517,22 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
     }
     if (config.kind === "boolean") {
         const detections = points.filter(point => point.value === 1).length;
-        summary.textContent = `${detections} detecciones · ${points.length} lecturas registradas`;
+        const previousPoints = puntosCampoGrafica(config, chartPreviousReadings);
+        const previousDetections = previousPoints.filter(point => point.value === 1).length;
+        const comparison = previousPoints.length ? ` · ${previousDetections} detecciones en el periodo anterior` : " · sin datos anteriores para comparar";
+        summary.textContent = `${detections} detecciones · ${points.length} lecturas registradas${comparison}${gapCount ? ` · ${gapCount} huecos mayores a ${staleMinutes} min` : ""}`;
     } else {
         const values = points.map(point => point.value);
         const average = values.reduce((sum, value) => sum + value, 0) / values.length;
-        summary.textContent = `${points.length} lecturas · promedio ${formatoValorGrafica(average, config)} · mín. ${formatoValorGrafica(Math.min(...values), config)} · máx. ${formatoValorGrafica(Math.max(...values), config)}`;
+        const previousAverage = promedioCampo(config, chartPreviousReadings);
+        let comparison = "";
+        if (Number.isFinite(previousAverage)) {
+            const delta = average - previousAverage;
+            const change = Math.abs(previousAverage) > .0001 ? ` (${Math.abs(delta / previousAverage * 100).toFixed(0)}%)` : "";
+            comparison = ` · ${delta > .05 ? "↑" : delta < -.05 ? "↓" : "→"} ${formatoValorGrafica(Math.abs(delta), config)}${change} vs periodo anterior`;
+        } else comparison = " · sin datos del periodo anterior para comparar";
+        const gapSummary = gapCount ? ` · ${gapCount} huecos > ${staleMinutes} min` : "";
+        summary.textContent = `${points.length} lecturas · promedio ${formatoValorGrafica(average, config)} · mín. ${formatoValorGrafica(Math.min(...values), config)} · máx. ${formatoValorGrafica(Math.max(...values), config)}${comparison}${gapSummary}`;
     }
     return true;
 }
@@ -443,6 +589,8 @@ function crearTarjetasSensores() {
 }
 
 let graficaOrigenEnfocada = null;
+let graficaSensorEnfocada = null;
+let graficaCampoEnfocado = null;
 let overflowAnteriorAlEnfocar = "";
 
 function abrirGraficaAmpliada(sensor, field, sourceCanvas) {
@@ -452,6 +600,8 @@ function abrirGraficaAmpliada(sensor, field, sourceCanvas) {
     const title = document.getElementById("chart-focus-title");
     if (!layer || !canvas || !summary || !title) return;
     graficaOrigenEnfocada = sourceCanvas;
+    graficaSensorEnfocada = sensor;
+    graficaCampoEnfocado = field;
     title.textContent = `${sensor.name} · ${field.label}`;
     layer.hidden = false;
     layer.setAttribute("aria-hidden", "false");
@@ -470,10 +620,56 @@ function cerrarGraficaAmpliada() {
     document.body.style.overflow = overflowAnteriorAlEnfocar;
     graficaOrigenEnfocada?.focus();
     graficaOrigenEnfocada = null;
+    graficaSensorEnfocada = null;
+    graficaCampoEnfocado = null;
+}
+
+function redibujarGraficaAmpliada() {
+    const layer = document.getElementById("chart-focus-layer");
+    const canvas = document.getElementById("chart-focus-canvas");
+    const summary = document.getElementById("chart-focus-summary");
+    if (!layer || layer.hidden || !canvas || !summary || !graficaCampoEnfocado) return;
+    const height = Math.max(280, Math.min(560, window.innerHeight * 0.58));
+    dibujarGraficaCampo(canvas, { classList: { add() {}, remove() {} }, textContent: "" }, summary, graficaCampoEnfocado, height);
+}
+
+function descargarDatosGraficaEnfocada() {
+    if (!graficaSensorEnfocada || !graficaCampoEnfocado) return;
+    const rows = chartReadings.filter(row => Number.isFinite(valorCampoGrafica(row[graficaCampoEnfocado.key], graficaCampoEnfocado)));
+    const quote = value => `"${String(value ?? "").replaceAll('"', '""')}"`;
+    const csv = [
+        ["sensor", "medicion", "fecha_hora", "valor", "unidad"].map(quote).join(","),
+        ...rows.map(row => [graficaSensorEnfocada.name, graficaCampoEnfocado.label, new Date(row.fecha_hora).toISOString(), row[graficaCampoEnfocado.key], graficaCampoEnfocado.unit || (graficaCampoEnfocado.kind === "boolean" ? "estado" : "lectura")].map(quote).join(","))
+    ].join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${graficaSensorEnfocada.id}-${graficaCampoEnfocado.key}.csv`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function descargarImagenGraficaEnfocada() {
+    const source = document.getElementById("chart-focus-canvas");
+    if (!source || !graficaSensorEnfocada || !graficaCampoEnfocado) return;
+    const output = document.createElement("canvas");
+    output.width = source.width;
+    output.height = source.height;
+    const context = output.getContext("2d");
+    if (!context) return;
+    context.fillStyle = getComputedStyle(document.querySelector(".chart-focus-chart")).backgroundColor || "#111827";
+    context.fillRect(0, 0, output.width, output.height);
+    context.drawImage(source, 0, 0);
+    const link = document.createElement("a");
+    link.href = output.toDataURL("image/png");
+    link.download = `${graficaSensorEnfocada.id}-${graficaCampoEnfocado.key}.png`;
+    link.click();
 }
 
 function actualizarResumenSensores() {
     let sensorsWithData = 0;
+    const staleMinutes = Number(ajustesRangoGrafica().staleMinutes) || 10;
     chartSensorConfig.forEach(sensor => {
         const card = document.querySelector(`[data-chart-sensor="${sensor.id}"]`);
         if (!card) return;
@@ -482,7 +678,22 @@ function actualizarResumenSensores() {
         if (sensor.optional && !hasData) { card.hidden = true; return; }
         card.hidden = false;
         const status = card.querySelector("[data-chart-sensor-status]");
-        if (status) { status.textContent = hasData ? "Con lecturas" : "Sin lecturas"; status.classList.toggle("has-data", hasData); }
+        const latest = chartLatestReading && sensor.fields.some(field => Number.isFinite(valorCampoGrafica(chartLatestReading[field.key], field))) ? chartLatestReading : null;
+        const latestDate = latest ? new Date(latest.fecha_hora) : null;
+        const fresh = latestDate && Number.isFinite(latestDate.getTime()) && Date.now() - latestDate.getTime() <= staleMinutes * 60_000;
+        const settings = ajustesRangoGrafica();
+        const latestTemperature = convertirNumeroLectura(latest?.temperatura);
+        const latestHumidity = convertirNumeroLectura(latest?.humedad);
+        const isAlert = latest && sensor.id === "dht22" && ((Number.isFinite(latestTemperature) && latestTemperature > Number(settings.temperatureMax))
+            || (Number.isFinite(latestHumidity) && (latestHumidity < Number(settings.humidityMin) || latestHumidity > Number(settings.humidityMax))));
+        const isAirAlert = latest && sensor.id === "calidad-aire" && Number.isFinite(convertirNumeroLectura(latest.calidad_aire))
+            && convertirNumeroLectura(latest.calidad_aire) > Number(settings.airQualityMax);
+        if (status) {
+            status.textContent = !fresh ? "Sin datos recientes" : isAlert || isAirAlert ? "En alerta" : sensor.id === "dht22" || sensor.id === "calidad-aire" ? "Normal" : "Con datos";
+            status.classList.toggle("has-data", Boolean(fresh && !isAlert && !isAirAlert));
+            status.classList.toggle("is-alert", Boolean(isAlert || isAirAlert));
+            status.classList.toggle("is-stale", !fresh);
+        }
         if (hasData) sensorsWithData += 1;
     });
     const count = document.getElementById("chart-active-sensors");
@@ -507,11 +718,6 @@ function dibujarTodasLasGraficas() {
             if (!section) return;
             hasData = dibujarGraficaCampo(section.querySelector("canvas"), section.querySelector(".chart-sensor-empty"), section.querySelector(".chart-sensor-summary"), field) || hasData;
         });
-        const status = card.querySelector("[data-chart-sensor-status]");
-        if (status && !sensor.optional) {
-            status.textContent = hasData ? "Con lecturas" : "Sin lecturas";
-            status.classList.toggle("has-data", hasData);
-        }
     });
     actualizarResumenSensores();
 }
@@ -529,6 +735,8 @@ async function cargarGraficasSensores() {
         if (empty) { empty.classList.remove("hidden"); empty.textContent = "El rango no es válido. La fecha inicial debe ser anterior a la fecha final."; }
         return;
     }
+    if (chartLoading) return;
+    chartLoading = true;
     if (button) { button.disabled = true; button.setAttribute("aria-busy", "true"); }
     if (empty) { empty.textContent = "Consultando historial…"; empty.classList.remove("hidden"); }
     document.getElementById("chart-overview-canvas")?.classList.add("hidden");
@@ -538,10 +746,33 @@ async function cargarGraficasSensores() {
         if (!result.ok) throw new Error(result.data?.detail || "No se pudo consultar el historial.");
         if (!Array.isArray(result.data)) throw new Error("La respuesta del historial no tiene el formato esperado.");
         chartAllReadings = result.data.filter(row => row && row.fecha_hora).sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
+        const duration = endValue.getTime() - startValue.getTime();
+        const previousStart = new Date(startValue.getTime() - duration);
+        const previousEnd = new Date(startValue.getTime() - 1);
+        chartAllPreviousReadings = [];
+        try {
+            const previousQuery = new URLSearchParams({ desde: previousStart.toISOString(), hasta: previousEnd.toISOString() });
+            const previousResult = await apiFetch(`/sensores/historial?${previousQuery.toString()}`);
+            if (previousResult.ok && Array.isArray(previousResult.data)) {
+                chartAllPreviousReadings = previousResult.data.filter(row => row && row.fecha_hora).sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
+            }
+        } catch (comparisonError) {
+            console.info("No fue posible obtener el periodo anterior para comparar.", comparisonError.message);
+        }
+        try {
+            const latestResult = await apiFetch("/sensores/ultimas");
+            chartLatestReading = latestResult.ok && Array.isArray(latestResult.data) ? latestResult.data[0] || null : null;
+        } catch (latestError) {
+            chartLatestReading = null;
+            console.info("No fue posible consultar el estado actual del ESP32.", latestError.message);
+        }
         actualizarFiltrosLocales();
         if (updated) updated.textContent = `Actualizado ${new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}`;
     } catch (error) {
         chartAllReadings = [];
+        chartAllPreviousReadings = [];
+        chartPreviousReadings = [];
+        chartLatestReading = null;
         chartReadings = [];
         dibujarTodasLasGraficas();
         const total = document.getElementById("chart-total-readings");
@@ -555,6 +786,7 @@ async function cargarGraficasSensores() {
         if (empty) { empty.classList.remove("hidden"); empty.textContent = error.message || "No se pudo conectar con el historial de sensores."; }
         if (summary) summary.textContent = "Revisa que el backend tenga disponible /sensores/historial.";
     } finally {
+        chartLoading = false;
         if (button) { button.disabled = false; button.removeAttribute("aria-busy"); }
     }
 }
@@ -738,6 +970,8 @@ function inicializarGraficasSensores() {
     }));
     ["chart-area-filter", "chart-state-filter"].forEach(id => document.getElementById(id)?.addEventListener("change", actualizarFiltrosLocales));
     document.getElementById("chart-focus-back")?.addEventListener("click", cerrarGraficaAmpliada);
+    document.getElementById("chart-focus-download-png")?.addEventListener("click", descargarImagenGraficaEnfocada);
+    document.getElementById("chart-focus-download-csv")?.addEventListener("click", descargarDatosGraficaEnfocada);
     document.getElementById("chart-focus-layer")?.addEventListener("click", event => {
         if (event.target.id === "chart-focus-layer") cerrarGraficaAmpliada();
     });
@@ -755,6 +989,7 @@ function inicializarGraficasSensores() {
     window.addEventListener("resize", () => {
         if (document.getElementById("charts-panel")?.getClientRects().length) dibujarTodasLasGraficas();
         if (document.getElementById("dashboard-trends")?.getClientRects().length) dibujarTendenciaInicio();
+        redibujarGraficaAmpliada();
     }, { passive: true });
 }
 window.cargarTendenciaInicio = cargarTendenciaInicio;

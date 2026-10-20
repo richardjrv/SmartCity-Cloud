@@ -29,6 +29,11 @@
 .chart-sensor-card { box-shadow: none; }
 .chart-sensor-card:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgb(15 23 42 / 8%); }
 .chart-sensor-status.has-data { color: #047857; background: rgb(16 185 129 / 8%); }
+.chart-sensor-status.is-alert { border-color: rgb(239 68 68 / 35%); color: #f87171; background: rgb(239 68 68 / 9%); }
+.chart-sensor-status.is-stale { border-color: rgb(245 158 11 / 35%); color: #fbbf24; background: rgb(245 158 11 / 9%); }
+html[data-theme="light"] .chart-sensor-status.is-alert { color: #b91c1c; }
+html[data-theme="light"] .chart-sensor-status.is-stale { color: #92400e; }
+.chart-period-insight { margin-top: .8rem; padding: .75rem .9rem; border-left: 3px solid #38bdf8; border-radius: 0 .7rem .7rem 0; color: var(--text-secondary); background: color-mix(in srgb, var(--bg-card) 88%, var(--accent)); font-size: .78rem; line-height: 1.55; }
 .chart-canvas-wrap, .chart-sensor-chart-wrap, .dashboard-trend-chart-wrap { position: relative; }
 .dashboard-trend-chart-wrap .chart-tooltip { top: 0; }
 .chart-hover-guide { position: absolute; z-index: 2; width: 0; border-left: 1px dashed color-mix(in srgb, var(--text-secondary) 72%, transparent); opacity: 0; pointer-events: none; transition: opacity .1s ease; }
@@ -40,12 +45,15 @@
 .chart-sensor-card.is-hover-expanded { z-index: 4; transform: scale(1.035); border-color: color-mix(in srgb, var(--accent) 48%, var(--border-color)); box-shadow: 0 16px 38px rgb(2 8 23 / 22%); }
 .chart-focus-layer { position: fixed; z-index: 1200; inset: 0; display: grid; place-items: center; padding: clamp(.75rem, 3vw, 2rem); background: rgb(8 15 29 / 78%); backdrop-filter: blur(8px); }
 .chart-focus-layer[hidden] { display: none; }
-.chart-focus-dialog { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: .8rem; width: min(1100px, 100%); max-height: min(900px, 94dvh); padding: clamp(1rem, 2.4vw, 1.6rem); overflow: auto; border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border-color)); border-radius: 1.25rem; color: var(--text-primary); background: var(--bg-card); box-shadow: 0 28px 90px rgb(0 0 0 / 38%); animation: chart-focus-in .2s ease-out both; }
+.chart-focus-dialog { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: .8rem; width: min(1100px, 100%); max-height: min(900px, 94dvh); padding: clamp(1rem, 2.4vw, 1.6rem); overflow: auto; border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border-color)); border-radius: 1.25rem; color: var(--text-primary); background: var(--bg-card); box-shadow: 0 28px 90px rgb(0 0 0 / 38%); animation: chart-focus-in .2s ease-out both; }
 .chart-focus-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 .chart-focus-header h2 { margin-top: .2rem; color: var(--text-primary); font-size: clamp(1.2rem, 3vw, 1.8rem); font-weight: 850; }
 .chart-focus-header p:last-child { margin-top: .3rem; color: var(--text-secondary); font-size: .82rem; }
 .chart-focus-back { flex: 0 0 auto; min-height: 2.6rem; padding: .55rem .85rem; border: 1px solid var(--border-color); border-radius: .7rem; color: var(--text-primary); background: var(--bg-input); font-size: .78rem; font-weight: 750; cursor: pointer; }
 .chart-focus-back:hover { border-color: var(--accent); color: var(--accent); }
+.chart-focus-actions { display: flex; flex-wrap: wrap; gap: .55rem; }
+.chart-focus-actions button { min-height: 2.35rem; padding: .45rem .7rem; border: 1px solid var(--border-color); border-radius: .65rem; color: var(--text-secondary); background: var(--bg-input); font-size: .72rem; font-weight: 700; cursor: pointer; }
+.chart-focus-actions button:hover { border-color: var(--accent); color: var(--accent); }
 .chart-focus-chart { height: min(58vh, 560px); min-height: 280px; margin: 0; overflow: hidden; border: 1px solid var(--border-color); border-radius: .85rem; background: color-mix(in srgb, var(--bg-main) 62%, var(--bg-card)); }
 .chart-focus-chart canvas { display: block; width: 100%; max-width: 100%; }
 .chart-focus-dialog .chart-sensor-summary { min-height: 1.3rem; font-size: .78rem; }
@@ -66,6 +74,7 @@
     .chart-focus-header { flex-direction: column; }
     .chart-focus-back { width: 100%; }
     .chart-focus-chart { height: 52vh; min-height: 250px; }
+    .chart-focus-actions { display: grid; grid-template-columns: 1fr 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
     .chart-sensor-card, .chart-focus-dialog { animation: none; transition: none; }
