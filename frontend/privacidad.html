@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="description" content="Aviso de privacidad de SmartCity Cloud: datos usados para iniciar sesión, operar el tablero y atender solicitudes.">
+  <title>Privacidad · SmartCity Cloud</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b1220;--panel:#111c30;--panel-2:#16243b;--line:#2a3c5a;--text:#e8eef8;--muted:#a6b4ca;--blue:#78aaff;--green:#56d6b1}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(ellipse at 80% 0%,#172a46 0,transparent 42%),var(--bg);color:var(--text);font:16px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    a{color:var(--blue);text-underline-offset:3px}
+    a:focus-visible{outline:3px solid #8db5ff;outline-offset:4px;border-radius:4px}
+    .wrap{width:min(920px,100% - 32px);margin:0 auto}
+    header{border-bottom:1px solid var(--line);background:#0b1220e8}
+    .top{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .brand{font-weight:750;letter-spacing:.01em;text-decoration:none;color:var(--text)}
+    .brand span{color:var(--green)}
+    .back{font-size:.92rem}
+    main{padding:42px 0 64px}
+    .eyebrow{color:var(--green);font-size:.76rem;font-weight:750;letter-spacing:.16em;text-transform:uppercase}
+    h1{font-size:clamp(2rem,5vw,3rem);line-height:1.12;letter-spacing:-.035em;margin:.35rem 0 .7rem}
+    .lead,.meta{color:var(--muted)}
+    .meta{font-size:.9rem}
+    article{margin-top:28px;padding:clamp(20px,4vw,36px);border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,#111c30f5,#0e1829f5);box-shadow:0 18px 60px #0003}
+    section+section{margin-top:28px}
+    h2{font-size:1.15rem;line-height:1.35;margin:0 0 10px}
+    p{margin:8px 0}
+    ul{padding-left:1.25rem;margin:10px 0}
+    li+li{margin-top:6px}
+    .callout{border-left:3px solid var(--green);padding:12px 16px;background:#13293a;border-radius:0 12px 12px 0;color:#dce9f2}
+    footer{border-top:1px solid var(--line);color:var(--muted);padding:22px 0;font-size:.88rem}
+    @media(max-width:520px){.wrap{width:min(100% - 24px,920px)}.top{min-height:64px}main{padding:30px 0 44px}article{border-radius:16px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap top">
+      <a class="brand" href="/">SmartCity <span>Cloud</span></a>
+      <a class="back" href="/">Volver al sitio</a>
+    </div>
+  </header>
+  <main class="wrap">
+    <p class="eyebrow">Información para usuarios</p>
+    <h1>Política de privacidad</h1>
+    <p class="lead">Este aviso explica qué información usa SmartCity Cloud y para qué. SmartCity Cloud es un proyecto universitario demostrativo de monitoreo urbano e IoT.</p>
+    <p class="meta">Última actualización: 29 de octubre de 2026</p>
+
+    <article>
+      <section>
+        <h2>Responsable y contacto</h2>
+        <p>El contacto del proyecto es Richard Ruiz. Para consultas sobre privacidad, acceso, corrección o eliminación de datos, escribe a <a href="mailto:richard.ruizvuni@gmail.com">richard.ruizvuni@gmail.com</a>.</p>
+      </section>
+
+      <section>
+        <h2>Información que se procesa</h2>
+        <ul>
+          <li><strong>Cuenta e inicio de sesión:</strong> nombre, correo electrónico, identificador de la cuenta y, cuando el proveedor lo entrega, imagen de perfil. Puedes iniciar sesión mediante Facebook, Google o correo electrónico. La contraseña del proveedor social no se comparte con SmartCity Cloud.</li>
+          <li><strong>Perfil y uso del sistema:</strong> rol, estado del perfil, preferencias y registros técnicos necesarios para mantener el acceso, proteger la plataforma y auditar acciones administrativas.</li>
+          <li><strong>Mensajes a Brunito:</strong> el texto que escribes y, cuando hace falta para responder sobre el estado de la ciudad, lecturas pertinentes de sensores. El código actual conserva el historial de Brunito temporalmente en la sesión del navegador y lo envía al servicio de Gemini para generar respuestas; no lo guarda como historial de chat en la base de datos propia.</li>
+          <li><strong>Datos ambientales y de demostración:</strong> lecturas de sensores disponibles en el tablero. Mientras el ESP32 no esté conectado, algunos valores son simulados o de prueba y no representan necesariamente mediciones físicas.</li>
+          <li><strong>Clima:</strong> cuando consultas el clima, se envía a Open-Meteo la ubicación seleccionada para obtener condiciones meteorológicas.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Para qué se usan</h2>
+        <p>La información se usa para autenticarte, mostrar tu perfil y sus permisos, operar las vistas del tablero, presentar datos y responder a tus consultas. SmartCity Cloud no vende datos personales ni los usa para publicidad dirigida.</p>
+      </section>
+
+      <section>
+        <h2>Proveedores que ayudan a operar el servicio</h2>
+        <ul>
+          <li><strong>Supabase</strong> procesa la autenticación y aloja los datos de la aplicación.</li>
+          <li><strong>Vercel</strong> sirve el sitio web y <strong>Render</strong> aloja el backend.</li>
+          <li><strong>Meta/Facebook</strong> y <strong>Google</strong> pueden participar en el inicio de sesión si eliges esos proveedores.</li>
+          <li><strong>Google Gemini</strong> recibe el mensaje de Brunito y el contexto pertinente para generar una respuesta. No escribas contraseñas, tokens ni información confidencial en el chat. Si la API se usa con cuota gratuita, Google indica que puede usar las entradas y respuestas para mejorar sus productos y que revisores humanos podrían procesarlas; en servicios pagados, se aplican condiciones distintas. El tratamiento depende del plan configurado para la API. Consulta los <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">términos de Gemini API</a>.</li>
+          <li><strong>Open-Meteo</strong> recibe la ubicación solicitada para consultar el clima.</li>
+        </ul>
+        <p>Estos servicios procesan la información necesaria para prestar sus funciones conforme a sus propias condiciones y políticas: <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase</a>, <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google</a>, <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer">Facebook</a>, <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Vercel</a> y <a href="https://render.com/privacy" target="_blank" rel="noopener noreferrer">Render</a>.</p>
+      </section>
+
+      <section>
+        <h2>Conservación y eliminación</h2>
+        <p>Los datos de perfil se mantienen mientras la cuenta esté activa. Puedes solicitar su eliminación siguiendo las <a href="/eliminacion-de-datos.html">instrucciones de eliminación de datos</a>. Algunos registros técnicos, de auditoría o de operación pueden conservarse sin el vínculo directo al perfil cuando sean necesarios para la seguridad o para mantener el historial del sistema. Las copias técnicas pueden seguir los ciclos de conservación de los proveedores.</p>
+      </section>
+
+      <section>
+        <h2>Seguridad y derechos</h2>
+        <p>El acceso a la aplicación requiere autenticación y se controla mediante roles. Ningún servicio conectado puede garantizar seguridad absoluta. Puedes solicitar información, corrección o eliminación de datos escribiendo al contacto indicado. También puedes retirar a SmartCity Cloud el permiso de Facebook desde la configuración de aplicaciones de Facebook; eso revoca el acceso social, pero no sustituye la solicitud de eliminación de la cuenta SmartCity.</p>
+      </section>
+
+      <section class="callout">
+        <p>Si cambian las funciones, los proveedores o los datos tratados, esta página se actualizará. Revisa la fecha indicada al inicio.</p>
+        <p>Consulta también la <a href="/eliminacion-de-datos.html">página de eliminación de datos</a>.</p>
+      </section>
+    </article>
+  </main>
+  <footer><div class="wrap">© 2026 SmartCity Cloud · Proyecto demostrativo.</div></footer>
+</body>
+</html>
