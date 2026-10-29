@@ -217,7 +217,8 @@ function dibujarActividadGeneral() {
     }
     canvas.classList.remove("hidden");
     empty?.classList.add("hidden");
-    const result = prepararCanvas(canvas, 300);
+    const compactViewport = window.matchMedia("(max-width: 480px)").matches;
+    const result = prepararCanvas(canvas, compactViewport ? 240 : 300);
     if (!result) return;
     const { context, width, height } = result;
     const period = periodoGraficaHoras();
@@ -282,18 +283,72 @@ function dibujarActividadGeneral() {
         context.fillText(formatoFechaGrafica(date, period), x, height - padding.bottom + 14);
     });
     const tooltip = document.getElementById("chart-overview-tooltip");
+    canvas.tabIndex = 0;
+    canvas.setAttribute("aria-describedby", "chart-data-summary");
     if (tooltip) {
-        canvas.onpointermove = event => {
+        const wrap = canvas.closest(".chart-canvas-wrap");
+        let guide = wrap?.querySelector("[data-chart-hover-guide]");
+        if (wrap && !guide) {
+            guide = document.createElement("span");
+            guide.className = "chart-hover-guide";
+            guide.dataset.chartHoverGuide = "";
+            guide.setAttribute("aria-hidden", "true");
+            wrap.appendChild(guide);
+        }
+        let announcement = wrap?.querySelector("[data-chart-announcement]");
+        if (wrap && !announcement) {
+            announcement = document.createElement("span");
+            announcement.className = "chart-sr-only";
+            announcement.dataset.chartAnnouncement = "";
+            announcement.setAttribute("aria-live", "polite");
+            announcement.setAttribute("aria-atomic", "true");
+            wrap.appendChild(announcement);
+        }
+        let touchSelection = false;
+        let selectedBucket = -1;
+        const hideSelection = () => {
+            tooltip.classList.remove("is-visible");
+            guide?.classList.remove("is-visible");
+        };
+        const showBucket = (clientX, announce = false) => {
             const bounds = canvas.getBoundingClientRect();
-            const x = event.clientX - bounds.left;
+            const wrapBounds = wrap?.getBoundingClientRect();
+            const x = Math.max(0, Math.min(bounds.width, clientX - bounds.left));
             const index = Math.max(0, Math.min(bucketCount - 1, Math.floor((x - padding.left) / slot)));
             const from = new Date(start + duration / bucketCount * index);
             const to = new Date(start + duration / bucketCount * (index + 1));
-            tooltip.textContent = `${from.toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" })} – ${to.toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })} · ${values[index]} registros`;
+            const label = `${from.toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" })} – ${to.toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })} · ${values[index]} registros`;
+            const plotX = padding.left + (index + .5) * slot;
+            tooltip.textContent = label;
             tooltip.style.left = `${Math.max(8, Math.min(bounds.width - 250, x + 10))}px`;
             tooltip.classList.add("is-visible");
+            if (guide && wrapBounds) {
+                guide.style.left = `${bounds.left - wrapBounds.left + plotX * (bounds.width / width)}px`;
+                guide.style.top = `${bounds.top - wrapBounds.top + padding.top * (bounds.height / height)}px`;
+                guide.style.bottom = `${wrapBounds.height - (bounds.top - wrapBounds.top + (height - padding.bottom) * (bounds.height / height))}px`;
+                guide.classList.add("is-visible");
+            }
+            selectedBucket = index;
+            if (announce && announcement) announcement.textContent = `Intervalo ${label}. Usa las flechas izquierda y derecha para recorrer los intervalos.`;
+            return index;
         };
-        canvas.onpointerleave = () => tooltip.classList.remove("is-visible");
+        canvas.onpointermove = event => showBucket(event.clientX);
+        canvas.onpointerdown = event => {
+            if (event.pointerType !== "touch") return;
+            touchSelection = true;
+            showBucket(event.clientX, true);
+        };
+        canvas.onpointerleave = () => { if (!touchSelection) hideSelection(); };
+        canvas.onkeydown = event => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault();
+            const direction = event.key === "ArrowRight" ? 1 : -1;
+            const current = selectedBucket < 0 ? (direction > 0 ? -1 : bucketCount) : selectedBucket;
+            const next = Math.max(0, Math.min(bucketCount - 1, current + direction));
+            const bounds = canvas.getBoundingClientRect();
+            const clientX = bounds.left + (padding.left + (next + .5) * slot) * (bounds.width / width);
+            showBucket(clientX, true);
+        };
     }
     const summary = document.getElementById("chart-data-summary");
     const activeIntervals = values.filter(value => value > 0).length;
@@ -306,6 +361,8 @@ function dibujarActividadGeneral() {
 
 function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) {
     const points = puntosCampoGrafica(config);
+    const expandButton = canvas.closest(".chart-sensor-field")?.querySelector("[data-chart-expand]");
+    if (expandButton) expandButton.disabled = points.length === 0;
     if (!points.length) {
         canvas.classList.add("hidden");
         empty.classList.remove("hidden");
@@ -462,6 +519,7 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
         context.fillText(formatoFechaGrafica(point.date, periodoGraficaHoras()), x, height - padding.bottom + 10);
     });
     const tooltip = canvas.closest(".chart-sensor-chart-wrap")?.querySelector("[data-chart-tooltip]");
+    if (summary.id) canvas.setAttribute("aria-describedby", summary.id);
     if (tooltip) {
         const wrap = canvas.closest(".chart-sensor-chart-wrap");
         let guide = wrap?.querySelector("[data-chart-hover-guide]");
@@ -480,10 +538,26 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
             marker.setAttribute("aria-hidden", "true");
             wrap.appendChild(marker);
         }
-        canvas.onpointermove = event => {
+        let announcement = wrap?.querySelector("[data-chart-announcement]");
+        if (wrap && !announcement) {
+            announcement = document.createElement("span");
+            announcement.className = "chart-sr-only";
+            announcement.dataset.chartAnnouncement = "";
+            announcement.setAttribute("aria-live", "polite");
+            announcement.setAttribute("aria-atomic", "true");
+            wrap.appendChild(announcement);
+        }
+        let touchSelection = false;
+        let selectedPoint = -1;
+        const hideSelection = () => {
+            tooltip.classList.remove("is-visible");
+            guide?.classList.remove("is-visible");
+            marker?.classList.remove("is-visible");
+        };
+        const showPointAt = (clientX, announce = false) => {
             const bounds = canvas.getBoundingClientRect();
             const wrapBounds = wrap.getBoundingClientRect();
-            const pointerX = event.clientX - bounds.left;
+            const pointerX = Math.max(0, Math.min(bounds.width, clientX - bounds.left));
             let closest = 0;
             let distance = Infinity;
             points.forEach((point, index) => {
@@ -508,11 +582,27 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
             tooltip.textContent = `${point.date.toLocaleString("es-EC", { dateStyle: "medium", timeStyle: "short" })} · ${formatoValorGrafica(point.value, config)}`;
             tooltip.style.left = `${Math.max(8, Math.min(bounds.width - 190, pointerX + 10))}px`;
             tooltip.classList.add("is-visible");
+            selectedPoint = closest;
+            if (announce && announcement) announcement.textContent = `${config.label}: ${point.date.toLocaleString("es-EC", { dateStyle: "medium", timeStyle: "short" })}, ${formatoValorGrafica(point.value, config)}. Usa las flechas izquierda y derecha para recorrer las lecturas.`;
+            return closest;
+        };
+        canvas.onpointermove = event => showPointAt(event.clientX);
+        canvas.onpointerdown = event => {
+            if (event.pointerType !== "touch") return;
+            touchSelection = true;
+            showPointAt(event.clientX, true);
         };
         canvas.onpointerleave = () => {
-            tooltip.classList.remove("is-visible");
-            guide?.classList.remove("is-visible");
-            marker?.classList.remove("is-visible");
+            if (!touchSelection) hideSelection();
+        };
+        canvas.onkeydown = event => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault();
+            const direction = event.key === "ArrowRight" ? 1 : -1;
+            const current = selectedPoint < 0 ? (direction > 0 ? -1 : points.length) : selectedPoint;
+            selectedPoint = Math.max(0, Math.min(points.length - 1, current + direction));
+            const bounds = canvas.getBoundingClientRect();
+            showPointAt(bounds.left + xFor(selectedPoint) * (bounds.width / width), true);
         };
     }
     if (config.kind === "boolean") {
@@ -560,7 +650,14 @@ function crearTarjetasSensores() {
             const fieldTitle = document.createElement("h5"); fieldTitle.textContent = field.label;
             const fieldHeading = document.createElement("div"); fieldHeading.className = "chart-field-heading";
             const current = document.createElement("strong"); current.className = "chart-current-value"; current.dataset.chartCurrentValue = ""; current.textContent = "—"; current.setAttribute("aria-label", "Última lectura");
-            fieldHeading.append(fieldTitle, current);
+            const expandButton = document.createElement("button");
+            expandButton.type = "button";
+            expandButton.className = "chart-expand-button";
+            expandButton.dataset.chartExpand = "";
+            expandButton.textContent = "Ampliar";
+            expandButton.disabled = true;
+            expandButton.setAttribute("aria-label", `Ampliar gráfica de ${field.label.toLowerCase()} del sensor ${sensor.name}`);
+            fieldHeading.append(fieldTitle, current, expandButton);
             const wrap = document.createElement("div"); wrap.className = "chart-sensor-chart-wrap";
             const canvas = document.createElement("canvas"); canvas.className = "chart-sensor-canvas hidden"; canvas.setAttribute("role", "img");
             canvas.tabIndex = 0;
@@ -568,21 +665,23 @@ function crearTarjetasSensores() {
             const empty = document.createElement("p"); empty.className = "chart-sensor-empty"; empty.setAttribute("role", "status"); empty.textContent = "Esperando historial…";
             const tooltip = document.createElement("span"); tooltip.className = "chart-tooltip"; tooltip.dataset.chartTooltip = ""; tooltip.setAttribute("aria-hidden", "true");
             wrap.append(canvas, empty, tooltip);
-            const summary = document.createElement("p"); summary.className = "chart-sensor-summary";
+            const summary = document.createElement("p"); summary.className = "chart-sensor-summary"; summary.id = `chart-summary-${sensor.id}-${field.key}`;
             fieldSection.append(fieldHeading, wrap, summary);
             card.appendChild(fieldSection);
             let hoverTimer = null;
-            const expandAfterDelay = () => {
+            const expandAfterDelay = event => {
+                if (event.pointerType !== "mouse" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
                 window.clearTimeout(hoverTimer);
                 hoverTimer = window.setTimeout(() => card.classList.add("is-hover-expanded"), 2000);
             };
             canvas.addEventListener("pointerenter", expandAfterDelay);
             canvas.addEventListener("pointerleave", () => { window.clearTimeout(hoverTimer); card.classList.remove("is-hover-expanded"); });
             canvas.addEventListener("dblclick", () => abrirGraficaAmpliada(sensor, field, canvas));
+            expandButton.addEventListener("click", () => abrirGraficaAmpliada(sensor, field, expandButton));
             canvas.addEventListener("keydown", event => {
                 if (event.key === "Enter" || event.key === " ") { event.preventDefault(); abrirGraficaAmpliada(sensor, field, canvas); }
             });
-            canvas.title = "Mantén el cursor 2 segundos para resaltar. Doble clic para ampliar.";
+            canvas.title = "Pasa el cursor o toca para consultar una lectura. Usa las flechas para recorrer los puntos; activa Ampliar para ver la gráfica completa.";
         });
         container.appendChild(card);
     });
@@ -593,22 +692,40 @@ let graficaSensorEnfocada = null;
 let graficaCampoEnfocado = null;
 let overflowAnteriorAlEnfocar = "";
 
+function obtenerEstadoVacioGraficaEnfocada(canvas) {
+    if (!canvas) return null;
+    let empty = document.getElementById("chart-focus-empty");
+    if (empty) return empty;
+    const wrap = canvas.parentElement;
+    if (!wrap) return null;
+    empty = document.createElement("p");
+    empty.id = "chart-focus-empty";
+    empty.className = "chart-sensor-empty hidden";
+    empty.setAttribute("role", "status");
+    wrap.insertBefore(empty, canvas);
+    return empty;
+}
+
 function abrirGraficaAmpliada(sensor, field, sourceCanvas) {
     const layer = document.getElementById("chart-focus-layer");
     const canvas = document.getElementById("chart-focus-canvas");
+    const empty = obtenerEstadoVacioGraficaEnfocada(canvas);
     const summary = document.getElementById("chart-focus-summary");
     const title = document.getElementById("chart-focus-title");
-    if (!layer || !canvas || !summary || !title) return;
+    if (!layer || !canvas || !empty || !summary || !title) return;
     graficaOrigenEnfocada = sourceCanvas;
     graficaSensorEnfocada = sensor;
     graficaCampoEnfocado = field;
     title.textContent = `${sensor.name} · ${field.label}`;
+    const hint = document.getElementById("chart-focus-hint");
+    if (hint) hint.textContent = "Toca o recorre con el cursor la gráfica para consultar fecha y valor. Con el teclado, usa las flechas izquierda y derecha; Escape o Volver cierra esta vista.";
     layer.hidden = false;
     layer.setAttribute("aria-hidden", "false");
     overflowAnteriorAlEnfocar = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const height = Math.max(280, Math.min(560, window.innerHeight * 0.58));
-    dibujarGraficaCampo(canvas, { classList: { add() {}, remove() {} }, textContent: "" }, summary, field, height);
+    const compactViewport = window.matchMedia("(max-width: 600px), (max-height: 500px)").matches;
+    const height = Math.max(compactViewport ? 176 : 280, Math.min(560, window.innerHeight * (compactViewport ? 0.42 : 0.58)));
+    dibujarGraficaCampo(canvas, empty, summary, field, height);
     document.getElementById("chart-focus-back")?.focus();
 }
 
@@ -618,7 +735,7 @@ function cerrarGraficaAmpliada() {
     layer.hidden = true;
     layer.setAttribute("aria-hidden", "true");
     document.body.style.overflow = overflowAnteriorAlEnfocar;
-    graficaOrigenEnfocada?.focus();
+    if (graficaOrigenEnfocada?.isConnected && !graficaOrigenEnfocada.disabled && !graficaOrigenEnfocada.classList?.contains("hidden") && !graficaOrigenEnfocada.closest("[hidden]")) graficaOrigenEnfocada.focus();
     graficaOrigenEnfocada = null;
     graficaSensorEnfocada = null;
     graficaCampoEnfocado = null;
@@ -627,10 +744,12 @@ function cerrarGraficaAmpliada() {
 function redibujarGraficaAmpliada() {
     const layer = document.getElementById("chart-focus-layer");
     const canvas = document.getElementById("chart-focus-canvas");
+    const empty = obtenerEstadoVacioGraficaEnfocada(canvas);
     const summary = document.getElementById("chart-focus-summary");
-    if (!layer || layer.hidden || !canvas || !summary || !graficaCampoEnfocado) return;
-    const height = Math.max(280, Math.min(560, window.innerHeight * 0.58));
-    dibujarGraficaCampo(canvas, { classList: { add() {}, remove() {} }, textContent: "" }, summary, graficaCampoEnfocado, height);
+    if (!layer || layer.hidden || !canvas || !empty || !summary || !graficaCampoEnfocado) return;
+    const compactViewport = window.matchMedia("(max-width: 600px), (max-height: 500px)").matches;
+    const height = Math.max(compactViewport ? 176 : 280, Math.min(560, window.innerHeight * (compactViewport ? 0.42 : 0.58)));
+    dibujarGraficaCampo(canvas, empty, summary, graficaCampoEnfocado, height);
 }
 
 function descargarDatosGraficaEnfocada() {
@@ -976,7 +1095,25 @@ function inicializarGraficasSensores() {
         if (event.target.id === "chart-focus-layer") cerrarGraficaAmpliada();
     });
     document.addEventListener("keydown", event => {
-        if (event.key === "Escape") cerrarGraficaAmpliada();
+        const layer = document.getElementById("chart-focus-layer");
+        if (!layer || layer.hidden) return;
+        if (event.key === "Escape") {
+            event.preventDefault();
+            cerrarGraficaAmpliada();
+            return;
+        }
+        if (event.key !== "Tab") return;
+        const dialog = layer.querySelector('[role="dialog"]');
+        const focusable = [...(dialog?.querySelectorAll('button:not([disabled]), canvas[tabindex="0"]') || [])]
+            .filter(element => element.getClientRects().length > 0);
+        if (!focusable.length) { event.preventDefault(); return; }
+        const first = focusable[0];
+        const last = focusable.at(-1);
+        if (event.shiftKey && (document.activeElement === first || !dialog?.contains(document.activeElement))) {
+            event.preventDefault(); last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || !dialog?.contains(document.activeElement))) {
+            event.preventDefault(); first.focus();
+        }
     });
     if (chartRefreshTimer) clearInterval(chartRefreshTimer);
     const configuredInterval = typeof obtenerConfiguracionOperador === "function" ? Number(obtenerConfiguracionOperador().refreshSeconds) : 60;

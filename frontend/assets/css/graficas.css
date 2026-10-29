@@ -7,14 +7,13 @@
 .chart-summary-item strong { position: relative; z-index: 1; font-size: clamp(1rem, 2vw, 1.2rem); }
 .chart-overview-panel { position: relative; overflow: hidden; }
 .chart-overview-panel::before { position: absolute; top: 0; left: 1rem; width: 6rem; height: 2px; border-radius: 2px; background: linear-gradient(90deg, #38bdf8, transparent); content: ""; }
-.chart-sensor-card { box-shadow: 0 10px 28px rgb(2 8 23 / 8%); transition: transform .18s ease, border-color .18s ease, background-color .18s ease, box-shadow .18s ease; }
-.chart-sensor-card:hover { transform: translateY(-2px); box-shadow: 0 16px 34px color-mix(in srgb, var(--accent) 9%, transparent); }
+.chart-sensor-card { box-shadow: 0 10px 28px rgb(2 8 23 / 8%); transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease; }
 .chart-field-heading { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; }
 .chart-field-heading h5 { min-width: 0; }
 .chart-current-value { flex: 0 0 auto; color: var(--text-primary); font-size: .82rem; font-weight: 850; font-variant-numeric: tabular-nums; }
 .chart-sensor-chart-wrap { isolation: isolate; }
 .chart-sensor-canvas { position: relative; z-index: 1; touch-action: pan-y; }
-.chart-tooltip { position: absolute; z-index: 2; top: 3px; left: 8px; max-width: calc(100% - 16px); padding: .35rem .55rem; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border-color)); border-radius: .55rem; color: var(--text-primary); background: color-mix(in srgb, var(--bg-main) 94%, transparent); box-shadow: 0 6px 20px rgb(0 0 0 / 18%); font-size: .65rem; font-weight: 700; opacity: 0; pointer-events: none; transform: translateY(-3px); transition: opacity .12s ease, transform .12s ease; white-space: nowrap; }
+.chart-tooltip { position: absolute; z-index: 2; top: 3px; left: 8px; width: max-content; max-width: min(18rem, calc(100% - 16px)); padding: .4rem .55rem; border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border-color)); border-radius: .55rem; color: var(--text-primary); background: color-mix(in srgb, var(--bg-main) 96%, transparent); box-shadow: 0 6px 20px rgb(0 0 0 / 18%); font-size: .68rem; font-weight: 700; line-height: 1.4; opacity: 0; pointer-events: none; transform: translateY(-3px); transition: opacity .12s ease, transform .12s ease; white-space: normal; overflow-wrap: anywhere; }
 .chart-tooltip.is-visible { opacity: 1; transform: translateY(0); }
 .chart-sensor-summary { padding-top: .2rem; }
 .chart-filter-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .7rem; margin-top: 1rem; padding: .85rem; border: 1px solid var(--border-color); border-radius: .9rem; background: color-mix(in srgb, var(--bg-main) 68%, var(--bg-card)); }
@@ -58,6 +57,23 @@ html[data-theme="light"] .chart-sensor-status.is-stale { color: #92400e; }
 .chart-focus-chart canvas { display: block; width: 100%; max-width: 100%; }
 .chart-focus-dialog .chart-sensor-summary { min-height: 1.3rem; font-size: .78rem; }
 @keyframes chart-focus-in { from { opacity: 0; transform: translateY(8px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+/* Interacción táctil y accesible para las tarjetas de medición. */
+.chart-field-heading { align-items: center; flex-wrap: wrap; }
+.chart-field-heading h5 { flex: 1 1 5.5rem; }
+.chart-expand-button { flex: 0 0 auto; min-width: 5rem; min-height: 2.75rem; padding: .5rem .7rem; border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--border-color)); border-radius: .7rem; color: var(--text-primary); background: color-mix(in srgb, var(--accent) 9%, var(--bg-input)); font: inherit; font-size: .72rem; font-weight: 800; cursor: pointer; }
+.chart-expand-button:disabled { opacity: .52; cursor: not-allowed; }
+.chart-expand-button:focus-visible, .chart-refresh-button:focus-visible, .charts-controls :is(select, input):focus-visible, .chart-filter-bar :is(select, input):focus-visible, .chart-focus-dialog :is(button, canvas):focus-visible, .chart-sensor-canvas:focus-visible, #chart-overview-canvas:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.chart-sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
+.chart-overview-panel .chart-canvas-wrap { min-height: 0; }
+.chart-overview-panel .chart-canvas-wrap canvas { height: 300px; }
+
+@media (hover: hover) and (pointer: fine) {
+    .chart-sensor-card:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgb(15 23 42 / 8%); }
+    .chart-sensor-card.is-hover-expanded { z-index: 4; transform: scale(1.025); border-color: color-mix(in srgb, var(--accent) 48%, var(--border-color)); box-shadow: 0 16px 38px rgb(2 8 23 / 22%); }
+    .chart-expand-button:hover:not(:disabled) { color: var(--text-primary); background: color-mix(in srgb, var(--accent) 16%, var(--bg-input)); }
+}
+
 @media (max-width: 760px) {
     .chart-filter-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .chart-summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -68,14 +84,64 @@ html[data-theme="light"] .chart-sensor-status.is-stale { color: #92400e; }
     .chart-filter-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .chart-sensor-grid { grid-template-columns: minmax(0, 1fr); }
     .chart-canvas-wrap { min-height: 260px; }
-    .chart-canvas-wrap canvas { height: 260px; }
+    .chart-overview-panel .chart-canvas-wrap { min-height: 240px; }
+    .chart-overview-panel .chart-canvas-wrap canvas { height: 240px; }
+    .chart-sensor-card { padding: .85rem; }
+    .chart-sensor-chart-wrap { height: 184px; }
+    .chart-sensor-canvas { height: 184px; }
 }
-@media (max-width: 600px) {
-    .chart-focus-header { flex-direction: column; }
-    .chart-focus-back { width: 100%; }
-    .chart-focus-chart { height: 52vh; min-height: 250px; }
+@media (max-width: 600px), (max-height: 500px) {
+    .chart-focus-layer { inset: 0; place-items: stretch; padding: 0; }
+    .chart-focus-dialog { grid-template-rows: auto auto minmax(11rem, 1fr) auto; gap: .65rem; width: 100%; height: 100dvh; max-height: 100dvh; padding: calc(.8rem + env(safe-area-inset-top)) .8rem calc(.8rem + env(safe-area-inset-bottom)); overflow-y: auto; border-radius: 0; }
+    .chart-focus-header { flex-direction: column; gap: .7rem; }
+    .chart-focus-header h2 { font-size: clamp(1.2rem, 6vw, 1.6rem); }
+    .chart-focus-header p:last-child { font-size: .78rem; line-height: 1.45; }
+    .chart-focus-back { width: 100%; min-height: 2.75rem; }
     .chart-focus-actions { display: grid; grid-template-columns: 1fr 1fr; }
+    .chart-focus-actions button { min-height: 2.75rem; }
+    .chart-focus-chart { width: 100%; height: 42dvh; min-height: 11rem; }
+    .chart-focus-dialog .chart-sensor-summary { font-size: .72rem; }
+}
+@media (max-width: 480px) {
+    .charts-panel { padding: .85rem; border-radius: 1rem; }
+    .charts-heading h2 { font-size: 1.45rem; }
+    .charts-heading > div > p:last-child { font-size: .8rem; line-height: 1.5; }
+    .charts-controls { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .55rem; }
+    .charts-controls select { min-width: 0; width: 100%; }
+    .charts-controls .chart-refresh-button { grid-column: 1 / -1; width: 100%; min-height: 2.75rem; }
+    .chart-filter-bar { grid-template-columns: minmax(0, 1fr); gap: .6rem; padding: .7rem; }
+    .chart-filter-bar label { font-size: .75rem; }
+    .chart-filter-bar :is(input, select) { min-height: 2.75rem; font-size: .9rem; }
+    .chart-summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+    .chart-summary-item { display: grid; align-content: start; justify-content: stretch; gap: .3rem; padding: .7rem; }
+    .chart-summary-item span { font-size: .67rem; line-height: 1.35; }
+    .chart-summary-item strong { white-space: normal; overflow-wrap: anywhere; font-size: .95rem; }
+    .chart-overview-panel { padding: .75rem; }
+    .chart-section-heading { gap: .6rem; }
+    .chart-section-heading h3 { font-size: .95rem; }
+    .chart-section-heading p { font-size: .7rem; }
+    .chart-footer { font-size: .7rem; overflow-wrap: anywhere; }
+    .chart-sensor-heading { grid-template-columns: 2.25rem minmax(0, 1fr); gap: .55rem; }
+    .chart-sensor-icon { width: 2.2rem; height: 2.2rem; }
+    .chart-sensor-status { grid-column: 2; justify-self: start; }
+    .chart-tooltip { top: .35rem; max-width: calc(100% - .7rem); font-size: .72rem; }
+}
+@media (max-width: 360px) {
+    .chart-summary-strip { grid-template-columns: minmax(0, 1fr); }
+    .chart-summary-item { display: flex; align-items: center; justify-content: space-between; }
+    .chart-focus-actions { grid-template-columns: minmax(0, 1fr); }
+    .chart-focus-actions button { min-height: 2.75rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .chart-sensor-card, .chart-focus-dialog { animation: none; transition: none; }
+    .charts-panel:not(.hidden), .chart-sensor-card, .chart-focus-dialog { animation: none !important; transition: none !important; }
+    .chart-sensor-card:hover, .chart-sensor-card.is-hover-expanded, .chart-expand-button:active, .chart-refresh-button:hover { transform: none !important; }
+    .chart-tooltip, .chart-hover-guide, .chart-hover-dot { transition: none !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+    .chart-focus-layer { background: var(--bg-main); backdrop-filter: none; }
+    .chart-tooltip { background: var(--bg-card); }
+}
+@media (prefers-contrast: more) {
+    .chart-expand-button, .chart-focus-back, .chart-focus-actions button, .chart-sensor-card, .chart-canvas-wrap, .chart-focus-chart { border-color: currentColor; }
+    .chart-tooltip { border-width: 2px; box-shadow: none; }
 }

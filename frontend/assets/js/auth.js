@@ -75,11 +75,18 @@ async function iniciarSesionSocial(provider, buttonId) {
     button.disabled = true;
     button.setAttribute("aria-busy", "true");
     try {
+        const options = {
+            redirectTo: `${window.location.origin}${window.location.pathname}`
+        };
+        if (provider === "google") {
+            const emailInput = document.getElementById("auth-email");
+            const emailHint = emailInput?.value.trim();
+            options.queryParams = { prompt: "select_account" };
+            if (emailHint && emailInput.checkValidity()) options.queryParams.login_hint = emailHint;
+        }
         const { error } = await supabaseAuthClient.auth.signInWithOAuth({
             provider,
-            options: {
-                redirectTo: `${window.location.origin}${window.location.pathname}`
-            }
+            options
         });
         if (error) throw error;
     } catch (error) {
@@ -96,6 +103,23 @@ function limpiarParametrosOAuth(url) {
     window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
 }
 
+function mensajeErrorOAuth(error) {
+    const detalle = `${error?.code || ""} ${error?.name || ""} ${error?.message || error || ""}`;
+    if (/pkce|code.?verifier|flow.?state.?not.?found/i.test(detalle)) {
+        return "El acceso social inició la verificación, pero este navegador no conservó el código temporal. Vuelve a esta misma pestaña de Safari o Chrome y toca otra vez el botón del proveedor; evita abrir SmartCity desde el navegador integrado de otra app. No necesitas crear una contraseña de SmartCity. Si Google te pide una, usa la contraseña de tu cuenta Google en la ventana oficial de Google.";
+    }
+    if (/signup.?disabled|sign.?up.*disabled|user.*not allowed to sign up/i.test(detalle)) {
+        return "El proveedor confirmó la cuenta, pero SmartCity no permite registrar usuarios nuevos en este momento. El administrador debe habilitar el registro de nuevos usuarios en Supabase Auth.";
+    }
+    if (/database error saving new user|error saving new user/i.test(detalle)) {
+        return "El proveedor confirmó la cuenta, pero SmartCity no pudo crear su perfil. El administrador debe revisar el registro automático del perfil en Supabase.";
+    }
+    if (/access.?denied|cancelled|canceled|cancelado/i.test(detalle)) {
+        return "Se canceló el acceso con Google. Puedes volver a intentarlo cuando quieras.";
+    }
+    return "No se pudo completar el acceso social. Vuelve a intentarlo desde esta misma pestaña; si continúa, contacta al administrador de SmartCity.";
+}
+
 async function completarInicioSesionOAuth(session) {
     try {
         const response = await fetch(`${API_URL}/api/perfil`, {
@@ -103,7 +127,12 @@ async function completarInicioSesionOAuth(session) {
             cache: "no-store"
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.detail || "No se pudo cargar el perfil de la cuenta.");
+        if (!response.ok) {
+            if (response.status === 403 || response.status === 404) {
+                throw new Error("El proveedor verificó tu cuenta, pero SmartCity no encontró un perfil activo. El administrador debe revisar el registro automático del perfil; no hace falta crear otra contraseña.");
+            }
+            throw new Error("No se pudo cargar tu perfil de SmartCity. Inténtalo de nuevo en un momento.");
+        }
         const sesion = {
             ...data,
             access_token: session.access_token,
@@ -128,7 +157,7 @@ async function procesarRetornoOAuth() {
     const providerError = url.searchParams.get("error_description") || url.searchParams.get("error");
     if (providerError) {
         limpiarParametrosOAuth(url);
-        mostrarMensajeAuth("No se pudo completar el inicio de sesión. El proveedor pudo rechazar la solicitud o el enlace pudo vencer. Inténtalo de nuevo.", "error");
+        mostrarMensajeAuth(mensajeErrorOAuth({ message: providerError }), "error");
         return true;
     }
 
@@ -153,7 +182,7 @@ async function procesarRetornoOAuth() {
         console.error("No se pudo completar el inicio de sesión social:", error);
         ["token_cloud", "refresh_token_cloud", "token_expires_cloud", "user_role_cloud", "user_name_cloud", "user_id_cloud"].forEach(key => localStorage.removeItem(key));
         await supabaseAuthClient.auth.signOut({ scope: "local" }).catch(() => {});
-        mostrarMensajeAuth(error.message || "No se pudo completar el inicio de sesión social.", "error");
+        mostrarMensajeAuth(mensajeErrorOAuth(error), "error");
         return true;
     }
 }
@@ -379,6 +408,8 @@ function mostrarMensajeAuth(texto, tipo) {
         document.getElementById("form-auth")?.appendChild(msg);
     }
     msg.textContent = texto;
+    msg.setAttribute("role", tipo === "success" ? "status" : "alert");
+    msg.setAttribute("aria-live", tipo === "success" ? "polite" : "assertive");
     msg.className = tipo === "success"
         ? "mt-4 text-center text-sm text-emerald-400"
         : "mt-4 text-center text-sm text-rose-400";
