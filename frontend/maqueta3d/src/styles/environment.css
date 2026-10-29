@@ -24,8 +24,7 @@
 [data-flood-panel][data-severity="precaution"] [data-flood-severity] { color: #977123; }
 .environment-simulation .flood-manual[data-enabled="false"] { opacity: .65; }
 /* Legibilidad sobre el cielo nocturno; controles y disposición originales. */
-.viewport-shell[data-environment="night"] :is(.viewport-topline, .scene-caption, .orientation) { color: #d1e0e8; }
-.viewport-shell[data-environment="night"] .scene-caption strong { color: #d1e0e8; }
+.viewport-shell[data-environment="night"] .viewport-topline { color: #d1e0e8; }
 .viewport-shell[data-environment="night"] .caption-line { background: #b1c6d3; }
 @media (max-width: 520px) {
   .environment-simulation button, .environment-simulation input, .environment-simulation select { font-size: 12px; min-height: 42px; }

@@ -39,11 +39,10 @@ window.addEventListener('storage', (event) => {
 const disposeSystems = () => { ambientTelemetry?.dispose(); ambientTelemetry = null; wasteFeature?.dispose(); ambientFeature?.dispose(); floodFeature?.dispose(); lightingFeature?.dispose(); parkingFeature?.dispose(); trafficFeature?.dispose(); };
 const dispose = () => { disposeSystems(); viewer?.dispose(); };
 try {
-  viewer = createCityViewer(ui.viewport, { onViewChange: ui.onViewChange, onError: (error) => {
+  viewer = createCityViewer(ui.viewport, { onError: (error) => {
     disposeSystems();
     ui.setError(error);
   } });
-  ui.bindViewer(viewer);
   const report = await viewer.load(ui.setProgress);
   ui.setReady(report);
   console.info(`Modelo base cargado: ${report.meshCount} mallas y ${report.interactiveCount} objetos interactivos reconocidos.`);

@@ -1452,16 +1452,12 @@ body.sidebar-collapsed .app-sidebar {
 }
 
 /* Explorador interactivo de la maqueta del compañero */
-.interactive-model-panel { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
-.interactive-model-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: clamp(1rem, 2vw, 1.5rem); border: 1px solid rgba(148, 163, 184, .2); border-radius: 1.25rem; background: rgba(15, 23, 42, .55); }
-.interactive-model-heading h2 { margin: .25rem 0; color: #f8fafc; font-size: clamp(1.25rem, 2.5vw, 1.75rem); font-weight: 700; }
-.interactive-model-heading p:not(.dashboard-eyebrow) { margin: .25rem 0 0; color: #94a3b8; font-size: .9rem; }
-.interactive-model-badge { flex: 0 0 auto; padding: .45rem .7rem; border: 1px solid rgba(52, 211, 153, .3); border-radius: 999px; color: #6ee7b7; font-size: .72rem; font-weight: 700; white-space: nowrap; }
-.interactive-model-frame { display: block; width: 100%; height: min(82vh, 1040px); min-height: 680px; border: 1px solid rgba(148, 163, 184, .2); border-radius: 1.25rem; background: #f3f5f1; }
+.interactive-model-panel { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.interactive-model-panel > .interactive-model-heading { display: none; }
+.interactive-model-frame { display: block; width: 100%; height: min(90dvh, 1120px); min-height: 680px; border: 1px solid rgba(148, 163, 184, .2); border-radius: 1.25rem; background: #f3f5f1; }
 .interactive-model-note { margin: 0; color: #94a3b8; font-size: .78rem; line-height: 1.5; }
 @media (max-width: 767px) {
-    .interactive-model-heading { flex-direction: column; }
-    .interactive-model-frame { height: 90svh; min-height: 720px; border-radius: 1rem; }
+    .interactive-model-frame { height: min(90svh, 48rem); min-height: 36rem; border-radius: 1rem; }
 }
 
 /* Fondo de espera coherente con el visor nocturno de SmartCity Cloud. */
@@ -1511,11 +1507,7 @@ body.sidebar-collapsed .app-sidebar {
     .sidebar-backdrop:not(.hidden) { inset: calc(4rem + env(safe-area-inset-top, 0px)) 0 0; }
     body.mobile-sidebar-open { overflow: hidden; }
 
-    .interactive-model-heading { align-items: stretch; gap: .65rem; padding: .95rem; }
-    .interactive-model-heading h2 { font-size: 1.15rem; }
-    .interactive-model-heading p:not(.dashboard-eyebrow) { font-size: .78rem; line-height: 1.5; }
-    .interactive-model-badge { align-self: flex-start; white-space: normal; }
-    .interactive-model-frame { height: min(76svh, 42rem); min-height: 34rem; border-radius: .9rem; }
+    .interactive-model-frame { height: min(90svh, 48rem); min-height: 36rem; border-radius: .9rem; }
     .interactive-model-note { font-size: .7rem; }
     .main-content { min-width: 0; }
     .main-content :is(.dashboard-feature-panel, .chart-overview-panel, .chart-sensors-section, .operator-config-card) { min-width: 0; }
@@ -1533,8 +1525,7 @@ body.sidebar-collapsed .app-sidebar {
     #usuario-badge { max-width: 7rem; }
     #nav-usuario-nombre { max-width: 3.5rem; }
     .main-content { padding: .6rem !important; }
-    .interactive-model-panel { gap: .65rem; }
-    .interactive-model-frame { height: min(72svh, 38rem); min-height: 32rem; border-radius: .8rem; }
+    .interactive-model-frame { height: min(90svh, 44rem); min-height: 36rem; border-radius: .8rem; }
 }
 
 @media (max-width: 360px) {

@@ -8,7 +8,7 @@ import { createDaylightTransition } from '../lighting/daylight-transition.js';
 import { createShadowCache } from './shadow-cache.js';
 
 /** Presentación 3D y cámara. No contiene lógica de sensores ni automatizaciones. */
-export function createCityViewer(container, { onViewChange, onError } = {}) {
+export function createCityViewer(container, { onError } = {}) {
   const scene = new THREE.Scene();
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -21,19 +21,25 @@ export function createCityViewer(container, { onViewChange, onError } = {}) {
   renderer.setClearColor(0x12213a, 1);
   const canvas = renderer.domElement;
   canvas.tabIndex = 0;
-  canvas.setAttribute('aria-label', 'Maqueta 3D. Arrastra para girar; usa la rueda para acercar o alejar. También puedes usar los botones de vista.');
+  canvas.setAttribute('aria-label', 'Maqueta 3D interactiva. Arrastra con el mouse o un dedo para girar; usa la rueda o pellizca con dos dedos para acercar o alejar. Con el teclado, usa más, menos e Inicio para ajustar la vista.');
   container.append(canvas);
 
   const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 150);
   const controls = new OrbitControls(camera, canvas);
-  controls.enableDamping = true;
+  const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const dampingEnabled = () => !motionPreference.matches;
+  controls.enableDamping = dampingEnabled();
   controls.dampingFactor = 0.085;
   controls.screenSpacePanning = true;
   controls.minPolarAngle = 0.025;
   controls.maxPolarAngle = Math.PI / 2 - 0.04;
   controls.enablePan = true;
   controls.enabled = false;
-  controls.addEventListener('start', () => onViewChange?.('free'));
+  const handleMotionPreferenceChange = () => {
+    controls.enableDamping = dampingEnabled();
+    controls.update();
+  };
+  motionPreference.addEventListener?.('change', handleMotionPreferenceChange);
 
   const environment = new RoomEnvironment();
   const generator = new THREE.PMREMGenerator(renderer);
@@ -96,8 +102,7 @@ export function createCityViewer(container, { onViewChange, onError } = {}) {
     camera.position.copy(center).addScaledVector(viewDirections[view], distance);
     camera.lookAt(center);
     controls.update();
-    controls.enableDamping = true;
-    onViewChange?.(view);
+    controls.enableDamping = dampingEnabled();
   }
 
   function resize() {
@@ -120,7 +125,6 @@ export function createCityViewer(container, { onViewChange, onError } = {}) {
     offset.setLength(THREE.MathUtils.clamp(offset.length() * factor, controls.minDistance, controls.maxDistance));
     camera.position.copy(controls.target).add(offset);
     controls.update();
-    onViewChange?.('free');
   }
 
   const handleKey = (event) => {
@@ -175,6 +179,7 @@ export function createCityViewer(container, { onViewChange, onError } = {}) {
     scene.onBeforeRender = () => {};
     observer.disconnect();
     controls.dispose();
+    motionPreference.removeEventListener?.('change', handleMotionPreferenceChange);
     canvas.removeEventListener('keydown', handleKey);
     canvas.removeEventListener('webglcontextlost', handleContextLost);
     const geometries = new Set();

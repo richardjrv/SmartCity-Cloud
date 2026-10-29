@@ -5,7 +5,7 @@ html { scrollbar-gutter: stable; }
   .explorer, .systems-panel { height: calc(100vh - 91px); }
 }
 
-/* En móviles, compacta los controles táctiles y evita el desbordamiento horizontal. */
+/* En móviles, mantiene el visor dentro del ancho disponible. */
 @media (max-width: 520px) {
   html, body { width: 100%; min-width: 0; overflow-x: hidden; }
   .workspace, .explorer, .systems-panel { min-width: 0; width: 100%; }
@@ -17,28 +17,6 @@ html { scrollbar-gutter: stable; }
   .explorer { padding: 20px 12px 0; }
   .viewport-shell { height: min(58svh, 430px); min-height: 340px; }
   .viewport-topline { top: 14px; left: 12px; right: 12px; }
-  .city-viewport { inset: 34px 0 58px; }
-  .viewer-tools {
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    width: auto;
-    max-width: calc(100% - 16px);
-    min-width: 0;
-    overflow-x: auto;
-    justify-content: flex-start;
-    transform: none;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  .viewer-tools::-webkit-scrollbar { display: none; }
-  .view-presets, .preset, .icon-button, .tools-divider { flex: 0 0 auto; }
-  .preset { min-height: 44px; padding: 8px 6px; font-size: 9px; gap: 3px; }
-  .preset .icon { display: none; }
-  .icon-button { width: 30px; min-height: 44px; }
-  .tools-divider { margin-inline: 2px; }
-  .orientation { right: 12px; bottom: 64px; width: 38px; }
-  .orientation svg { width: 38px; }
   .system-cards { grid-template-columns: minmax(0, 1fr); }
   .system-card summary { min-height: 54px; padding: 12px 10px; }
   .system-copy { min-width: 0; }
@@ -53,7 +31,4 @@ html { scrollbar-gutter: stable; }
   .phase-label { display: none; }
   .explorer { padding-inline: 9px; }
   .viewport-shell { min-height: 315px; }
-  .preset { padding-inline: 4px; font-size: 8px; }
-  .icon-button { width: 27px; }
-  .tools-divider { margin-inline: 1px; }
 }

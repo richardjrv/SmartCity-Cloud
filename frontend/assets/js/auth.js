@@ -106,7 +106,7 @@ function limpiarParametrosOAuth(url) {
 function mensajeErrorOAuth(error) {
     const detalle = `${error?.code || ""} ${error?.name || ""} ${error?.message || error || ""}`;
     if (/pkce|code.?verifier|flow.?state.?not.?found/i.test(detalle)) {
-        return "El acceso social inició la verificación, pero este navegador no conservó el código temporal. Vuelve a esta misma pestaña de Safari o Chrome y toca otra vez el botón del proveedor; evita abrir SmartCity desde el navegador integrado de otra app. No necesitas crear una contraseña de SmartCity. Si Google te pide una, usa la contraseña de tu cuenta Google en la ventana oficial de Google.";
+        return "El acceso social inició la verificación, pero este navegador no conservó el código temporal. Vuelve a esta misma pestaña de Safari o Chrome y toca otra vez el botón del proveedor; evita abrir SmartCity desde el navegador integrado de otra app. No necesitas crear una contraseña de SmartCity. Si el proveedor te pide una, ingrésala solo en su página oficial.";
     }
     if (/signup.?disabled|sign.?up.*disabled|user.*not allowed to sign up/i.test(detalle)) {
         return "El proveedor confirmó la cuenta, pero SmartCity no permite registrar usuarios nuevos en este momento. El administrador debe habilitar el registro de nuevos usuarios en Supabase Auth.";
@@ -115,7 +115,7 @@ function mensajeErrorOAuth(error) {
         return "El proveedor confirmó la cuenta, pero SmartCity no pudo crear su perfil. El administrador debe revisar el registro automático del perfil en Supabase.";
     }
     if (/access.?denied|cancelled|canceled|cancelado/i.test(detalle)) {
-        return "Se canceló el acceso con Google. Puedes volver a intentarlo cuando quieras.";
+        return "Se canceló el acceso del proveedor. Puedes volver a intentarlo cuando quieras.";
     }
     return "No se pudo completar el acceso social. Vuelve a intentarlo desde esta misma pestaña; si continúa, contacta al administrador de SmartCity.";
 }
