@@ -12,13 +12,9 @@ Plataforma universitaria de monitoreo IoT con un sitio estático, un explorador 
 
 ## Ejecutar el sitio
 
-El frontend no necesita un paso de compilación. Desde la raíz del repositorio:
+El frontend usa Vite, React y Tailwind CSS para los componentes migrados. Desde `frontend/` ejecuta `npm install` y `npm run dev`. Para generar el sitio de producción, ejecuta `npm run build`; los archivos se guardan en `frontend/dist/`. Las vistas clásicas y el explorador 3D se conservan durante la migración gradual.
 
-```powershell
-py -m http.server 5500 --directory frontend
-```
-
-Abre `http://127.0.0.1:5500`. Para probar la API local, configura `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SECRET_KEY` y `FRONTEND_ORIGINS` en el entorno antes de iniciar el backend. El navegador usa la URL de API definida en `frontend/assets/js/api.js`.
+Para probar la API local, configura `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SECRET_KEY` y `FRONTEND_ORIGINS` en el entorno antes de iniciar el backend. El navegador usa la URL de API definida en `frontend/assets/js/api.js`.
 
 ## Ejecutar la API
 
@@ -34,7 +30,7 @@ Las variables privadas se configuran en el entorno local o en Render; usa `backe
 
 ## Despliegues
 
-- **Vercel**: conecta el repositorio GitHub, usa `main` como rama de producción y `frontend` como Root Directory. Es un sitio estático, sin `npm install` ni comando de build.
+- **Vercel**: conecta el repositorio GitHub, usa `main` como rama de producción y `frontend` como Root Directory. Usa `npm run build` y `dist` como directorio de salida.
 - **Render**: usa `backend` como Root Directory, instala `requirements.txt` y arranca con `uvicorn main:app --host 0.0.0.0 --port $PORT`. Configura allí las variables del backend.
 - Las variables privadas de Supabase y Gemini solo pertenecen al backend. La clave pública de Supabase del frontend no sustituye la autenticación ni los permisos del backend.
 
@@ -45,3 +41,4 @@ Lee [backend/sql/README.md](backend/sql/README.md) antes de ejecutar SQL. Las mi
 ## Flujo Git recomendado
 
 Usa `main` para el código de producción. Para cada cambio crea una rama `feature/...` o `fix/...`, abre un pull request, intégralo y elimina la rama ya fusionada. Conserva ramas solo mientras tengan trabajo exclusivo sin integrar.
+

@@ -7,25 +7,6 @@
     <meta name="theme-color" content="#0b0f17">
     <title>SmartCity Cloud - Monitoreo Urbano e IoT</title>
     <!-- Cargar librería nativa para modelos 3D .GLB / .GLTF -->
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#eff6ff',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            900: '#1e3a8a',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <link rel="stylesheet" href="assets/css/styles.css">
     <link rel="stylesheet" href="assets/css/mejoras.css">
     <link rel="stylesheet" href="assets/css/configuracion-operador.css">
@@ -47,7 +28,7 @@
         <span class="orbital-cursor__dot"></span>
     </div>
 <!-- Contenedor de Notificaciones Toast Flotantes -->
-<div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
+<div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col gap-3 pointer-events-none"><div id="react-toast-root"></div></div>
     <div id="auth-loading-overlay" class="auth-loading-overlay hidden" role="status" aria-live="polite" aria-label="Cargando SmartCity Cloud">
         <div class="auth-loading-card"><span class="auth-loading-spinner" aria-hidden="true"></span><strong>Preparando tu ciudad</strong><p>Cargando sensores, clima y panel…</p><div class="auth-loading-progress"><span></span></div></div>
     </div>
@@ -1063,6 +1044,7 @@
     <script src="assets/js/clima.js"></script>
     <script src="assets/js/graficas.js"></script>
     <script src="assets/js/main.js"></script>
+    <script type="module" src="/src/main.jsx"></script>
 
 </body>
 </html>

@@ -3,6 +3,10 @@
 // ============================================================
 function mostrarNotificacion(mensaje, tipo = "info") {
     if (tipo === "exito") reproducirFeedbackSonoro("confirmacion");
+    if (typeof window.smartCityToast === "function") {
+        window.smartCityToast(String(mensaje ?? ""), tipo);
+        return;
+    }
     const container = document.getElementById("toast-container");
     if (!container) return;
 
