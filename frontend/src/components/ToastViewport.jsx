@@ -2,15 +2,15 @@ import { useEffect, useRef, useState } from "react";
 
 const TOAST_STYLES = {
     exito: {
-        className: "bg-emerald-900/90 border-emerald-500/50",
+        className: "alert alert-soft alert-success bg-emerald-900/90 border-emerald-500/50",
         icon: "✅",
     },
     error: {
-        className: "bg-rose-900/90 border-rose-500/50",
+        className: "alert alert-soft alert-error bg-rose-900/90 border-rose-500/50",
         icon: "⚠️",
     },
     info: {
-        className: "bg-blue-900/90 border-blue-500/50",
+        className: "alert alert-soft alert-info bg-blue-900/90 border-blue-500/50",
         icon: "ℹ️",
     },
 };
