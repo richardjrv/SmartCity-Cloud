@@ -1,0 +1,322 @@
+/* La pantalla de acceso tiene sus propios controles: FlyonUI no debe reducirlos. */
+#vista-auth .hidden { display: none !important; }
+
+#vista-auth .auth-card {
+    width: 100%;
+    max-width: 30rem;
+    min-width: 0;
+    justify-self: center;
+    padding: clamp(1.5rem, 2.7vw, 2rem);
+    border: 1px solid color-mix(in srgb, var(--accent) 31%, #64748b);
+    border-radius: 1.5rem;
+    color: #f8fafc;
+    background: linear-gradient(155deg, rgba(26, 43, 74, .97), rgba(12, 24, 45, .97) 72%);
+    box-shadow: 0 26px 75px rgba(2, 8, 23, .5), 0 0 38px color-mix(in srgb, var(--accent) 11%, transparent);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+}
+
+#vista-auth .auth-card::before {
+    inset: 0 0 auto;
+    width: 100%;
+    height: 1px;
+    opacity: 1;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 75%, #fff), transparent);
+    animation: none;
+}
+
+body.login-only .auth-layout::before,
+body.login-only .auth-layout::after { animation: none; }
+
+#vista-auth .auth-card__topline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem 1rem;
+    color: #b5c7e2;
+    font-size: .66rem;
+    font-weight: 750;
+    letter-spacing: .14em;
+}
+
+#vista-auth .auth-card__signal {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    color: #a8d8f4;
+    letter-spacing: .09em;
+}
+
+#vista-auth .auth-card__signal i {
+    display: block;
+    width: .4rem;
+    height: .4rem;
+    border-radius: 50%;
+    background: #67e8f9;
+    box-shadow: 0 0 0 3px rgba(103, 232, 249, .12);
+}
+
+#vista-auth .auth-card__scene {
+    height: 5.5rem;
+    margin-top: .75rem;
+    overflow: hidden;
+    border: 1px solid rgba(125, 174, 232, .18);
+    border-radius: 1rem;
+    background:
+        radial-gradient(circle at 78% 16%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 31%),
+        linear-gradient(115deg, rgba(25, 60, 106, .45), rgba(9, 27, 55, .74));
+}
+
+#vista-auth .auth-card__scene svg { display: block; width: 100%; height: 100%; }
+#vista-auth .auth-card__beacon { animation: auth-beacon 2.7s ease-in-out infinite; }
+
+#vista-auth .auth-card__intro { margin-top: 1.1rem; }
+#vista-auth .auth-card__intro h2 {
+    color: #fff;
+    font-size: clamp(1.7rem, 4vw, 2.05rem);
+    font-weight: 780;
+    letter-spacing: -.035em;
+    line-height: 1.12;
+}
+#vista-auth .auth-card__intro p {
+    margin-top: .45rem;
+    color: #b8c8dc;
+    font-size: .9rem;
+    line-height: 1.5;
+}
+
+#vista-auth .auth-card__form,
+#vista-auth #form-recovery-request,
+#vista-auth #form-recovery-password {
+    display: grid;
+    gap: .75rem;
+    margin-top: 1.1rem;
+}
+
+#vista-auth .auth-card__field { display: grid; gap: .42rem; min-width: 0; }
+#vista-auth .auth-card__field label,
+#vista-auth :is(#form-recovery-request, #form-recovery-password) label {
+    color: #d9e5f5;
+    font-size: .81rem;
+    font-weight: 650;
+    line-height: 1.35;
+}
+
+#vista-auth .auth-card__field input,
+#vista-auth :is(#form-recovery-request, #form-recovery-password) input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 3.15rem;
+    padding: .72rem 1rem;
+    border: 1px solid rgba(138, 163, 201, .34);
+    border-radius: .8rem;
+    color: #f8fafc;
+    background: rgba(5, 17, 35, .6);
+    font-size: 1rem;
+    line-height: 1.35;
+    outline: none;
+    transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+#vista-auth .auth-card__field input::placeholder { color: #8296b4; opacity: 1; }
+#vista-auth .auth-card__field input:focus-visible,
+#vista-auth :is(#form-recovery-request, #form-recovery-password) input:focus-visible {
+    border-color: #75a9ff;
+    background: rgba(8, 24, 49, .9);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+#vista-auth .auth-card__password { position: relative; }
+#vista-auth .auth-card__password input { padding-right: 6.1rem; }
+#vista-auth #toggle-password-visibility {
+    position: absolute;
+    top: 50%;
+    right: .45rem;
+    transform: translateY(-50%);
+    min-height: 2.3rem;
+    padding: .3rem .65rem;
+    border: 0;
+    border-radius: .5rem;
+    color: #b8d4ff;
+    background: transparent;
+    font-size: .8rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+#vista-auth #toggle-password-visibility:hover { background: rgba(96, 165, 250, .12); }
+
+#vista-auth .auth-card__forgot {
+    justify-self: end;
+    min-height: 1.9rem;
+    margin-top: -.28rem;
+    border: 0;
+    color: #a9cbff;
+    background: transparent;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+#vista-auth .auth-card__forgot:hover,
+#vista-auth #auth-toggle-btn:hover { color: #fff; text-decoration: underline; }
+
+#vista-auth #auth-btn-submit,
+#vista-auth :is(#form-recovery-request, #form-recovery-password) button[type="submit"] {
+    display: block;
+    width: 100%;
+    min-height: 3.2rem;
+    padding: .7rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--accent) 75%, white);
+    border-radius: .8rem;
+    color: #fff;
+    background: linear-gradient(105deg, color-mix(in srgb, var(--accent) 84%, #08337e), var(--accent));
+    box-shadow: 0 12px 24px color-mix(in srgb, var(--accent) 24%, transparent);
+    font-size: .95rem;
+    font-weight: 750;
+    line-height: 1.35;
+    cursor: pointer;
+}
+#vista-auth #auth-btn-submit:disabled { opacity: .6; cursor: wait; }
+
+#vista-auth .auth-card__divider {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    margin: .15rem 0;
+    color: #a8b8d0;
+    font-size: .78rem;
+    white-space: nowrap;
+}
+#vista-auth .auth-card__divider span:first-child,
+#vista-auth .auth-card__divider span:last-child {
+    height: 1px;
+    flex: 1;
+    background: linear-gradient(90deg, transparent, rgba(141, 169, 207, .42));
+}
+#vista-auth .auth-card__divider span:last-child { transform: rotate(180deg); }
+
+#vista-auth .auth-card__providers {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .65rem;
+}
+
+#vista-auth .auth-card__social {
+    display: grid;
+    grid-template-columns: 1.35rem minmax(0, 1fr) 1.35rem;
+    align-items: center;
+    gap: .7rem;
+    width: 100%;
+    min-height: 3rem;
+    padding: .65rem 1rem;
+    border: 1px solid rgba(138, 163, 201, .32);
+    border-radius: .8rem;
+    color: #edf4ff;
+    background: rgba(255, 255, 255, .055);
+    font-size: .9rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition: border-color .2s ease, background-color .2s ease, transform .2s ease;
+}
+#vista-auth .auth-card__social svg { display: block; width: 1.25rem; height: 1.25rem; }
+#vista-auth .auth-card__social span { text-align: center; }
+#vista-auth .auth-card__social:hover {
+    transform: translateY(-2px);
+    border-color: rgba(147, 197, 253, .72);
+    background: rgba(96, 165, 250, .13);
+}
+
+#vista-auth .auth-card__magic {
+    justify-self: center;
+    min-height: 2.6rem;
+    padding: .4rem .75rem;
+    border: 0;
+    color: #b8d4ff;
+    background: transparent;
+    font-size: .82rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+#vista-auth .auth-card__magic:hover { color: #fff; text-decoration: underline; }
+#vista-auth .auth-card__toggle {
+    margin-top: .9rem;
+    padding-top: .9rem;
+    border-top: 1px solid rgba(138, 163, 201, .2);
+    color: #b8c8dc;
+    font-size: .84rem;
+    text-align: center;
+}
+#vista-auth #auth-toggle-btn {
+    min-height: 2rem;
+    margin-left: .2rem;
+    border: 0;
+    color: #a9cbff;
+    background: transparent;
+    font-size: inherit;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+#vista-auth #auth-mensaje {
+    padding: .75rem;
+    border-radius: .7rem;
+    background: rgba(251, 113, 133, .1);
+    line-height: 1.45;
+}
+#vista-auth #auth-mensaje[role="status"] { background: rgba(16, 185, 129, .12); }
+#vista-auth :is(#form-recovery-request, #form-recovery-password) h3 { color: #fff; font-size: 1.25rem; font-weight: 750; }
+#vista-auth :is(#form-recovery-request, #form-recovery-password) p { line-height: 1.5; }
+#vista-auth :is(#form-recovery-request, #form-recovery-password) button:not([type="submit"]) {
+    min-height: 2.6rem;
+    padding: .45rem .75rem;
+}
+
+@keyframes auth-beacon { 50% { opacity: .42; } }
+
+@media (max-width: 767px) {
+    #vista-auth.auth-layout { gap: 1.35rem; padding: 1.25rem .9rem 2rem; }
+    #vista-auth .auth-card { padding: 1.45rem !important; }
+    #vista-auth .auth-card__scene { height: 5.2rem; }
+}
+
+@media (max-width: 390px) {
+    #vista-auth .auth-card { padding: 1.2rem !important; }
+    #vista-auth .auth-card__topline { font-size: .6rem; }
+    #vista-auth .auth-card__social { font-size: .84rem; }
+}
+
+html[data-theme="light"] #vista-auth .auth-card {
+    color: #10213c;
+    background: linear-gradient(155deg, rgba(255, 255, 255, .97), rgba(238, 246, 255, .97));
+    box-shadow: 0 26px 65px rgba(31, 52, 86, .22);
+}
+html[data-theme="light"] #vista-auth :is(.auth-card__topline, .auth-card__intro p, .auth-card__toggle) { color: #475569; }
+html[data-theme="light"] #vista-auth .auth-card__signal { color: #185b90; }
+html[data-theme="light"] #vista-auth .auth-card__intro h2,
+html[data-theme="light"] #vista-auth :is(#form-recovery-request, #form-recovery-password) h3 { color: #0f172a; }
+html[data-theme="light"] #vista-auth .auth-card__field label,
+html[data-theme="light"] #vista-auth :is(#form-recovery-request, #form-recovery-password) label { color: #243b5a; }
+html[data-theme="light"] #vista-auth .auth-card__field input,
+html[data-theme="light"] #vista-auth :is(#form-recovery-request, #form-recovery-password) input {
+    color: #0f172a;
+    background: rgba(255, 255, 255, .92);
+    border-color: #b5c7dd;
+}
+html[data-theme="light"] #vista-auth .auth-card__field input::placeholder { color: #64748b; }
+html[data-theme="light"] #vista-auth :is(.auth-card__forgot, .auth-card__magic, #auth-toggle-btn, #toggle-password-visibility) { color: #1d4ed8; }
+html[data-theme="light"] #vista-auth .auth-card__social { color: #20324f; background: rgba(255, 255, 255, .88); border-color: #b5c7dd; }
+html[data-theme="light"] #vista-auth .auth-card__divider { color: #52647d; }
+
+@media (prefers-reduced-transparency: reduce) {
+    #vista-auth .auth-card { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (prefers-contrast: more) {
+    #vista-auth .auth-card { border-color: currentColor; }
+    #vista-auth .auth-card__field input,
+    #vista-auth .auth-card__social { border-color: currentColor; }
+}
+@media (prefers-reduced-motion: reduce) {
+    #vista-auth .auth-card__beacon { animation: none; }
+    #vista-auth .auth-card__social:hover { transform: none; }
+}
+body.reduce-motion #vista-auth .auth-card__beacon { animation: none; }

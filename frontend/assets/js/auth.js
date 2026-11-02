@@ -204,8 +204,8 @@ function toggleModoAuth() {
         password.autocomplete = modoRegistro ? "new-password" : "current-password";
         password.minLength = modoRegistro ? 8 : 1;
     }
-    if (title) title.textContent = modoRegistro ? "Crear Cuenta" : "SmartCity Cloud";
-    if (subtitle) subtitle.textContent = modoRegistro ? "Regístrate en SmartCity Cloud" : "Monitoreo Urbano e IoT en la Nube";
+    if (title) title.textContent = modoRegistro ? "Crea tu cuenta" : "Bienvenido de nuevo";
+    if (subtitle) subtitle.textContent = modoRegistro ? "Explora la ciudad con tu propio acceso." : "Accede a tu ciudad y continúa donde lo dejaste.";
     if (submit) submit.textContent = modoRegistro ? "Crear Cuenta ➔" : "Iniciar Sesión ➔";
     if (toggleText) toggleText.textContent = modoRegistro ? "¿Ya tienes una cuenta?" : "¿No tienes cuenta?";
     if (toggleButton) toggleButton.textContent = modoRegistro ? "Iniciar Sesión" : "Crear una cuenta";
