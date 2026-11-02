@@ -693,6 +693,7 @@ document.addEventListener("DOMContentLoaded", () => {
     inicializarHistorialDescargas();
     initDashboardSettings();
     inicializarCursorOrbital();
+    inicializarAlturaVisorMaqueta();
     inicializarRelojDashboard();
     inicializarBienvenidaDashboard();
     if (typeof inicializarCentroAlertas === "function") inicializarCentroAlertas();
@@ -712,6 +713,21 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     comprobarSesion();
 });
+
+function inicializarAlturaVisorMaqueta() {
+    const frame = document.getElementById("companion-model-frame");
+    if (!frame) return;
+    window.addEventListener("message", event => {
+        if (event.origin !== window.location.origin || event.source !== frame.contentWindow || event.data?.type !== "smartcity:model-height") return;
+        const height = Number(event.data.height);
+        if (frame.clientWidth <= 767 && Number.isFinite(height) && height >= 400 && height <= 10000) {
+            frame.style.height = `${Math.ceil(height + 2)}px`;
+        }
+    });
+    window.addEventListener("resize", () => {
+        if (frame.clientWidth > 767) frame.style.removeProperty("height");
+    }, { passive: true });
+}
 
 const SETTINGS_KEYS = {
     refresh: "smartcity_refresh_seconds",

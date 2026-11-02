@@ -10,6 +10,16 @@ import { mountProximitySimulation } from './waste/feature.js';
 import { connectParentTelemetry } from './services/parent-telemetry.js';
 
 const ui = createDashboard(document.querySelector('#app'), createCityState());
+if (window.parent !== window) {
+  const reportHeight = () => {
+    if (window.innerWidth > 767) return;
+    const height = Math.ceil(document.querySelector('#app')?.scrollHeight || 0);
+    if (height > 0) window.parent.postMessage({ type: 'smartcity:model-height', height }, window.location.origin);
+  };
+  new ResizeObserver(reportHeight).observe(document.querySelector('#app'));
+  window.addEventListener('load', reportHeight);
+  requestAnimationFrame(reportHeight);
+}
 let viewer;
 let trafficFeature;
 let parkingFeature;

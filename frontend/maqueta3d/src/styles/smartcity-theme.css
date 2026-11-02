@@ -183,3 +183,15 @@ html[data-site-theme="light"] .environment-simulation .simulation-settings > sum
 html[data-site-theme="light"] .environment-simulation select,
 html[data-site-theme="light"] .environment-simulation input[type="number"] { color: #1e293b; background: #fff; border-color: #cbd8e7; }
 html[data-site-theme="light"] .environment-simulation button { color: #334155; background: #f8fafc; border-color: #dbe4ef; }
+
+/* En celular, la maqueta y los sistemas forman una sola página desplazable. */
+@media (max-width: 767px) {
+  html, body { height: auto; min-height: 100%; overflow-x: hidden; }
+  html { overflow-y: hidden; scrollbar-gutter: auto; }
+  body { overflow-y: visible; }
+  #app, .workspace { height: auto; min-height: 0; overflow: visible; }
+  .explorer { flex: none; height: auto; min-height: 0; }
+  .viewport-shell { flex: none; height: min(58svh, 430px); min-height: 340px; }
+  .systems-panel { flex: none; height: auto; min-height: 0; overflow: visible; }
+  .system-cards { flex: none; align-items: stretch; min-height: 0; overflow: visible; }
+}
