@@ -8,7 +8,7 @@ const DEMO_SENSOR_COUNT = 1;
 const DEMO_HISTORY_STEP_MS = 30 * 60 * 1000;
 let sensoresEnMapa = [];
 let lecturasEnVivo = [];
-let modoDemoSensores = true;
+let modoDemoSensores = usarDatosSimuladosSensores();
 let lecturaApiReciente = false;
 let fechaUltimaLecturaSensor = null;
 let temporizadorAntiguedadSensor = null;
@@ -55,6 +55,7 @@ function generarHistorialDemostrativo(desde = new Date(Date.now() - 24 * 60 * 60
             lecturas.push(crearLecturaDemo(indice, new Date(timestamp)));
         }
     }
+    if (!lecturas.length && hasta >= desde) lecturas.push(crearLecturaDemo(0, hasta));
     return lecturas;
 }
 
@@ -102,16 +103,27 @@ async function cargarMapaSensores() {
     instalarEventosMapaSensores();
 
     let lecturasReales = [];
-    try {
-        const respuesta = await apiFetch("/sensores/maqueta");
-        if (respuesta.ok && respuesta.data?.lectura) {
-            lecturasReales = [{ id: "ESP32", sensor_id: "ESP32", lectura: respuesta.data.lectura }];
+    if (!usarDatosSimuladosSensores()) {
+        try {
+            const respuesta = await apiFetch("/sensores/maqueta");
+            const lectura = respuesta.ok ? respuesta.data?.lectura : null;
+            const fecha = new Date(lectura?.fecha_hora || 0);
+            const edad = Date.now() - fecha.getTime();
+            const staleMinutes = Number(obtenerConfiguracionOperador?.().staleMinutes) || 10;
+            const reciente = Number.isFinite(fecha.getTime()) && edad >= 0 && edad <= staleMinutes * 60_000;
+            if (lectura && reciente) lecturasReales = [{ id: "ESP32", sensor_id: "ESP32", lectura }];
+        } catch (error) {
+            console.info("Se mostrará el estado de espera porque no se pudo consultar el servicio del ESP32.");
         }
-    } catch (error) {
-        console.info("Se mostrará el conjunto demostrativo porque no se pudo consultar el servicio de sensores.");
     }
 
-    if (lecturasReales.length) {
+    if (usarDatosSimuladosSensores()) {
+        modoDemoSensores = true;
+        lecturaApiReciente = false;
+        fechaUltimaLecturaSensor = null;
+        lecturasEnVivo = crearLecturasDemo();
+        actualizarFuenteDatos("DEMO · DATOS SIMULADOS", true);
+    } else if (lecturasReales.length) {
         modoDemoSensores = false;
         // Un solo ESP32 concentra las mediciones de la maqueta.
         lecturasEnVivo = deduplicarLecturas(lecturasReales).slice(0, 1);
@@ -122,18 +134,18 @@ async function cargarMapaSensores() {
         fechaUltimaLecturaSensor = Number.isFinite(fechaUltima.getTime()) ? fechaUltima : null;
         actualizarFuenteDatos(lecturaReciente ? "API · LECTURA RECIENTE" : "API · ÚLTIMA LECTURA ANTIGUA", false, !lecturaReciente, fechaUltima);
     } else {
-        modoDemoSensores = true;
+        modoDemoSensores = false;
         lecturaApiReciente = false;
         fechaUltimaLecturaSensor = null;
-        lecturasEnVivo = crearLecturasDemo();
-        actualizarFuenteDatos("DEMO · DATOS SIMULADOS", true);
+        lecturasEnVivo = [];
+        actualizarFuenteDatos("ESP32 · ESPERANDO DATOS", false, true, null, true);
     }
 
     sensoresEnMapa = lecturasEnVivo;
     if (typeof registrarNotificacionesSensores === "function") {
         registrarNotificacionesSensores(sensoresEnMapa, modoDemoSensores);
     }
-    if (typeof registrarEstadoConexionSensor === "function") {
+    if (!modoDemoSensores && typeof registrarEstadoConexionSensor === "function") {
         const ultimaLecturaReal = lecturasReales.length > 0 ? lecturasEnVivo[0] : null;
         const sensorLabel = typeof obtenerConfiguracionOperador === "function"
             ? obtenerConfiguracionOperador().sensorLabel
@@ -152,13 +164,16 @@ async function cargarMapaSensores() {
     const seleccionado = sensoresEnMapa.find(sensor => sensor.id === sensorEnDetalle);
     if (seleccionado) mostrarDetalleSensor(seleccionado);
     else if (sensoresEnMapa.length) mostrarDetalleSensor(sensoresEnMapa[0]);
-    else mostrarDetalleVacio("Aún no hay lecturas para mostrar.");
+    else mostrarDetalleVacio(modoDemoSensores ? "Aún no hay valores de demostración para mostrar." : "El ESP32 todavía no ha enviado lecturas recientes.");
+    if (emptyState && !sensoresEnMapa.length) emptyState.textContent = modoDemoSensores
+        ? "Aún no hay valores de demostración para mostrar."
+        : "El ESP32 todavía no ha enviado lecturas recientes.";
     emptyState?.classList.toggle("hidden", sensoresEnMapa.length > 0);
 
     const actualizado = document.getElementById("sensor-map-updated");
     if (actualizado) actualizado.textContent = modoDemoSensores
         ? `Escenario de demostración · ${new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}`
-        : `Consulta API · ${new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}`;
+        : sensoresEnMapa.length ? `Consulta API · ${new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}` : "Esperando al ESP32";
 }
 
 function describirAntiguedadLectura(fecha) {
@@ -172,7 +187,21 @@ function describirAntiguedadLectura(fecha) {
     return `hace ${dias} d`;
 }
 
-function actualizarFuenteDatos(texto, esDemo, esAntigua = false, ultimaLectura = null) {
+function actualizarFuenteDatos(texto, esDemo, esAntigua = false, ultimaLectura = null, esperando = false) {
+    const sensorTitle = document.getElementById("sensor-map-title");
+    const sensorDescription = document.getElementById("sensor-map-description");
+    const refreshButton = document.getElementById("sensor-map-refresh");
+    const pulseSensorLabel = document.getElementById("pulse-sensor-label");
+    if (sensorTitle) sensorTitle.textContent = esDemo ? "📡 Valores de demostración" : "📡 Lecturas del ESP32";
+    if (sensorDescription) sensorDescription.textContent = esDemo
+        ? "Se generan en esta página; todavía no hay un ESP32 conectado."
+        : esperando ? "La integración está preparada; aquí aparecerán las mediciones cuando el ESP32 envíe datos."
+            : "Consulta las mediciones reportadas por el controlador y la hora de su última lectura.";
+    if (refreshButton) {
+        refreshButton.textContent = esDemo ? "↻ Actualizar datos" : "↻ Actualizar lectura";
+        refreshButton.setAttribute("aria-label", esDemo ? "Actualizar datos de demostración" : "Actualizar lectura del ESP32");
+    }
+    if (pulseSensorLabel) pulseSensorLabel.textContent = esDemo ? "controlador simulado" : "ESP32 en la maqueta";
     const badge = document.getElementById("sensor-data-source");
     if (badge) {
         badge.textContent = texto;
@@ -185,11 +214,14 @@ function actualizarFuenteDatos(texto, esDemo, esAntigua = false, ultimaLectura =
     if (estadoEsp32) {
         const antiguedad = ultimaLectura ? describirAntiguedadLectura(ultimaLectura) : "";
         estadoEsp32.textContent = esDemo ? "Demo · ESP32 aún no conectado"
+            : esperando ? "Esperando al ESP32"
             : esAntigua ? `Lectura antigua · ${antiguedad || "antigua"}`
                 : `Dato reciente · ${antiguedad || "hace poco"}`;
         estadoEsp32.title = ultimaLectura && Number.isFinite(ultimaLectura.getTime())
             ? `Último dato recibido: ${new Intl.DateTimeFormat("es-EC", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Guayaquil" }).format(ultimaLectura)}`
-            : esDemo ? "Se muestran datos simulados; el ESP32 aún no ha reportado mediciones reales." : "No se dispone de la fecha de la última lectura.";
+            : esDemo ? "Se muestran datos simulados; el ESP32 aún no ha reportado mediciones reales."
+                : esperando ? "La integración está preparada, pero el ESP32 todavía no ha enviado lecturas recientes."
+                    : "No se dispone de la fecha de la última lectura.";
         estadoEsp32.setAttribute("aria-label", estadoEsp32.title);
         estadoEsp32.classList.toggle("demo-source", esDemo);
         estadoEsp32.classList.toggle("api-source", !esDemo);
@@ -199,7 +231,8 @@ function actualizarFuenteDatos(texto, esDemo, esAntigua = false, ultimaLectura =
     const note = document.getElementById("alert-center-note");
     if (note) note.textContent = esDemo
         ? "Valores de demostración para un ESP32. No provienen de la maqueta ni sustituyen una evaluación ambiental."
-        : "Lecturas reportadas por el ESP32. Los colores no indican normalidad porque aún no hay umbrales calibrados.";
+        : esperando ? "La conexión al ESP32 aún está pendiente; aquí se mostrarán sus lecturas cuando se integre."
+            : "Lecturas reportadas por el ESP32. Los colores no indican normalidad porque aún no hay umbrales calibrados.";
 }
 
 function actualizarAntiguedadSensor() {
@@ -507,7 +540,7 @@ function mostrarDetalleSensor(sensor) {
     const fechaValida = fecha && !Number.isNaN(fecha.getTime());
     const element = id => document.getElementById(id);
 
-    element("sensor-detail-id").textContent = `ESP32 ${sensor.id}`;
+    element("sensor-detail-id").textContent = modoDemoSensores ? "Controlador simulado" : `ESP32 ${sensor.id}`;
     const detailStatus = element("sensor-detail-status");
     const fechaDetalleAntigua = fechaValida && Date.now() - fecha.getTime() > 10 * 60 * 1000;
     detailStatus.textContent = modoDemoSensores ? "Dato de demostración"

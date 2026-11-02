@@ -3,12 +3,12 @@
 from app.db.database import get_db_connection
 
 SELECT_ALERTA = """
-    SELECT a.id, a.origen, a.titulo, a.descripcion, a.sensor_id, a.metrica,
-           a.estado, a.creado_por, COALESCE(c.nombre, 'Usuario'),
-           a.actualizado_por, COALESCE(u.nombre, ''), a.creado_en, a.actualizado_en
+    SELECT a.id_alerta, a.origen, a.titulo, a.descripcion, a.id_dispositivo AS sensor_id, a.metrica,
+           a.estado, a.id_usuario_creacion AS creado_por, COALESCE(c.nombre, 'Usuario'),
+           a.id_usuario_actualizacion AS actualizado_por, COALESCE(u.nombre, ''), a.creado_en, a.actualizado_en
     FROM public.alertas AS a
-    LEFT JOIN public.usuarios AS c ON c.id = a.creado_por
-    LEFT JOIN public.usuarios AS u ON u.id = a.actualizado_por
+    LEFT JOIN public.usuarios AS c ON c.id_usuario = a.id_usuario_creacion
+    LEFT JOIN public.usuarios AS u ON u.id_usuario = a.id_usuario_actualizacion
 """
 
 
@@ -35,12 +35,12 @@ def _cargar_historial(cursor, alerta_ids):
         return {}
     cursor.execute(
         """
-        SELECT h.alerta_id, h.id, h.actor_id, COALESCE(u.nombre, 'Usuario'),
+        SELECT h.id_alerta, h.id_historial_alerta, h.id_usuario_actor, COALESCE(u.nombre, 'Usuario'),
                h.estado_anterior, h.estado_nuevo, h.observacion, h.creado_en
         FROM public.alerta_historial AS h
-        LEFT JOIN public.usuarios AS u ON u.id = h.actor_id
-        WHERE h.alerta_id = ANY(%s)
-        ORDER BY h.creado_en, h.id
+        LEFT JOIN public.usuarios AS u ON u.id_usuario = h.id_usuario_actor
+        WHERE h.id_alerta = ANY(%s)
+        ORDER BY h.creado_en, h.id_historial_alerta
         """,
         (alerta_ids,),
     )
@@ -70,9 +70,9 @@ def listar_alertas(usuario_id, incluir_reportes_de_todos=False):
         parametros = None
         if not incluir_reportes_de_todos:
             # Las cuentas ciudadanas ven avisos de sensores y sus propios reportes.
-            consulta += " WHERE (a.origen <> 'usuario' OR a.creado_por = %s)"
+            consulta += " WHERE (a.origen <> 'usuario' OR a.id_usuario_creacion = %s)"
             parametros = (usuario_id,)
-        consulta += " ORDER BY a.creado_en DESC, a.id DESC LIMIT 100"
+        consulta += " ORDER BY a.creado_en DESC, a.id_alerta DESC LIMIT 100"
         if parametros:
             cursor.execute(consulta, parametros)
         else:
@@ -88,7 +88,7 @@ def listar_alertas(usuario_id, incluir_reportes_de_todos=False):
 
 
 def obtener_alerta(cursor, alerta_id):
-    cursor.execute(SELECT_ALERTA + " WHERE a.id = %s", (alerta_id,))
+    cursor.execute(SELECT_ALERTA + " WHERE a.id_alerta = %s", (alerta_id,))
     fila = cursor.fetchone()
     if not fila:
         raise AlertaNoEncontrada
@@ -105,15 +105,24 @@ def reportar_alerta(datos, user_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        id_dispositivo = (datos.sensor_id or "").strip() or None
+        if id_dispositivo:
+            cursor.execute(
+                "SELECT 1 FROM public.dispositivos_iot WHERE id_dispositivo = %s",
+                (id_dispositivo,),
+            )
+            if not cursor.fetchone():
+                raise ValueError("El dispositivo relacionado con el reporte no está registrado.")
         cursor.execute(
-            """INSERT INTO public.alertas (origen, titulo, descripcion, sensor_id, creado_por)
-               VALUES ('usuario', %s, %s, %s, %s) RETURNING id""",
-            (titulo, descripcion, (datos.sensor_id or "").strip() or None, user_id),
+            """INSERT INTO public.alertas
+               (origen, titulo, descripcion, id_dispositivo, id_usuario_creacion)
+               VALUES ('usuario', %s, %s, %s, %s) RETURNING id_alerta""",
+            (titulo, descripcion, id_dispositivo, user_id),
         )
         alerta_id = cursor.fetchone()[0]
         cursor.execute(
             """INSERT INTO public.alerta_historial
-               (alerta_id, actor_id, estado_anterior, estado_nuevo, observacion)
+               (id_alerta, id_usuario_actor, estado_anterior, estado_nuevo, observacion)
                VALUES (%s, %s, NULL, 'pendiente', 'Aviso reportado')""",
             (alerta_id, user_id),
         )
@@ -135,18 +144,19 @@ def cambiar_estado_alerta(alerta_id, datos, admin_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT estado FROM public.alertas WHERE id = %s FOR UPDATE", (alerta_id,))
+        cursor.execute("SELECT estado FROM public.alertas WHERE id_alerta = %s FOR UPDATE", (alerta_id,))
         anterior = cursor.fetchone()
         if not anterior:
             raise AlertaNoEncontrada
         cursor.execute(
-            """UPDATE public.alertas SET estado = %s, actualizado_por = %s, actualizado_en = now()
-               WHERE id = %s""",
+            """UPDATE public.alertas
+               SET estado = %s, id_usuario_actualizacion = %s, actualizado_en = now()
+               WHERE id_alerta = %s""",
             (datos.estado, admin_id, alerta_id),
         )
         cursor.execute(
             """INSERT INTO public.alerta_historial
-               (alerta_id, actor_id, estado_anterior, estado_nuevo, observacion)
+               (id_alerta, id_usuario_actor, estado_anterior, estado_nuevo, observacion)
                VALUES (%s, %s, %s, %s, %s)""",
             (alerta_id, admin_id, anterior[0], datos.estado, observacion),
         )
@@ -172,8 +182,8 @@ def guardar_estado_alerta_sensor(datos, admin_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            """SELECT id, estado FROM public.alertas
-               WHERE sensor_id = %s AND metrica = %s AND origen = 'sensor' FOR UPDATE""",
+            """SELECT id_alerta, estado FROM public.alertas
+               WHERE id_dispositivo = %s AND metrica = %s AND origen = 'sensor' FOR UPDATE""",
             (sensor_id, metrica),
         )
         anterior = cursor.fetchone()
@@ -181,13 +191,14 @@ def guardar_estado_alerta_sensor(datos, admin_id):
             raise AlertaNoEncontrada
         alerta_id, estado_actual = anterior
         cursor.execute(
-            """UPDATE public.alertas SET estado = %s, actualizado_por = %s, actualizado_en = now()
-               WHERE id = %s""",
+            """UPDATE public.alertas
+               SET estado = %s, id_usuario_actualizacion = %s, actualizado_en = now()
+               WHERE id_alerta = %s""",
             (datos.estado, admin_id, alerta_id),
         )
         cursor.execute(
             """INSERT INTO public.alerta_historial
-               (alerta_id, actor_id, estado_anterior, estado_nuevo, observacion)
+               (id_alerta, id_usuario_actor, estado_anterior, estado_nuevo, observacion)
                VALUES (%s, %s, %s, %s, %s)""",
             (alerta_id, admin_id, estado_actual, datos.estado, observacion),
         )

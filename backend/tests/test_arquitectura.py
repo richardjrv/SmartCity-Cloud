@@ -1,11 +1,11 @@
 import unittest
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app.core.config import settings
 from main import app
 from app.models.alertas import CambioEstadoAlertaData, ReporteAlertaData
-from app.models.sensores import LecturaSensorData
+from app.models.sensores import LecturaSensorData, RegistrarSensorCatalogoData
 from app.core.security import obtener_usuario_actual, requerir_gestor_alertas
 from app.routers import alertas as router_alertas
 from app.routers import sensores as router_sensores
@@ -39,6 +39,20 @@ class ArquitecturaApiTests(unittest.TestCase):
 
 
 class ServiciosDominioTests(unittest.TestCase):
+    def test_registro_de_sensor_usa_magnitud_y_unico_esp32(self):
+        conexion = MagicMock()
+        cursor = conexion.cursor.return_value
+        cursor.fetchone.side_effect = [(4,), (12,)]
+        datos = RegistrarSensorCatalogoData(campo="temperatura", nombre="Termómetro")
+        with patch("app.routers.sensores.get_db_connection", return_value=conexion), patch(
+            "app.routers.sensores.registrar_auditoria"
+        ):
+            respuesta = router_sensores.registrar_sensor_catalogo(datos, admin={"user_id": 1})
+        self.assertEqual(respuesta["id_sensor"], 12)
+        self.assertEqual(cursor.execute.call_args_list[0].args[1], ("temperatura",))
+        self.assertIn("'ESP32'", cursor.execute.call_args_list[1].args[0])
+        conexion.commit.assert_called_once()
+
     def test_lectura_sin_mediciones_se_rechaza_antes_de_conectar(self):
         lectura = LecturaSensorData(sensor_id="ESP32")
         with patch("app.services.sensores.get_db_connection") as conectar:

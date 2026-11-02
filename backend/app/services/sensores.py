@@ -28,7 +28,7 @@ MAGNITUDES_LECTURA = {
     "reflectancia_tcrt5000": ("reflectancia_tcrt5000", "Sensor de reflectancia", False),
     "tcrt5000_detectado": ("tcrt5000_detectado", "Detector de proximidad", True),
 }
-SELECT_LECTURAS = """id, sensor_id, temperatura, humedad, calidad_aire,
+SELECT_LECTURAS = """id_lectura_sensor, id_dispositivo, temperatura, humedad, calidad_aire,
     distancia_cm, lluvia_detectada, luminosidad, nivel_agua,
     reflectancia_tcrt5000, tcrt5000_detectado, fecha_hora"""
 
@@ -63,7 +63,7 @@ def registrar_lectura(lectura: LecturaSensorData):
     if all(valor is None for valor in valores):
         raise ValueError("Envía al menos una medición del sensor.")
 
-    columnas = ("sensor_id",) + CAMPOS_LECTURA
+    columnas = ("id_dispositivo",) + CAMPOS_LECTURA
     placeholders = ", ".join(["%s"] * len(columnas))
     conn = cursor = None
     try:
@@ -90,7 +90,7 @@ def registrar_lectura(lectura: LecturaSensorData):
 def _registrar_lectura_normalizada(cursor, lectura: LecturaSensorData, fecha_hora: datetime):
     """Replica magnitudes conocidas al modelo lógico sin inventar modelo ni posición GLB."""
     sensor_id = lectura.sensor_id.strip()
-    cursor.execute("SELECT ubicacion FROM public.dispositivos_iot WHERE sensor_id = %s", (sensor_id,))
+    cursor.execute("SELECT ubicacion FROM public.dispositivos_iot WHERE id_dispositivo = %s", (sensor_id,))
     controlador = cursor.fetchone()
     if not controlador:
         return
@@ -104,9 +104,11 @@ def _registrar_lectura_normalizada(cursor, lectura: LecturaSensorData, fecha_hor
         codigo_sensor = f"{sensor_id}:{campo}"
         cursor.execute(
             """
-            INSERT INTO public.sensores (codigo, id_controlador, nombre, ubicacion, estado)
+            INSERT INTO public.sensores AS sensor_catalogo (codigo, id_dispositivo, nombre, ubicacion, estado)
             VALUES (%s, %s, %s, %s, 'activo')
-            ON CONFLICT (codigo) DO UPDATE SET actualizado_en = NOW()
+            ON CONFLICT (codigo) DO UPDATE SET
+                actualizado_en = NOW(),
+                estado = CASE WHEN sensor_catalogo.estado = 'pendiente' THEN 'activo' ELSE sensor_catalogo.estado END
             RETURNING id_sensor
             """,
             (codigo_sensor, sensor_id, nombre, controlador[0]),
@@ -136,7 +138,7 @@ def obtener_ultimas_lecturas():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            f"SELECT {SELECT_LECTURAS} FROM public.lecturas_sensores WHERE sensor_id = 'ESP32' ORDER BY fecha_hora DESC LIMIT 100"
+            f"SELECT {SELECT_LECTURAS} FROM public.lecturas_sensores WHERE id_dispositivo = 'ESP32' ORDER BY fecha_hora DESC LIMIT 100"
         )
         return [serializar_lectura(fila) for fila in cursor.fetchall()]
     finally:
@@ -154,20 +156,20 @@ def obtener_lectura_maqueta():
         cursor = conn.cursor()
         cursor.execute(
             f"""
-            SELECT d.sensor_id, d.nombre, d.ubicacion,
-                   l.id, l.sensor_id, l.temperatura, l.humedad, l.calidad_aire,
+            SELECT d.id_dispositivo, d.nombre, d.ubicacion,
+                   l.id_lectura_sensor, l.id_dispositivo, l.temperatura, l.humedad, l.calidad_aire,
                    l.distancia_cm, l.lluvia_detectada, l.luminosidad, l.nivel_agua,
                    l.reflectancia_tcrt5000, l.tcrt5000_detectado, l.fecha_hora
             FROM public.dispositivos_iot AS d
             LEFT JOIN LATERAL (
                 SELECT {SELECT_LECTURAS}
                 FROM public.lecturas_sensores
-                WHERE sensor_id = d.sensor_id
+                WHERE id_dispositivo = d.id_dispositivo
                 ORDER BY fecha_hora DESC
                 LIMIT 1
             ) AS l ON TRUE
             WHERE d.activo = TRUE
-            ORDER BY CASE WHEN d.sensor_id = 'ESP32' THEN 0 ELSE 1 END, d.sensor_id
+            ORDER BY CASE WHEN d.id_dispositivo = 'ESP32' THEN 0 ELSE 1 END, d.id_dispositivo
             LIMIT 1
             """
         )
@@ -204,7 +206,7 @@ def obtener_historial(desde: datetime, hasta: datetime):
             f"""
             SELECT {SELECT_LECTURAS}
             FROM public.lecturas_sensores
-            WHERE sensor_id = 'ESP32' AND fecha_hora >= %s AND fecha_hora <= %s
+            WHERE id_dispositivo = 'ESP32' AND fecha_hora >= %s AND fecha_hora <= %s
             ORDER BY fecha_hora ASC
             LIMIT %s
             """,

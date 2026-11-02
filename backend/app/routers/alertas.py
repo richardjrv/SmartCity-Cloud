@@ -18,7 +18,7 @@ def usuario_activo(usuario: dict = Depends(obtener_usuario_actual)):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT COALESCE(estado, 'activo') FROM public.usuarios WHERE id = %s",
+            "SELECT COALESCE(estado, 'activo') FROM public.usuarios WHERE id_usuario = %s",
             (usuario["user_id"],),
         )
         fila = cursor.fetchone()
@@ -42,7 +42,7 @@ def usuario_comun(usuario: dict = Depends(usuario_activo)):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id_rol FROM public.usuarios WHERE id = %s", (usuario["user_id"],))
+        cursor.execute("SELECT id_rol FROM public.usuarios WHERE id_usuario = %s", (usuario["user_id"],))
         fila = cursor.fetchone()
         if not fila:
             raise HTTPException(status_code=403, detail="La cuenta ya no está disponible.")

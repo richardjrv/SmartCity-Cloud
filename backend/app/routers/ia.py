@@ -74,10 +74,10 @@ def obtener_contexto_ciudad_supabase():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            """SELECT sensor_id, temperatura, humedad, calidad_aire, distancia_cm,
+            """SELECT id_dispositivo, temperatura, humedad, calidad_aire, distancia_cm,
                       lluvia_detectada, luminosidad, nivel_agua,
                       reflectancia_tcrt5000, tcrt5000_detectado, fecha_hora
-               FROM public.lecturas_sensores WHERE sensor_id = 'ESP32' ORDER BY fecha_hora DESC LIMIT 1"""
+               FROM public.lecturas_sensores WHERE id_dispositivo = 'ESP32' ORDER BY fecha_hora DESC LIMIT 1"""
         )
         ultima = cursor.fetchone()
         cursor.execute(
@@ -86,10 +86,10 @@ def obtener_contexto_ciudad_supabase():
                       ROUND(AVG(distancia_cm)::numeric, 2), BOOL_OR(lluvia_detectada),
                       ROUND(AVG(luminosidad)::numeric, 2), ROUND(AVG(nivel_agua)::numeric, 2),
                       ROUND(AVG(reflectancia_tcrt5000)::numeric, 2), COUNT(*)
-               FROM public.lecturas_sensores WHERE sensor_id = 'ESP32' AND fecha_hora >= NOW() - INTERVAL '24 hours'"""
+               FROM public.lecturas_sensores WHERE id_dispositivo = 'ESP32' AND fecha_hora >= NOW() - INTERVAL '24 hours'"""
         )
         stats_24h = cursor.fetchone()
-        cursor.execute("SELECT DISTINCT sensor_id FROM lecturas_sensores WHERE sensor_id = 'ESP32' AND fecha_hora >= NOW() - INTERVAL '7 days'")
+        cursor.execute("SELECT DISTINCT id_dispositivo FROM public.lecturas_sensores WHERE id_dispositivo = 'ESP32' AND fecha_hora >= NOW() - INTERVAL '7 days'")
         sensores_activos = [s[0] for s in cursor.fetchall()]
         cursor.close()
         conn.close()
@@ -319,7 +319,7 @@ def obtener_actuadores_para_admin(usuario_id: int):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id_rol, COALESCE(estado, 'activo') FROM public.usuarios WHERE id = %s",
+            "SELECT id_rol, COALESCE(estado, 'activo') FROM public.usuarios WHERE id_usuario = %s",
             (usuario_id,),
         )
         cuenta = cursor.fetchone()
@@ -328,10 +328,10 @@ def obtener_actuadores_para_admin(usuario_id: int):
 
         cursor.execute(
             """
-            SELECT id, sensor_id, nombre, estado_deseado, estado_reportado, actualizado_en
+            SELECT id_actuador, id_dispositivo, nombre, estado_deseado, estado_reportado, actualizado_en
             FROM public.actuadores
             WHERE activo = TRUE
-            ORDER BY nombre, sensor_id
+            ORDER BY nombre, id_dispositivo
             LIMIT 100
             """
         )

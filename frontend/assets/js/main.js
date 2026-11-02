@@ -286,6 +286,10 @@ function sincronizarVisorMaqueta(vista) {
     }
 }
 function navegarA(vista) {
+    const chatBrunito = document.getElementById("brunito-chat-window");
+    if (window.matchMedia?.("(pointer: coarse)").matches && chatBrunito && !chatBrunito.classList.contains("hidden")) {
+        toggleChatBrunito();
+    }
     document.body.classList.toggle("login-only", vista === "auth");
     cerrarMobileNav();
     cerrarMenuNotificaciones();
@@ -307,6 +311,7 @@ function navegarA(vista) {
     document.getElementById("vista-configuracion")?.classList.add("hidden");
     document.getElementById("vista-operador-config")?.classList.add("hidden");
     document.getElementById("vista-admin-usuarios")?.classList.add("hidden");
+    document.getElementById("vista-inventario-sensores")?.classList.add("hidden");
     document.getElementById("vista-auth")?.classList.add("hidden");
     cerrarAccountMenu();
     actualizarNavegacionLateral(vista);
@@ -339,6 +344,9 @@ function navegarA(vista) {
         if (vistaDashboard === "graficas" && typeof cargarGraficasSensores === "function") void cargarGraficasSensores();
         const behavior = document.body.classList.contains("reduce-motion") ? "auto" : "smooth";
         requestAnimationFrame(() => window.scrollTo({ top: 0, behavior }));
+    } else if (vista === "inventario-sensores") {
+        document.getElementById("vista-inventario-sensores")?.classList.remove("hidden");
+        void cargarCatalogoSensores();
     } else if (vista === "perfil") {
         document.getElementById("vista-perfil")?.classList.remove("hidden");
         cargarPerfilUsuario();
@@ -537,7 +545,7 @@ function toggleSidebar() {
 }
 
 function actualizarNavegacionLateral(vista) {
-    const vistas = ["dashboard", "maqueta", "clima", "alertas", "reportes", "graficas", "operador-config", "admin-usuarios"];
+    const vistas = ["dashboard", "maqueta", "inventario-sensores", "clima", "alertas", "reportes", "graficas", "operador-config", "admin-usuarios"];
     const activa = vistas.includes(vista) ? vista : null;
     const nav = document.querySelector(".sidebar-nav");
     document.querySelectorAll("[data-sidebar-view]").forEach(button => {
@@ -1484,36 +1492,38 @@ async function exportarSensoresPDF() {
         boton.setAttribute("aria-busy", "true");
         boton.innerHTML = '<span class="report-download-spinner" aria-hidden="true"></span> Generando PDF…';
     }
-    if (estado) estado.textContent = "Consultando las lecturas del periodo…";
+    const modoDemostracion = typeof usarDatosSimuladosSensores === "function" && usarDatosSimuladosSensores();
+    if (estado) estado.textContent = modoDemostracion ? "Preparando el historial demostrativo…" : "Consultando las lecturas del periodo…";
     try {
-        const demoActivo = typeof obtenerModoDemoSensores === "function" && obtenerModoDemoSensores();
+        const demoActivo = modoDemostracion;
         const query = new URLSearchParams({ desde: desde.toISOString(), hasta: hasta.toISOString() });
-        let respuestaHistorial = {};
-        try {
-            respuestaHistorial = await apiFetch(`/sensores/historial?${query.toString()}`);
-        } catch (error) {
-            if (!demoActivo) throw error;
-        }
-        let { ok, data, status } = respuestaHistorial;
+        let data = [];
+        let ok = false;
+        let status = 0;
         let limitation = "";
-        if (!demoActivo && !ok && status === 404) {
-            // Compatibilidad temporal con el backend publicado antes de añadir /historial.
-            const respaldo = await apiFetch("/sensores/ultimas");
-            if (respaldo.ok && Array.isArray(respaldo.data)) {
-                data = respaldo.data.filter(lectura => {
-                    const fecha = new Date(lectura.fecha_hora);
-                    return !Number.isNaN(fecha.getTime()) && fecha >= desde && fecha <= hasta;
-                });
-                ok = true;
-                limitation = "Aviso: el servidor aún no tiene activa la consulta histórica. Este PDF usa únicamente las últimas 10 lecturas disponibles; actualiza el backend para incluir todo el intervalo.";
-            }
-        }
-        let demo = false;
-        if (demoActivo && (!ok || !Array.isArray(data) || data.length === 0)) {
-            data = obtenerHistorialDemostrativo(desde, hasta);
+        let demo = demoActivo;
+        if (demoActivo) {
+            data = obtenerHistorialDemostrativo(desde, hasta).filter(lectura => {
+                const fecha = new Date(lectura.fecha_hora);
+                return Number.isFinite(fecha.getTime()) && fecha >= desde && fecha <= hasta;
+            });
             ok = true;
-            demo = true;
-            limitation = "DATOS SIMULADOS PARA DEMOSTRACIÓN. No provienen de sensores ESP32 ni representan mediciones reales.";
+            limitation = "DATOS SIMULADOS PARA DEMOSTRACIÓN. Generados localmente; no provienen del ESP32 ni representan mediciones reales.";
+        } else {
+            const respuestaHistorial = await apiFetch(`/sensores/historial?${query.toString()}`);
+            ({ ok, data, status } = respuestaHistorial);
+            if (!ok && status === 404) {
+                // Compatibilidad temporal con el backend publicado antes de añadir /historial.
+                const respaldo = await apiFetch("/sensores/ultimas");
+                if (respaldo.ok && Array.isArray(respaldo.data)) {
+                    data = respaldo.data.filter(lectura => {
+                        const fecha = new Date(lectura.fecha_hora);
+                        return !Number.isNaN(fecha.getTime()) && fecha >= desde && fecha <= hasta;
+                    });
+                    ok = true;
+                    limitation = "Aviso: el servidor aún no tiene activa la consulta histórica. Este PDF usa únicamente las últimas 10 lecturas disponibles; actualiza el backend para incluir todo el intervalo.";
+                }
+            }
         }
         if (!ok) {
             const mensaje = data?.detail || "No se pudo obtener el historial de sensores.";

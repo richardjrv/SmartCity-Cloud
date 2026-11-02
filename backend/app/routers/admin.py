@@ -14,11 +14,11 @@ def listar_usuarios_admin(admin: dict = Depends(requerir_admin)):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT u.id, u.nombre, u.email, u.username, u.id_rol,
+            SELECT u.id_usuario AS id, u.nombre, u.email, u.nombre_usuario AS username, u.id_rol,
                    COALESCE(u.estado, 'activo'), u.fecha_registro, u.ultimo_acceso,
                    r.nombre
-            FROM usuarios AS u LEFT JOIN public.roles AS r ON r.id = u.id_rol
-            WHERE u.auth_user_id IS NOT NULL ORDER BY u.id ASC
+            FROM usuarios AS u LEFT JOIN public.roles AS r ON r.id_rol = u.id_rol
+            WHERE u.id_usuario_auth IS NOT NULL ORDER BY u.id_usuario ASC
             """
         )
         filas = cursor.fetchall()
@@ -53,7 +53,7 @@ def modificar_usuario_admin(usuario_id: int, datos: ModificarUsuarioAdminData, a
         cursor = conn.cursor()
         cursor.execute("SELECT pg_advisory_xact_lock(538719, 1)")
         cursor.execute(
-            "SELECT id_rol, COALESCE(estado, 'activo') FROM public.usuarios WHERE id = %s FOR UPDATE",
+            "SELECT id_rol, COALESCE(estado, 'activo') FROM public.usuarios WHERE id_usuario = %s FOR UPDATE",
             (usuario_id,),
         )
         actual = cursor.fetchone()
@@ -63,7 +63,7 @@ def modificar_usuario_admin(usuario_id: int, datos: ModificarUsuarioAdminData, a
         if datos.id_rol is not None:
             if usuario_id == admin["user_id"] and datos.id_rol != ROLE_ADMIN:
                 raise HTTPException(status_code=400, detail="No puedes cambiar tu propio rol de administrador.")
-            cursor.execute("SELECT 1 FROM public.roles WHERE id = %s", (datos.id_rol,))
+            cursor.execute("SELECT 1 FROM public.roles WHERE id_rol = %s", (datos.id_rol,))
             if not cursor.fetchone():
                 raise HTTPException(status_code=422, detail="El rol seleccionado no existe en el sistema.")
 
@@ -77,10 +77,10 @@ def modificar_usuario_admin(usuario_id: int, datos: ModificarUsuarioAdminData, a
                 raise HTTPException(status_code=409, detail="No puedes desactivar al último administrador activo.")
 
         if datos.id_rol is not None:
-            cursor.execute("UPDATE public.usuarios SET id_rol = %s WHERE id = %s", (datos.id_rol, usuario_id))
+            cursor.execute("UPDATE public.usuarios SET id_rol = %s WHERE id_usuario = %s", (datos.id_rol, usuario_id))
 
         if datos.estado is not None:
-            cursor.execute("UPDATE public.usuarios SET estado = %s WHERE id = %s", (datos.estado, usuario_id))
+            cursor.execute("UPDATE public.usuarios SET estado = %s WHERE id_usuario = %s", (datos.estado, usuario_id))
 
         conn.commit()
         if datos.id_rol is not None:
@@ -113,7 +113,7 @@ def eliminar_usuario_admin(usuario_id: int, admin: dict = Depends(requerir_admin
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT pg_advisory_lock(538719, 1)")
-        cursor.execute("SELECT auth_user_id, id_rol FROM public.usuarios WHERE id = %s", (usuario_id,))
+        cursor.execute("SELECT id_usuario_auth, id_rol FROM public.usuarios WHERE id_usuario = %s", (usuario_id,))
         cuenta = cursor.fetchone()
         if not cuenta or not cuenta[0]:
             raise HTTPException(status_code=404, detail="No se encontró una cuenta vinculada a Supabase Auth.")
@@ -143,9 +143,10 @@ def obtener_auditoria_admin(admin: dict = Depends(requerir_admin)):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT a.id, COALESCE(u.nombre, 'Sistema') AS usuario, a.accion, a.modulo, a.recurso_id, a.descripcion, a.fecha 
+            SELECT a.id_auditoria AS id, COALESCE(u.nombre, 'Sistema') AS usuario,
+                   a.accion, a.modulo, a.id_recurso AS recurso_id, a.descripcion, a.fecha
             FROM auditoria a
-            LEFT JOIN usuarios u ON a.usuario_id = u.id
+            LEFT JOIN usuarios u ON a.id_usuario = u.id_usuario
             ORDER BY a.fecha DESC LIMIT 100
             """
         )

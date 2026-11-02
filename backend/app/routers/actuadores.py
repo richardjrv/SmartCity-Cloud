@@ -19,10 +19,10 @@ def listar_actuadores(admin: dict = Depends(requerir_admin)):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT id, sensor_id, nombre, tipo, estado_deseado,
+            SELECT id_actuador, id_dispositivo, nombre, tipo, estado_deseado,
                    estado_reportado, modo, activo, actualizado_en
             FROM public.actuadores
-            ORDER BY nombre, sensor_id
+            ORDER BY nombre, id_dispositivo
             """
         )
         filas = cursor.fetchall()
@@ -90,9 +90,9 @@ def confirmar_orden_actuador(
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT sensor_id, nombre, activo, actualizado_en, estado_deseado, estado_reportado
+            SELECT id_dispositivo, nombre, activo, actualizado_en, estado_deseado, estado_reportado
             FROM public.actuadores
-            WHERE id = %s
+            WHERE id_actuador = %s
             FOR UPDATE
             """,
             (actuator_id,),
@@ -109,8 +109,8 @@ def confirmar_orden_actuador(
             cursor.execute(
                 """
                 UPDATE public.actuadores
-                SET modo = 'auto', actualizado_por = %s, ultimo_comando_en = NOW()
-                WHERE id = %s
+                SET modo = 'auto', id_usuario_actualizacion = %s, ultimo_comando_en = NOW()
+                WHERE id_actuador = %s
                 """,
                 (admin["user_id"], actuator_id),
             )
@@ -122,15 +122,16 @@ def confirmar_orden_actuador(
                 """
                 UPDATE public.actuadores
                 SET estado_deseado = %s, modo = 'manual',
-                    actualizado_por = %s, ultimo_comando_en = NOW()
-                WHERE id = %s
+                    id_usuario_actualizacion = %s, ultimo_comando_en = NOW()
+                WHERE id_actuador = %s
                 """,
                 (estado_deseado_actual, admin["user_id"], actuator_id),
             )
             estado = action
         cursor.execute(
             """
-            INSERT INTO public.comandos (id_actuador, accion, valor, origen, estado_ejecucion, solicitado_por)
+            INSERT INTO public.comandos
+                (id_actuador, accion, valor, origen, estado_ejecucion, id_usuario_solicitante)
             VALUES (%s, %s, %s, 'panel', 'pendiente', %s)
             RETURNING id_comando
             """,
@@ -143,7 +144,7 @@ def confirmar_orden_actuador(
         )
         cursor.execute(
             """
-            INSERT INTO public.auditoria (usuario_id, accion, modulo, recurso_id, descripcion)
+            INSERT INTO public.auditoria (id_usuario, accion, modulo, id_recurso, descripcion)
             VALUES (%s, %s, %s, %s, %s)
             """,
             (admin["user_id"], "ORDEN_ACTUADOR", "actuadores", actuator_id, descripcion),

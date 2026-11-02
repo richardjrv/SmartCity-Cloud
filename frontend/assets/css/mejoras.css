@@ -1534,3 +1534,84 @@ body.sidebar-collapsed .app-sidebar {
     #usuario-badge { max-width: 5.8rem; }
     #nav-usuario-nombre { max-width: 2.5rem; }
 }
+
+/* Ajustes transversales para interacción táctil, formularios y alturas móviles. */
+html { -webkit-tap-highlight-color: transparent; }
+body { min-height: 100svh; min-height: 100dvh; }
+.app-layout { min-height: calc(100svh - 4rem); min-height: calc(100dvh - 4rem); }
+#main-content { min-width: 0; scroll-margin-block: 1rem; }
+:where(button, a, [role="button"], input, select, textarea) { touch-action: manipulation; }
+
+@media (pointer: coarse) {
+    :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]), select, textarea) {
+        min-height: 2.75rem;
+        font-size: max(1rem, 1em);
+    }
+
+    :is(
+        #btn-mobile-nav, .notification-trigger, #btn-dashboard-fullscreen,
+        #sidebar-toggle, .sidebar-link, .sidebar-tour-button,
+        .header-icon-control, .account-menu-profile, .account-action,
+        .tour-close, .tour-primary-button, .tour-secondary-button,
+        .dashboard-welcome-actions button, .weather-city-search button,
+        #sensor-map-refresh, #sensor-report-toolbar button,
+        .chart-expand-button, .chart-focus-back,
+        .chart-focus-actions button, .chart-refresh-button,
+        .alert-status-filter, .alert-view-button, .admin-change-role-button,
+        .admin-role-close, .admin-role-cancel, .admin-role-save,
+        .operator-config-save, .operator-config-reset, #sensor-catalog-add,
+        #sensor-edit-dialog .sensor-edit-close, #sensor-edit-dialog .sensor-edit-cancel,
+        #sensor-edit-dialog .sensor-edit-save
+    ) { min-height: 2.75rem; }
+
+    :is(#btn-mobile-nav, .notification-trigger, #btn-dashboard-fullscreen, #sidebar-toggle, .header-icon-control, .admin-role-close, #sensor-edit-dialog .sensor-edit-close) { min-width: 2.75rem; }
+
+    button:not(:disabled):active { transition-duration: .12s; }
+}
+
+/* Los efectos de hover se reservan para punteros que sí pueden mantenerlos. */
+@media (hover: none) {
+    :is(
+        .sidebar-link, #sidebar-toggle, .sidebar-tour-button, .dashboard-quick-action,
+        .dashboard-metric-card, .mission-vision-grid article, .notification-trigger,
+        .account-action, .header-icon-control, .chat-floating-btn,
+        .chart-sensor-card, .weather-hour-card, .dashboard-trends-link,
+        .weather-city-search button, .admin-role-option, #sensor-map-refresh,
+        #sensor-report-toolbar button
+    ):hover { transform: none !important; filter: none; }
+}
+
+@media (max-width: 767px) {
+    .auth-layout { min-height: calc(100dvh - 9.5rem); }
+    body.login-only .auth-layout {
+        width: 100%;
+        max-width: 100%;
+        margin-inline: 0;
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body.login-only .auth-card { width: min(100%, 27.5rem); min-width: 0; justify-self: center; }
+    #site-info-modal, #contact-modal, #modal-editar-perfil, #modal-cambiar-password {
+        align-items: flex-start;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    #site-info-modal > section, #contact-modal > section,
+    #modal-editar-perfil > div, #modal-cambiar-password > div {
+        max-height: calc(100dvh - 2rem);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    .guided-tour-card { max-height: calc(100dvh - 1.5rem); overflow-y: auto; overscroll-behavior: contain; }
+    #brunito-chat-window {
+        height: min(26.25rem, 70dvh);
+        max-height: min(70dvh, 34rem);
+    }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    .app-sidebar, .account-menu, .notification-menu, #brunito-chat-window,
+    .guided-tour-card, .admin-role-overlay {
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+    }
+}

@@ -460,7 +460,7 @@ body.login-only #vista-auth {
 }
 
 body.login-only {
-    background-image: linear-gradient(90deg, rgba(4, 12, 25, .88) 0%, rgba(4, 12, 25, .58) 48%, rgba(4, 12, 25, .78) 100%), url("assets/ciudad-login.webp") !important;
+    background-image: linear-gradient(90deg, rgba(4, 12, 25, .88) 0%, rgba(4, 12, 25, .58) 48%, rgba(4, 12, 25, .78) 100%), url("../ciudad-login.webp") !important;
     background-position: center;
     background-size: cover;
     background-attachment: fixed;
@@ -611,7 +611,7 @@ html[data-theme="light"] .auth-mission h2,
 html[data-theme="light"] .mission-vision-grid h3 { color: #0f172a; }
 html[data-theme="light"] .auth-lead { color: #334155; }
 html[data-theme="light"] body.login-only {
-    background-image: linear-gradient(90deg, rgba(248, 250, 252, .88) 0%, rgba(248, 250, 252, .58) 48%, rgba(248, 250, 252, .84) 100%), url("assets/ciudad-login.webp") !important;
+    background-image: linear-gradient(90deg, rgba(248, 250, 252, .88) 0%, rgba(248, 250, 252, .58) 48%, rgba(248, 250, 252, .84) 100%), url("../ciudad-login.webp") !important;
 }
 html[data-theme="light"] .mission-vision-grid article { background: rgba(255, 255, 255, .78); border-color: #cbd5e1; }
 html[data-theme="light"] .mission-vision-grid p { color: #475569; }

@@ -25,14 +25,19 @@ function tipoReconocimientoVozBrunito() {
 function actualizarBotonWakeBrunito(activo) {
     const launcher = document.getElementById("btn-chat-launcher");
     if (launcher) {
+        const chatAbierto = !document.getElementById("brunito-chat-window")?.classList.contains("hidden");
         launcher.classList.toggle("is-wake-listening", activo);
-        launcher.setAttribute("aria-label", activo
-            ? "Abrir chat con Brunito. Activación por voz disponible."
+        launcher.setAttribute("aria-label", chatAbierto
+            ? activo ? "Cerrar chat con Brunito. Micrófono activo mientras el chat esté abierto." : "Cerrar chat con Brunito"
             : "Abrir chat con Brunito");
         launcher.title = activo
-            ? "Brunito está escuchando «Oye Bruno», «Hey Bruno» o «Brunito»."
-            : "Abre el chat con Brunito";
+            ? "Brunito escucha «Oye Bruno» solo mientras el asistente está abierto."
+            : chatAbierto ? "Cierra el chat con Brunito" : "Abre el chat con Brunito";
     }
+}
+
+function esDispositivoTactilBrunito() {
+    return window.matchMedia?.("(pointer: coarse)").matches === true;
 }
 
 function limpiarEsperaComandoWakeBrunito() {
@@ -264,6 +269,15 @@ function quitarActivadoresWakeBrunito() {
 function prepararActivacionWakeBrunito() {
     if (brunitoWakeEnabled || brunitoWakeGestureHandler || !obtenerToken()) return;
     const launcher = document.getElementById("btn-chat-launcher");
+    // En teléfonos no pedimos acceso al micrófono al tocar el contenido de la página.
+    // El permiso se solicita desde la acción explícita de abrir el asistente.
+    if (esDispositivoTactilBrunito()) {
+        if (launcher) {
+            launcher.title = "Abre Brunito para activar el micrófono. Se detiene al cerrar el chat.";
+            launcher.setAttribute("aria-label", "Abrir chat con Brunito. El micrófono solo se activa con este botón.");
+        }
+        return;
+    }
     if (launcher) {
         launcher.title = "Toca o presiona una tecla en el sitio para activar la escucha de Brunito; el navegador pedirá permiso.";
         launcher.setAttribute("aria-label", "Abrir chat con Brunito. La activación por voz se preparará al interactuar con el sitio.");
@@ -396,12 +410,17 @@ function toggleChatBrunito() {
     launcher?.setAttribute("aria-expanded", String(opening));
     launcher?.setAttribute("aria-label", opening
         ? "Cerrar chat con Brunito"
-        : brunitoWakeEnabled ? "Abrir chat con Brunito. Activación por voz disponible." : "Abrir chat con Brunito");
+        : "Abrir chat con Brunito");
 
-    // Cerrar la ventana del chat no debe detener el reconocimiento de la frase de llamada.
-    if (!opening && brunitoWakeEnabled && !brunitoWakeRecognition && !brunitoWakeStarting) {
+    if (esDispositivoTactilBrunito()) {
+        if (opening && obtenerToken()) activarEscuchaWakeBrunito();
+        else if (!opening) detenerEscuchaWakeBrunito();
+    } else if (!opening && brunitoWakeEnabled && !brunitoWakeRecognition && !brunitoWakeStarting) {
+        // En escritorio se conserva la activación por frase que ya se habilitó de forma explícita.
         programarReinicioWakeBrunito();
     }
+
+    actualizarBotonWakeBrunito(brunitoWakeEnabled);
 
     if (opening) {
         document.getElementById("chat-input")?.focus();
@@ -489,7 +508,7 @@ function responderConsultaNotificacionesBrunito(texto, typing) {
     return true;
 }
 
-function respuestaDesdeLecturaSensorBrunito(lectura, texto) {
+function respuestaDesdeLecturaSensorBrunito(lectura, texto, demo = false) {
     const consulta = normalizarConsultaClimaBrunito(texto);
     const formatoNumero = valor => Number.isFinite(Number(valor))
         ? new Intl.NumberFormat("es-EC", { maximumFractionDigits: 2 }).format(Number(valor))
@@ -515,13 +534,30 @@ function respuestaDesdeLecturaSensorBrunito(lectura, texto) {
         ? new Intl.DateTimeFormat("es-EC", { dateStyle: "short", timeStyle: "short", timeZone: "America/Guayaquil" }).format(fecha)
         : "fecha no disponible";
     if (!valores.length) {
-        return `La última lectura guardada de ${lectura.sensor_id || "tu ESP32"} (${fechaTexto}) no incluye esas mediciones.`;
+        return demo
+            ? `La demostración local (${fechaTexto}) no incluye esas mediciones. El ESP32 todavía no está conectado.`
+            : `La última lectura guardada de ${lectura.sensor_id || "tu ESP32"} (${fechaTexto}) no incluye esas mediciones.`;
     }
-    return `Última lectura guardada del ESP32 ${lectura.sensor_id || ""} (${fechaTexto}): ${valores.join("; ")}.`;
+    return demo
+        ? `Valores simulados de sensores (${fechaTexto}): ${valores.join("; ")}. Se generan en esta página; el ESP32 aún no está conectado.`
+        : `Última lectura guardada del ESP32 ${lectura.sensor_id || ""} (${fechaTexto}): ${valores.join("; ")}.`;
 }
 
 async function responderConsultaSensoresBrunito(texto, typing) {
     try {
+        if (typeof usarDatosSimuladosSensores === "function" && usarDatosSimuladosSensores()) {
+            const lectura = typeof obtenerLecturasDemoActuales === "function" ? obtenerLecturasDemoActuales()[0]?.lectura : null;
+            typing?.remove();
+            if (!lectura) {
+                agregarMensajeBrunito("model", "El ESP32 todavía no está conectado y no hay valores de demostración disponibles.");
+                return;
+            }
+            const respuesta = respuestaDesdeLecturaSensorBrunito(lectura, texto, true);
+            agregarMensajeBrunito("model", respuesta);
+            brunitoHistory.push({ role: "user", content: texto });
+            brunitoHistory.push({ role: "assistant", content: respuesta });
+            return;
+        }
         const { ok, data } = await apiFetch("/sensores/ultimas");
         typing?.remove();
         if (!ok) {

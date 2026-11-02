@@ -14,11 +14,11 @@ def obtener_perfil(usuario: dict = Depends(obtener_usuario_actual)):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT u.id, u.nombre, u.email, u.username, u.id_rol,
+            SELECT u.id_usuario, u.nombre, u.email, u.nombre_usuario, u.id_rol,
                    COALESCE(u.estado, 'activo'), u.avatar, u.fecha_registro,
                    u.ultimo_acceso, r.nombre
-            FROM usuarios AS u LEFT JOIN public.roles AS r ON r.id = u.id_rol
-            WHERE u.id = %s
+            FROM usuarios AS u LEFT JOIN public.roles AS r ON r.id_rol = u.id_rol
+            WHERE u.id_usuario = %s
             """, 
             (usuario["user_id"],)
         )
@@ -51,11 +51,11 @@ def editar_perfil(datos: ActualizarPerfilData, usuario: dict = Depends(obtener_u
         cursor = conn.cursor()
 
         if datos.nombre:
-            cursor.execute("UPDATE usuarios SET nombre = %s WHERE id = %s", (datos.nombre, usuario["user_id"]))
+            cursor.execute("UPDATE usuarios SET nombre = %s WHERE id_usuario = %s", (datos.nombre, usuario["user_id"]))
         if datos.username:
-            cursor.execute("UPDATE usuarios SET username = %s WHERE id = %s", (datos.username, usuario["user_id"]))
+            cursor.execute("UPDATE usuarios SET nombre_usuario = %s WHERE id_usuario = %s", (datos.username, usuario["user_id"]))
         if datos.avatar is not None:
-            cursor.execute("UPDATE usuarios SET avatar = %s WHERE id = %s", (datos.avatar, usuario["user_id"]))
+            cursor.execute("UPDATE usuarios SET avatar = %s WHERE id_usuario = %s", (datos.avatar, usuario["user_id"]))
 
         conn.commit()
         cursor.close()

@@ -1,0 +1,187 @@
+.sensor-catalog-page {
+    width: min(100%, 1180px);
+    margin: 0 auto;
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 1px solid var(--border-color);
+    border-radius: 1.5rem;
+    background: linear-gradient(145deg, color-mix(in srgb, var(--bg-card) 96%, var(--accent) 4%), var(--bg-card));
+    box-shadow: 0 24px 70px rgba(2, 8, 23, .2);
+    color: var(--text-primary);
+}
+
+.sensor-catalog-heading,
+.sensor-catalog-list-heading,
+.sensor-catalog-card-top,
+.sensor-catalog-card-footer,
+.sensor-edit-heading,
+.sensor-edit-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.sensor-catalog-heading { margin-bottom: 1.25rem; }
+.sensor-catalog-heading h2 { margin: .35rem 0; font-size: clamp(1.5rem, 3vw, 2.15rem); font-weight: 750; letter-spacing: -.035em; }
+.sensor-catalog-heading p:last-child,
+.sensor-catalog-list-heading p { margin: 0; color: var(--text-secondary); font-size: .9rem; }
+
+.sensor-catalog-refresh,
+.sensor-catalog-edit,
+.sensor-edit-save,
+.sensor-edit-cancel,
+.sensor-edit-close {
+    min-height: 2.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: .8rem;
+    color: var(--text-primary);
+    background: var(--bg-input);
+    font: inherit;
+    font-size: .84rem;
+    font-weight: 650;
+    transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+
+.sensor-catalog-refresh { padding: .6rem .9rem; white-space: nowrap; }
+.sensor-catalog-refresh:hover,
+.sensor-catalog-edit:hover,
+.sensor-edit-cancel:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg-input)); }
+.sensor-catalog-refresh:disabled,
+.sensor-edit-save:disabled { cursor: wait; opacity: .65; }
+
+.sensor-catalog-role-note {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 1.1rem;
+    padding: .9rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border-color));
+    border-radius: 1rem;
+    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--accent) 9%, var(--bg-card));
+    font-size: .88rem;
+}
+
+.sensor-catalog-role-icon { color: var(--accent); font-size: 1.15rem; }
+.sensor-catalog-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; margin-bottom: 1rem; }
+.sensor-catalog-summary article { display: grid; gap: .35rem; min-width: 0; padding: 1rem; border: 1px solid var(--border-color); border-radius: 1rem; background: color-mix(in srgb, var(--bg-input) 76%, transparent); }
+.sensor-catalog-summary span { color: var(--text-secondary); font-size: .78rem; }
+.sensor-catalog-summary strong { font-size: 1.5rem; line-height: 1.1; }
+
+.sensor-catalog-controller {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1rem 0 1.75rem;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--border-color);
+    border-radius: 1.15rem;
+    background: color-mix(in srgb, var(--bg-input) 55%, var(--bg-card));
+}
+
+.sensor-catalog-controller-icon,
+.sensor-catalog-sensor-icon {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 2.8rem;
+    height: 2.8rem;
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border-color));
+    border-radius: .9rem;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, var(--bg-card));
+    font-size: 1.2rem;
+}
+
+.sensor-catalog-controller p { margin: 0 0 .2rem; color: var(--text-muted); font-size: .64rem; font-weight: 750; letter-spacing: .14em; }
+.sensor-catalog-controller h3 { margin: 0; font-size: 1rem; font-weight: 750; }
+.sensor-catalog-controller div:nth-child(2) span { color: var(--text-secondary); font-size: .78rem; }
+.sensor-catalog-controller-badge { margin-left: auto; padding: .4rem .65rem; border: 1px solid var(--border-color); border-radius: 99px; color: var(--text-secondary); font-size: .72rem; white-space: nowrap; }
+.sensor-catalog-list-heading { margin-bottom: .8rem; }
+.sensor-catalog-list-heading h3 { margin: 0 0 .2rem; font-size: 1.05rem; font-weight: 750; }
+.sensor-catalog-list-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: .55rem; }
+.sensor-catalog-filter-wrap { display: inline-flex; align-items: center; gap: .5rem; color: var(--text-secondary); font-size: .74rem; font-weight: 650; }
+.sensor-catalog-filter-wrap.hidden { display: none; }
+.sensor-catalog-filter-wrap select { min-height: 2.3rem; max-width: 12rem; padding: .4rem .6rem; border: 1px solid var(--border-color); border-radius: .65rem; color: var(--text-primary); background: var(--bg-input); font: inherit; }
+
+.sensor-catalog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; }
+.sensor-catalog-card { min-width: 0; padding: 1rem; border: 1px solid var(--border-color); border-radius: 1.1rem; background: color-mix(in srgb, var(--bg-input) 54%, var(--bg-card)); }
+.sensor-catalog-card--inactivo { opacity: .78; }
+.sensor-catalog-card-title { display: flex; align-items: center; min-width: 0; gap: .75rem; }
+.sensor-catalog-card-title h4 { margin: 0; overflow-wrap: anywhere; font-size: .98rem; font-weight: 750; }
+.sensor-catalog-card-title p { margin: .2rem 0 0; color: var(--text-muted); font: .7rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+.sensor-catalog-sensor-icon { width: 2.45rem; height: 2.45rem; border-radius: .75rem; font-size: 1rem; }
+.sensor-catalog-badges { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; }
+.sensor-catalog-state,
+.sensor-catalog-connection { display: inline-flex; align-items: center; padding: .32rem .52rem; border: 1px solid var(--border-color); border-radius: 99px; color: var(--text-secondary); font-size: .67rem; font-weight: 700; white-space: nowrap; }
+.sensor-catalog-state--activo,.sensor-catalog-connection--conectado { border-color: color-mix(in srgb, var(--success) 48%, transparent); color: var(--success); background: color-mix(in srgb, var(--success) 9%, transparent); }
+.sensor-catalog-state--pendiente,.sensor-catalog-connection--sin_lecturas { border-color: color-mix(in srgb, var(--warning) 45%, transparent); color: var(--warning); background: color-mix(in srgb, var(--warning) 8%, transparent); }
+.sensor-catalog-state--inactivo,.sensor-catalog-connection--sin_datos_recientes { border-color: color-mix(in srgb, var(--danger) 45%, transparent); color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); }
+.sensor-catalog-magnitudes { display: flex; flex-wrap: wrap; gap: .4rem; margin: .95rem 0; }
+.sensor-catalog-tag { padding: .35rem .55rem; border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border-color)); border-radius: .55rem; color: var(--text-secondary); background: color-mix(in srgb, var(--accent) 7%, transparent); font-size: .72rem; }
+.sensor-catalog-muted { color: var(--text-muted); font-size: .75rem; }
+.sensor-catalog-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
+.sensor-catalog-detail { display: grid; min-width: 0; gap: .2rem; padding: .6rem; border-radius: .7rem; background: color-mix(in srgb, var(--bg-main) 55%, transparent); }
+.sensor-catalog-detail span { color: var(--text-muted); font-size: .66rem; }
+.sensor-catalog-detail strong { overflow-wrap: anywhere; color: var(--text-primary); font-size: .76rem; font-weight: 650; }
+.sensor-catalog-observations { margin: .7rem 0 0; padding: .65rem .7rem; border-left: 2px solid var(--accent); color: var(--text-secondary); font-size: .76rem; overflow-wrap: anywhere; }
+.sensor-catalog-card-footer { margin-top: .8rem; padding-top: .7rem; border-top: 1px solid var(--border-color); }
+.sensor-catalog-controller-label { color: var(--text-muted); font-size: .7rem; }
+.sensor-catalog-edit { min-height: 2.25rem; padding: .45rem .7rem; color: var(--accent); cursor: pointer; }
+.sensor-catalog-empty { display: grid; justify-items: center; gap: .35rem; grid-column: 1 / -1; margin: 0; padding: 2.25rem 1rem; border: 1px dashed var(--border-color); border-radius: 1rem; color: var(--text-secondary); text-align: center; }
+.sensor-catalog-empty span { color: var(--text-muted); font-size: .82rem; }
+.sensor-catalog-empty--error { color: var(--danger); }
+.sensor-catalog-status { min-height: 1.25rem; margin: .8rem 0 0; color: var(--text-muted); font-size: .74rem; }
+.sensor-catalog-footnote { margin: .75rem 0 0; padding-top: .8rem; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: .73rem; line-height: 1.55; }
+
+.sensor-edit-overlay { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 1rem; background: rgba(2, 6, 23, .76); backdrop-filter: blur(8px); }
+.sensor-edit-overlay.hidden,.sensor-edit-form .hidden { display: none; }
+.sensor-edit-dialog { width: min(100%, 680px); max-height: min(90vh, 850px); overflow: auto; padding: clamp(1rem, 3vw, 1.5rem); border: 1px solid var(--border-color); border-radius: 1.35rem; color: var(--text-primary); background: var(--bg-card); box-shadow: 0 25px 90px rgba(0,0,0,.45); }
+.sensor-edit-heading { margin-bottom: 1rem; padding-bottom: .9rem; border-bottom: 1px solid var(--border-color); }
+.sensor-edit-heading h2 { margin: .3rem 0 0; font-size: 1.25rem; font-weight: 750; }
+.sensor-edit-close { width: 2.5rem; min-height: 2.5rem; font-size: 1.5rem; cursor: pointer; }
+.sensor-edit-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; }
+.sensor-edit-form label { display: grid; align-content: start; gap: .4rem; color: var(--text-secondary); font-size: .78rem; font-weight: 650; }
+.sensor-edit-form input,.sensor-edit-form select,.sensor-edit-form textarea { width: 100%; min-width: 0; padding: .7rem .75rem; border: 1px solid var(--border-color); border-radius: .7rem; color: var(--text-primary); background: var(--bg-input); font: inherit; font-size: .83rem; }
+.sensor-edit-form input:focus,.sensor-edit-form select:focus,.sensor-edit-form textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 1px; }
+.sensor-edit-wide,.sensor-edit-help,.sensor-edit-actions,.sensor-edit-feedback { grid-column: 1 / -1; }
+.sensor-edit-help { margin: 0; color: var(--text-muted); font-size: .74rem; line-height: 1.5; }
+.sensor-edit-actions { justify-content: flex-end; margin-top: .25rem; }
+.sensor-edit-cancel,.sensor-edit-save { padding: .65rem .95rem; cursor: pointer; }
+.sensor-edit-save { border-color: var(--accent); color: #fff; background: var(--accent); }
+.sensor-edit-save:hover { filter: brightness(1.12); }
+.sensor-edit-feedback { min-height: 1.1rem; margin: -.35rem 0 0; color: var(--text-secondary); font-size: .76rem; }
+
+[data-theme="light"] .sensor-catalog-page { box-shadow: 0 20px 55px rgba(15, 23, 42, .08); }
+[data-theme="light"] .sensor-catalog-controller,
+[data-theme="light"] .sensor-catalog-card { background: #fff; }
+
+@media (max-width: 760px) {
+    .sensor-catalog-summary { grid-template-columns: 1fr; }
+    .sensor-catalog-summary article { grid-template-columns: 1fr auto; align-items: center; }
+    .sensor-catalog-summary strong { font-size: 1.2rem; }
+    .sensor-catalog-grid { grid-template-columns: 1fr; }
+    .sensor-catalog-heading { align-items: flex-start; }
+    .sensor-catalog-controller { align-items: flex-start; }
+    .sensor-catalog-controller-badge { align-self: center; }
+}
+
+@media (max-width: 520px) {
+    .sensor-catalog-page { padding: 1rem; border-radius: 1.1rem; }
+    .sensor-catalog-heading { flex-direction: column; }
+    .sensor-catalog-refresh { width: 100%; }
+    .sensor-catalog-list-heading { align-items: flex-start; flex-direction: column; }
+    .sensor-catalog-list-actions { width: 100%; justify-content: stretch; }
+    .sensor-catalog-list-actions > * { flex: 1 1 100%; }
+    .sensor-catalog-filter-wrap { justify-content: space-between; }
+    .sensor-catalog-filter-wrap select { flex: 1; max-width: none; }
+    .sensor-catalog-controller { flex-wrap: wrap; }
+    .sensor-catalog-controller-badge { margin-left: 3.8rem; }
+    .sensor-catalog-card-top { align-items: flex-start; flex-direction: column; }
+    .sensor-catalog-badges { justify-content: flex-start; padding-left: 3.2rem; }
+    .sensor-catalog-details { grid-template-columns: 1fr; }
+    .sensor-edit-form { grid-template-columns: 1fr; }
+    .sensor-edit-wide,.sensor-edit-help,.sensor-edit-actions,.sensor-edit-feedback { grid-column: auto; }
+    .sensor-edit-actions { flex-wrap: wrap; }
+    .sensor-edit-actions button { flex: 1 1 9rem; }
+}

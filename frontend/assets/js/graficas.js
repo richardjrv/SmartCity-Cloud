@@ -1,4 +1,4 @@
-// Historial real del único ESP32. Cada variable mantiene su escala y unidad.
+// Historial del único controlador. El modo demo nunca consulta ni escribe lecturas en la base.
 const chartSensorConfig = [
     { id: "hc-sr04", area: "movilidad", name: "HC-SR04", icon: "📏", description: "Distancia de proximidad", fields: [{ key: "distancia_cm", label: "Distancia", unit: "cm", color: "#8b5cf6" }] },
     { id: "lluvia", area: "ambiental", name: "Sensor de lluvia", icon: "🌧️", description: "Presencia de lluvia", fields: [{ key: "lluvia_detectada", label: "Detección", kind: "boolean", trueLabel: "Sí", falseLabel: "No", color: "#0284c7" }] },
@@ -26,6 +26,46 @@ let homeTrendLoadedAt = 0;
 let homeTrendRequest = null;
 let chartRefreshTimer = null;
 let homeTrendCoordinates = {};
+
+function actualizarIndicadoresModoDatos() {
+    const demo = usarDatosSimuladosSensores();
+    const eyebrow = document.getElementById("charts-eyebrow");
+    const note = document.getElementById("chart-mode-note");
+    const totalLabel = document.getElementById("chart-total-label");
+    const activeLabel = document.getElementById("chart-active-label");
+    const alertLabel = document.getElementById("chart-alert-label");
+    const lastLabel = document.getElementById("chart-last-label");
+    const activityCopy = document.getElementById("chart-activity-copy");
+    const overviewCanvas = document.getElementById("chart-overview-canvas");
+    if (eyebrow) eyebrow.textContent = demo ? "DATOS DE DEMOSTRACIÓN" : "HISTORIAL DEL ESP32";
+    if (note) note.textContent = demo
+        ? "Las curvas se generan en este navegador; no provienen del ESP32 ni se guardan en la base de datos."
+        : "Se muestran las lecturas recibidas desde la API del ESP32.";
+    if (totalLabel) totalLabel.textContent = demo ? "Puntos simulados" : "Registros recibidos";
+    if (activeLabel) activeLabel.textContent = demo ? "Sensores modelados" : "Sensores con datos";
+    if (alertLabel) alertLabel.textContent = demo ? "Alertas simuladas" : "Lecturas fuera de límite";
+    if (lastLabel) lastLabel.textContent = demo ? "Último punto" : "Última lectura";
+    if (activityCopy) activityCopy.textContent = demo
+        ? "Puntos de demostración por intervalo."
+        : "Registros recibidos por intervalo desde el ESP32.";
+    overviewCanvas?.setAttribute("aria-label", demo
+        ? "Cantidad de puntos simulados a lo largo del periodo"
+        : "Cantidad de registros recibidos del ESP32 a lo largo del periodo");
+    const trendEyebrow = document.querySelector("#dashboard-trends .feature-eyebrow");
+    if (trendEyebrow) trendEyebrow.textContent = demo ? "Datos de demostración" : "Lecturas guardadas";
+    const trendTitle = document.getElementById("dashboard-trends-title");
+    if (trendTitle) trendTitle.textContent = demo ? "Tendencia de sensores" : "Tendencia reciente del ESP32";
+    document.getElementById("sensor-trend-chart")?.setAttribute("aria-label", demo
+        ? "Tendencia demostrativa de temperatura y humedad en las últimas 24 horas"
+        : "Tendencia de temperatura y humedad medidas por el ESP32 en las últimas 24 horas");
+}
+
+function obtenerHistorialDemoEnRango(desde, hasta) {
+    return obtenerHistorialDemostrativo(desde, hasta).filter(row => {
+        const fecha = new Date(row.fecha_hora).getTime();
+        return Number.isFinite(fecha) && fecha >= desde.getTime() && fecha <= hasta.getTime();
+    });
+}
 
 function chartCssColor(name, fallback) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
@@ -119,10 +159,13 @@ function actualizarResumenPeriodo(area) {
     const insight = document.getElementById("chart-period-insight");
     if (!insight) return;
     if (!chartReadings.length) {
-        insight.textContent = "No hay lecturas con los filtros seleccionados. Ajusta el rango o el estado para ver el resumen.";
+        insight.textContent = usarDatosSimuladosSensores()
+            ? "No hay puntos simulados con estos filtros. Ajusta el rango o el estado; estos valores son solo demostrativos."
+            : "No hay lecturas con los filtros seleccionados. Ajusta el rango o el estado para ver el resumen.";
         return;
     }
-    const pieces = [`${chartReadings.length} lecturas coinciden con los filtros`];
+    const demo = usarDatosSimuladosSensores();
+    const pieces = [`${chartReadings.length} ${demo ? "puntos simulados" : "lecturas"} coinciden con los filtros`];
     const temperature = chartSensorConfig.find(sensor => sensor.id === "dht22").fields[0];
     const humidity = chartSensorConfig.find(sensor => sensor.id === "dht22").fields[1];
     const metrics = area === "todos" || area === "ambiental" ? [temperature, humidity] : [];
@@ -144,8 +187,9 @@ function actualizarResumenPeriodo(area) {
     });
     if (metrics.length && !hasComparison) pieces.push("aún no hay datos anteriores suficientes para comparar");
     const alerts = chartAllReadings.filter(row => (area === "todos" || areaTieneDatos(row, area)) && esLecturaConAlerta(row, area)).length;
-    if (area === "todos" || area === "ambiental") pieces.push(`${alerts} lecturas ambientales fuera de límite`);
-    insight.textContent = `${pieces.join(" · ")}.`;
+    if (area === "todos" || area === "ambiental") pieces.push(demo ? `${alerts} alertas simuladas` : `${alerts} lecturas ambientales fuera de límite`);
+    const sourceNote = demo ? " · sin conexión física" : "";
+    insight.textContent = `${pieces.join(" · ")}${sourceNote}.`;
 }
 
 function valorLocalParaInput(date) {
@@ -210,9 +254,14 @@ function dibujarActividadGeneral() {
     if (!canvas) return;
     if (!chartReadings.length) {
         canvas.classList.add("hidden");
-        if (empty) { empty.classList.remove("hidden"); empty.textContent = "No hay lecturas en este periodo. Amplía el rango o revisa que el ESP32 esté enviando datos."; }
+        if (empty) {
+            empty.classList.remove("hidden");
+            empty.textContent = usarDatosSimuladosSensores()
+                ? "No hay puntos simulados en este periodo. Amplía el rango para ver la demostración."
+                : "No hay lecturas en este periodo. Amplía el rango o revisa que el ESP32 esté enviando datos.";
+        }
         const summary = document.getElementById("chart-data-summary");
-        if (summary) summary.textContent = "Sin registros en el periodo seleccionado.";
+        if (summary) summary.textContent = usarDatosSimuladosSensores() ? "Sin puntos de demostración en el periodo." : "Sin registros en el periodo seleccionado.";
         return;
     }
     canvas.classList.remove("hidden");
@@ -317,7 +366,8 @@ function dibujarActividadGeneral() {
             const index = Math.max(0, Math.min(bucketCount - 1, Math.floor((x - padding.left) / slot)));
             const from = new Date(start + duration / bucketCount * index);
             const to = new Date(start + duration / bucketCount * (index + 1));
-            const label = `${from.toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" })} – ${to.toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })} · ${values[index]} registros`;
+            const noun = usarDatosSimuladosSensores() ? "puntos simulados" : "registros";
+            const label = `${from.toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" })} – ${to.toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })} · ${values[index]} ${noun}`;
             const plotX = padding.left + (index + .5) * slot;
             tooltip.textContent = label;
             tooltip.style.left = `${Math.max(8, Math.min(bounds.width - 250, x + 10))}px`;
@@ -356,7 +406,9 @@ function dibujarActividadGeneral() {
     const previousTotal = chartPreviousReadings.length;
     const totalDelta = chartReadings.length - previousTotal;
     const comparison = previousTotal ? ` · ${totalDelta > 0 ? `↑ ${totalDelta} más` : totalDelta < 0 ? `↓ ${Math.abs(totalDelta)} menos` : "→ mismo total"} que el periodo anterior` : " · sin registros del periodo anterior para comparar";
-    if (summary) summary.textContent = `${chartReadings.length} registros · ${activeIntervals} intervalos con actividad · máximo ${peak} registros${comparison}`;
+    const demo = usarDatosSimuladosSensores();
+    const sourceNote = demo ? " · generados localmente, no guardados" : "";
+    if (summary) summary.textContent = `${chartReadings.length} ${demo ? "puntos" : "registros"} · ${activeIntervals} intervalos con actividad · máximo ${peak}${demo ? " puntos" : " registros"}${comparison}${sourceNote}`;
 }
 
 function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) {
@@ -366,7 +418,9 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
     if (!points.length) {
         canvas.classList.add("hidden");
         empty.classList.remove("hidden");
-        empty.textContent = `No hay lecturas de ${config.label.toLowerCase()} en el rango elegido. Prueba otro periodo o espera el próximo envío del ESP32.`;
+        empty.textContent = usarDatosSimuladosSensores()
+            ? `No hay puntos de demostración de ${config.label.toLowerCase()} en el rango elegido. Prueba otro periodo.`
+            : `No hay lecturas de ${config.label.toLowerCase()} en el rango elegido. Prueba otro periodo o espera el próximo envío del ESP32.`;
         summary.textContent = "Sin datos en el periodo seleccionado.";
         return false;
     }
@@ -395,7 +449,7 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
     const staleMinutes = Number(ajustesRangoGrafica().staleMinutes) || 10;
     let gapCount = 0;
     const gapPoints = puntosCampoGrafica(config, chartAllReadings);
-    if (points.length > 1 && gapPoints.length > 1) {
+    if (!usarDatosSimuladosSensores() && points.length > 1 && gapPoints.length > 1) {
         context.save();
         context.fillStyle = "rgba(239, 68, 68, .08)";
         context.strokeStyle = "rgba(248, 113, 113, .55)";
@@ -444,7 +498,7 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
         valueEl.textContent = formatoValorGrafica(points.at(-1).value, config);
         valueEl.title = `Última lectura: ${points.at(-1).date.toLocaleString("es-EC")}`;
     }
-    canvas.setAttribute("aria-label", `${config.label}: ${points.length} lecturas; última ${formatoValorGrafica(points.at(-1).value, config)}; ${formatoFechaGrafica(points.at(-1).date, periodoGraficaHoras())}.`);
+    canvas.setAttribute("aria-label", `${config.label}: ${points.length} ${usarDatosSimuladosSensores() ? "puntos simulados" : "lecturas"}; último valor ${formatoValorGrafica(points.at(-1).value, config)}; ${formatoFechaGrafica(points.at(-1).date, periodoGraficaHoras())}.`);
     context.font = "10px system-ui, sans-serif";
     context.textAlign = "right"; context.textBaseline = "middle";
     for (let tick = 0; tick <= 3; tick += 1) {
@@ -609,8 +663,9 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
         const detections = points.filter(point => point.value === 1).length;
         const previousPoints = puntosCampoGrafica(config, chartPreviousReadings);
         const previousDetections = previousPoints.filter(point => point.value === 1).length;
+        const noun = usarDatosSimuladosSensores() ? "puntos" : "lecturas";
         const comparison = previousPoints.length ? ` · ${previousDetections} detecciones en el periodo anterior` : " · sin datos anteriores para comparar";
-        summary.textContent = `${detections} detecciones · ${points.length} lecturas registradas${comparison}${gapCount ? ` · ${gapCount} huecos mayores a ${staleMinutes} min` : ""}`;
+        summary.textContent = `${detections} detecciones · ${points.length} ${noun}${comparison}${gapCount ? ` · ${gapCount} huecos mayores a ${staleMinutes} min` : ""}`;
     } else {
         const values = points.map(point => point.value);
         const average = values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -622,7 +677,7 @@ function dibujarGraficaCampo(canvas, empty, summary, config, chartHeight = 174) 
             comparison = ` · ${delta > .05 ? "↑" : delta < -.05 ? "↓" : "→"} ${formatoValorGrafica(Math.abs(delta), config)}${change} vs periodo anterior`;
         } else comparison = " · sin datos del periodo anterior para comparar";
         const gapSummary = gapCount ? ` · ${gapCount} huecos > ${staleMinutes} min` : "";
-        summary.textContent = `${points.length} lecturas · promedio ${formatoValorGrafica(average, config)} · mín. ${formatoValorGrafica(Math.min(...values), config)} · máx. ${formatoValorGrafica(Math.max(...values), config)}${comparison}${gapSummary}`;
+        summary.textContent = `${points.length} ${usarDatosSimuladosSensores() ? "puntos simulados" : "lecturas"} · promedio ${formatoValorGrafica(average, config)} · mín. ${formatoValorGrafica(Math.min(...values), config)} · máx. ${formatoValorGrafica(Math.max(...values), config)}${comparison}${gapSummary}`;
     }
     return true;
 }
@@ -808,10 +863,13 @@ function actualizarResumenSensores() {
         const isAirAlert = latest && sensor.id === "calidad-aire" && Number.isFinite(convertirNumeroLectura(latest.calidad_aire))
             && convertirNumeroLectura(latest.calidad_aire) > Number(settings.airQualityMax);
         if (status) {
-            status.textContent = !fresh ? "Sin datos recientes" : isAlert || isAirAlert ? "En alerta" : sensor.id === "dht22" || sensor.id === "calidad-aire" ? "Normal" : "Con datos";
-            status.classList.toggle("has-data", Boolean(fresh && !isAlert && !isAirAlert));
-            status.classList.toggle("is-alert", Boolean(isAlert || isAirAlert));
-            status.classList.toggle("is-stale", !fresh);
+            const demo = usarDatosSimuladosSensores();
+            status.textContent = demo
+                ? "Dato simulado"
+                : !fresh ? "Sin datos recientes" : isAlert || isAirAlert ? "En alerta" : sensor.id === "dht22" || sensor.id === "calidad-aire" ? "Normal" : "Con datos";
+            status.classList.toggle("has-data", Boolean(!demo && fresh && !isAlert && !isAirAlert));
+            status.classList.toggle("is-alert", Boolean(!demo && (isAlert || isAirAlert)));
+            status.classList.toggle("is-stale", Boolean(!demo && !fresh));
         }
         if (hasData) sensorsWithData += 1;
     });
@@ -842,6 +900,7 @@ function dibujarTodasLasGraficas() {
 }
 
 async function cargarGraficasSensores() {
+    actualizarIndicadoresModoDatos();
     const empty = document.getElementById("chart-overview-empty");
     const summary = document.getElementById("chart-data-summary");
     const updated = document.getElementById("chart-updated-at");
@@ -857,9 +916,21 @@ async function cargarGraficasSensores() {
     if (chartLoading) return;
     chartLoading = true;
     if (button) { button.disabled = true; button.setAttribute("aria-busy", "true"); }
-    if (empty) { empty.textContent = "Consultando historial…"; empty.classList.remove("hidden"); }
+    if (empty) { empty.textContent = usarDatosSimuladosSensores() ? "Generando puntos de demostración…" : "Consultando historial…"; empty.classList.remove("hidden"); }
     document.getElementById("chart-overview-canvas")?.classList.add("hidden");
     try {
+        if (usarDatosSimuladosSensores()) {
+            const duration = endValue.getTime() - startValue.getTime();
+            chartAllReadings = obtenerHistorialDemoEnRango(startValue, endValue);
+            chartAllPreviousReadings = obtenerHistorialDemoEnRango(
+                new Date(startValue.getTime() - duration),
+                new Date(startValue.getTime() - 1)
+            );
+            chartLatestReading = obtenerLecturasDemoActuales()[0]?.lectura || null;
+            actualizarFiltrosLocales();
+            if (updated) updated.textContent = `Simulación local · ${new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}`;
+            return;
+        }
         const query = new URLSearchParams({ desde: startValue.toISOString(), hasta: endValue.toISOString() });
         const result = await apiFetch(`/sensores/historial?${query.toString()}`);
         if (!result.ok) throw new Error(result.data?.detail || "No se pudo consultar el historial.");
@@ -916,15 +987,18 @@ function dibujarTendenciaInicio() {
     const summary = document.getElementById("sensor-trend-summary");
     const context = canvas?.getContext("2d");
     if (!canvas || !context) return;
+    const demo = usarDatosSimuladosSensores();
     const readings = homeTrendReadings.filter(row => row && row.fecha_hora
         && (Number.isFinite(convertirNumeroLectura(row.temperatura)) || Number.isFinite(convertirNumeroLectura(row.humedad))));
     if (!readings.length) {
         canvas.classList.add("hidden");
         if (empty) {
             empty.classList.remove("hidden");
-            empty.textContent = "Aún no hay historial real de temperatura y humedad para mostrar. Las lecturas aparecerán cuando el ESP32 las envíe.";
+            empty.textContent = demo
+                ? "La demostración no tiene puntos para mostrar en este momento."
+                : "Aún no hay lecturas de temperatura y humedad. Aparecerán cuando el ESP32 las envíe.";
         }
-        if (summary) summary.textContent = "Sin lecturas históricas almacenadas.";
+        if (summary) summary.textContent = demo ? "Sin puntos de demostración." : "Sin lecturas históricas almacenadas.";
         return;
     }
     canvas.classList.remove("hidden");
@@ -1045,17 +1119,26 @@ function dibujarTendenciaInicio() {
     const humedadValor = convertirNumeroLectura(lastReading.humedad);
     const temperatura = Number.isFinite(temperaturaValor) ? `${temperaturaValor.toFixed(1)} °C` : "— °C";
     const humedad = Number.isFinite(humedadValor) ? `${humedadValor.toFixed(1)} %` : "— %";
-    if (summary) summary.textContent = `${readings.length} lecturas · última: ${temperatura} y ${humedad} · datos de la API`;
+    if (summary) summary.textContent = `${readings.length} ${demo ? "puntos" : "lecturas"} · última: ${temperatura} y ${humedad} · ${demo ? "simulación local, no guardada" : "datos de la API"}`;
 }
 
 async function cargarTendenciaInicio({ forzar = false } = {}) {
     const panel = document.getElementById("dashboard-trends");
     if (!panel) return;
+    actualizarIndicadoresModoDatos();
     if (!forzar && homeTrendReadings.length && Date.now() - homeTrendLoadedAt < 60_000) {
         dibujarTendenciaInicio();
         return;
     }
     if (homeTrendRequest) return homeTrendRequest;
+    if (usarDatosSimuladosSensores()) {
+        const hasta = new Date();
+        const desde = new Date(hasta.getTime() - 24 * 60 * 60 * 1000);
+        homeTrendReadings = obtenerHistorialDemoEnRango(desde, hasta);
+        homeTrendLoadedAt = Date.now();
+        dibujarTendenciaInicio();
+        return;
+    }
     const empty = document.getElementById("sensor-trend-empty");
     if (empty) { empty.textContent = "Consultando historial del ESP32…"; empty.classList.remove("hidden"); }
     document.getElementById("sensor-trend-chart")?.classList.add("hidden");
@@ -1078,6 +1161,7 @@ async function cargarTendenciaInicio({ forzar = false } = {}) {
 }
 
 function inicializarGraficasSensores() {
+    actualizarIndicadoresModoDatos();
     crearTarjetasSensores();
     aplicarPeriodoRapido();
     document.getElementById("chart-refresh")?.addEventListener("click", cargarGraficasSensores);
