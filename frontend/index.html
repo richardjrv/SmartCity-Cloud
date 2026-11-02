@@ -881,7 +881,7 @@
         <section id="vista-admin-usuarios" class="hidden space-y-6">
             <div class="bg-slate-800/90 border border-slate-700/60 rounded-3xl p-6 sm:p-8 shadow-2xl">
                 
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div class="admin-users-heading">
                     <div>
                         <h2 class="text-2xl font-bold text-white flex items-center gap-2">
                             👑 Gestión de Usuarios
@@ -890,7 +890,8 @@
                     </div>
 
                     <!-- Buscador de usuarios -->
-                    <div class="relative min-w-[260px]">
+                    <div class="admin-users-search">
+                        <label class="sr-only" for="buscar-usuario">Buscar por nombre o correo</label>
                         <input type="text" id="buscar-usuario" onkeyup="filtrarUsuarios()" placeholder="🔎 Buscar por nombre o correo..." class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 transition">
                     </div>
                     <div class="admin-user-filters" role="group" aria-label="Filtrar usuarios">
