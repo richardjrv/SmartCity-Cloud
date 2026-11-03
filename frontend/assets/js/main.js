@@ -349,10 +349,11 @@ function navegarA(vista) {
         void cargarCatalogoSensores();
     } else if (vista === "perfil") {
         document.getElementById("vista-perfil")?.classList.remove("hidden");
+        cargarConfiguracionEnControles();
         cargarPerfilUsuario();
     } else if (vista === "configuracion") {
-        document.getElementById("vista-configuracion")?.classList.remove("hidden");
-        cargarConfiguracionEnControles();
+        navegarA("perfil");
+        return;
     } else if (vista === "operador-config") {
         if (Number(localStorage.getItem("user_role_cloud")) !== 3) {
             alert("⛔ Esta configuración está disponible solo para el rol Operador.");
@@ -880,24 +881,16 @@ async function cargarResumenCuenta() {
 }
 
 function cargarConfiguracionEnControles() {
-    const refresh = document.getElementById("config-refresh-interval");
-    const period = document.getElementById("config-default-period");
     const reduceMotion = document.getElementById("config-reduce-motion");
     const soundFeedback = document.getElementById("config-sound-feedback");
     const hapticFeedback = document.getElementById("config-haptic-feedback");
-    const reportSelector = document.getElementById("sensor-report-period");
     try {
-        const savedRefresh = localStorage.getItem(SETTINGS_KEYS.refresh) || "0";
-        const savedPeriod = localStorage.getItem(SETTINGS_KEYS.reportPeriod) || "24";
         const savedReduceMotion = localStorage.getItem(SETTINGS_KEYS.reducedMotion) === "true";
-        if (refresh) refresh.value = savedRefresh;
-        if (period) period.value = savedPeriod;
-        if (reportSelector && reportSelector.querySelector(`option[value="${savedPeriod}"]`)) reportSelector.value = savedPeriod;
         if (reduceMotion) reduceMotion.checked = savedReduceMotion;
         if (soundFeedback) soundFeedback.checked = localStorage.getItem(SETTINGS_KEYS.soundFeedback) === "true";
         if (hapticFeedback) hapticFeedback.checked = localStorage.getItem(SETTINGS_KEYS.hapticFeedback) === "true";
         document.body.classList.toggle("reduce-motion", savedReduceMotion);
-        configureDashboardRefresh(Number(savedRefresh));
+        configureDashboardRefresh(0);
     } catch (error) {
         console.warn("No se pudieron recuperar las preferencias.", error);
     }

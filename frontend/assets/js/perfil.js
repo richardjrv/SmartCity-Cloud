@@ -26,6 +26,33 @@ function mostrarAvatarCuenta(valor) {
     }
 }
 
+function renderizarOpcionesAvatar() {
+    const select = document.getElementById("edit-avatar");
+    const contenedor = document.getElementById("avatar-choices");
+    if (!select || !contenedor) return;
+    contenedor.replaceChildren();
+    for (const option of select.options) {
+        const boton = document.createElement("button");
+        boton.type = "button";
+        boton.className = "avatar-choice";
+        boton.setAttribute("aria-pressed", String(option.value === select.value));
+        boton.setAttribute("aria-label", option.textContent.trim());
+        const icono = document.createElement("span");
+        icono.className = "avatar-choice-icon";
+        icono.setAttribute("aria-hidden", "true");
+        icono.textContent = option.value === "__existente__" ? "🖼️" : iconoAvatar(option.value);
+        const nombre = document.createElement("span");
+        nombre.textContent = option.textContent.replace(/^\S+\s*/, "");
+        boton.append(icono, nombre);
+        boton.addEventListener("click", () => {
+            select.value = option.value;
+            renderizarOpcionesAvatar();
+            contenedor.querySelector('[aria-pressed="true"]')?.focus();
+        });
+        contenedor.append(boton);
+    }
+}
+
 async function cargarPerfilUsuario() {
     const token = obtenerToken();
     if (!token) {
@@ -121,6 +148,7 @@ function abrirModalEditarPerfil() {
         selectorAvatar.add(new Option("Conservar avatar actual", "__existente__"));
         selectorAvatar.value = "__existente__";
     } else selectorAvatar.value = avatarPerfilActual;
+    renderizarOpcionesAvatar();
 
     document.getElementById("modal-editar-perfil")?.classList.remove("hidden");
     inputNombre?.focus();
