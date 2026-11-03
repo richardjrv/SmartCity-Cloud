@@ -5,12 +5,25 @@
 const AVATARES_SMARTCITY = Object.freeze({
     "": "👤", "avatar:explorador": "🧑‍🚀", "avatar:ciudadana": "👩‍💻",
     "avatar:ciudadano": "👨‍💻", "avatar:creativa": "👩‍🎨",
-    "avatar:ingeniero": "👨‍🔧", "avatar:robot": "🤖"
+    "avatar:ingeniero": "👨‍🔧", "avatar:robot": "🤖",
+    ...Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`avatar:retrato-${i + 1}`, "👤"])),
 });
 let avatarPerfilActual = "";
 function iconoAvatar(valor) { return Object.hasOwn(AVATARES_SMARTCITY, valor || "") ? AVATARES_SMARTCITY[valor || ""] : AVATARES_SMARTCITY[""]; }
 function pintarAvatar(elemento, valor) {
     if (!elemento) return;
+    elemento.classList.remove("avatar-retrato");
+    elemento.style.removeProperty("background-position");
+    const retrato = /^avatar:retrato-(\d+)$/.exec(valor || "");
+    if (retrato && Number(retrato[1]) >= 1 && Number(retrato[1]) <= 20) {
+        const n = Number(retrato[1]) - 1;
+        const x = [3.72, 26.86, 49.88, 73.02, 96.28][n % 5];
+        const y = [5.32, 36.11, 66.56, 97.34][Math.floor(n / 5)];
+        elemento.replaceChildren();
+        elemento.classList.add("avatar-retrato");
+        elemento.style.backgroundPosition = `${x}% ${y}%`;
+        return;
+    }
     const opciones = { "": "default", "avatar:explorador": "explorador", "avatar:ciudadana": "ciudadana", "avatar:ciudadano": "ciudadano", "avatar:creativa": "creativa", "avatar:ingeniero": "ingeniero", "avatar:robot": "robot" };
     const elegido = valor || "";
     const ruta = Object.hasOwn(opciones, elegido) ? `assets/avatars/${opciones[elegido]}.svg` : (/^https:\/\//i.test(elegido) ? elegido : "assets/avatars/default.svg");
@@ -147,6 +160,9 @@ function abrirModalEditarPerfil() {
     if (inputNombre) inputNombre.value = nombre;
     if (inputUser) inputUser.value = username;
     const selectorAvatar = document.getElementById("edit-avatar");
+    if (!selectorAvatar.querySelector('[value="avatar:retrato-1"]')) {
+        for (let i = 1; i <= 20; i++) selectorAvatar.add(new Option(`👤 Retrato ${i}`, `avatar:retrato-${i}`));
+    }
     selectorAvatar.querySelector('[value="__existente__"]')?.remove();
     if (avatarPerfilActual && !Object.hasOwn(AVATARES_SMARTCITY, avatarPerfilActual)) {
         selectorAvatar.add(new Option("Conservar avatar actual", "__existente__"));

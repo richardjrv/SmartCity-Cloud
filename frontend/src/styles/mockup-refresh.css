@@ -19,6 +19,7 @@ html[data-theme="light"] #vista-auth .auth-lead, html[data-theme="light"] #vista
 .profile-avatar-edit:hover { color: var(--accent); border-color: var(--accent); }
 .avatar-choice-icon { overflow: hidden; }
 .avatar-choice-icon img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.avatar-retrato { background-image: url('../../assets/avatars-retratos.png') !important; background-size: 624.4% 466.5% !important; background-repeat: no-repeat !important; border-radius: 50%; }
 .avatar-choice > span:last-child { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
 
 /* Gestión: cabecera, filtros y listado con espacio adaptable al ancho real. */
