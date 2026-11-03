@@ -113,7 +113,7 @@
 #admin-users-table td[data-label="Acciones"] > div { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; }
 #admin-users-table td[data-label="Acciones"] button { min-width: 2.75rem; min-height: 2.75rem; padding: .5rem .65rem; }
 
-@container (max-width: 1000px) {
+@container (max-width: 880px) {
     #admin-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     #admin-users-table { overflow: visible; border: 0; }
     #admin-users-table table { display: block; }
@@ -130,8 +130,13 @@
 }
 
 @container (max-width: 430px) {
-    #admin-summary-grid { grid-template-columns: minmax(0, 1fr); }
+    .admin-summary-card { gap: .5rem; padding: .65rem; }
+    .admin-summary-card > span { width: 2rem; height: 2rem; flex-basis: 2rem; }
+    .admin-summary-card small { font-size: .65rem; }
     #admin-users-table tbody td { grid-template-columns: minmax(4.5rem, .4fr) minmax(0, 1fr); }
+}
+@container (max-width: 330px) {
+    #admin-summary-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 #usuario-badge {

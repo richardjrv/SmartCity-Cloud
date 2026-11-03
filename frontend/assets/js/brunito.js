@@ -441,6 +441,13 @@ async function enviarMensajeBrunito(e) {
     return procesarMensajeBrunito(texto);
 }
 
+function prepararConsultaBrunito(texto) {
+    const input = document.getElementById("chat-input");
+    if (!input) return;
+    input.value = texto;
+    input.focus();
+}
+
 function normalizarConsultaClimaBrunito(texto) {
     return String(texto || "")
         .normalize("NFD")

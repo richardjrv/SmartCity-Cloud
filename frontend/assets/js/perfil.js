@@ -9,20 +9,24 @@ const AVATARES_SMARTCITY = Object.freeze({
 });
 let avatarPerfilActual = "";
 function iconoAvatar(valor) { return Object.hasOwn(AVATARES_SMARTCITY, valor || "") ? AVATARES_SMARTCITY[valor || ""] : AVATARES_SMARTCITY[""]; }
+function pintarAvatar(elemento, valor) {
+    if (!elemento) return;
+    const opciones = { "": "default", "avatar:explorador": "explorador", "avatar:ciudadana": "ciudadana", "avatar:ciudadano": "ciudadano", "avatar:creativa": "creativa", "avatar:ingeniero": "ingeniero", "avatar:robot": "robot" };
+    const elegido = valor || "";
+    const ruta = Object.hasOwn(opciones, elegido) ? `assets/avatars/${opciones[elegido]}.svg` : (/^https:\/\//i.test(elegido) ? elegido : "assets/avatars/default.svg");
+    const imagen = document.createElement("img");
+    imagen.src = ruta;
+    imagen.alt = "";
+    imagen.referrerPolicy = "no-referrer";
+    imagen.onerror = () => { elemento.textContent = iconoAvatar(""); };
+    elemento.replaceChildren(imagen);
+}
 function mostrarAvatarCuenta(valor) {
     avatarPerfilActual = valor || "";
     for (const id of ["perfil-avatar", "account-menu-avatar", "header-user-avatar"]) {
         const elemento = document.getElementById(id);
         if (!elemento) continue;
-        elemento.textContent = iconoAvatar(avatarPerfilActual);
-        if (/^https:\/\//i.test(avatarPerfilActual)) {
-            const imagen = document.createElement("img");
-            imagen.src = avatarPerfilActual;
-            imagen.alt = "";
-            imagen.referrerPolicy = "no-referrer";
-            imagen.onerror = () => { elemento.textContent = iconoAvatar(""); };
-            elemento.replaceChildren(imagen);
-        }
+        pintarAvatar(elemento, avatarPerfilActual);
     }
 }
 
@@ -40,7 +44,7 @@ function renderizarOpcionesAvatar() {
         const icono = document.createElement("span");
         icono.className = "avatar-choice-icon";
         icono.setAttribute("aria-hidden", "true");
-        icono.textContent = option.value === "__existente__" ? "🖼️" : iconoAvatar(option.value);
+        pintarAvatar(icono, option.value === "__existente__" ? avatarPerfilActual : option.value);
         const nombre = document.createElement("span");
         nombre.textContent = option.textContent.replace(/^\S+\s*/, "");
         boton.append(icono, nombre);

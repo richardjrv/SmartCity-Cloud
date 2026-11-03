@@ -372,6 +372,9 @@ function navegarA(vista) {
         document.getElementById("vista-admin-usuarios")?.classList.remove("hidden");
         cargarUsuariosAdmin();
     }
+    if (["perfil", "admin-usuarios"].includes(vista)) {
+        window.scrollTo({ top: 0, behavior: "auto" });
+    }
     if (vista !== "auth") document.getElementById("main-content")?.focus({ preventScroll: true });
 }
 

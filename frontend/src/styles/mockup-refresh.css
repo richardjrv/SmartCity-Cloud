@@ -1,0 +1,92 @@
+/* Acceso: una entrada clara que conserva los métodos de autenticación. */
+body.login-only .auth-layout { max-width: 1440px; margin-inline: auto; padding: clamp(1.25rem, 4vw, 3.5rem); gap: clamp(1.5rem, 4vw, 4rem); }
+#vista-auth .auth-mission { position: relative; overflow: hidden; min-height: 38rem; display: flex; flex-direction: column; justify-content: center; padding: clamp(1.5rem, 4vw, 3.5rem); border: 1px solid rgba(113, 172, 233, .2); border-radius: 1.6rem; background: linear-gradient(180deg, rgba(6, 21, 44, .82), rgba(8, 25, 52, .78)), url('../../assets/ciudad-login.webp') center / cover; }
+#vista-auth .auth-mission h2 { max-width: 12ch; font-size: clamp(2.3rem, 4.5vw, 4.2rem); }
+#vista-auth .auth-lead { max-width: 30rem; line-height: 1.55; }
+#vista-auth .mission-vision-grid { margin-top: 1.7rem; }
+#vista-auth .mission-vision-grid article { background: rgba(11, 29, 54, .72); }
+html[data-theme="light"] #vista-auth .auth-mission h2, html[data-theme="light"] #vista-auth .mission-vision-grid h3 { color: #f8fafc; }
+html[data-theme="light"] #vista-auth .auth-lead, html[data-theme="light"] #vista-auth .mission-vision-grid p, html[data-theme="light"] #vista-auth .auth-demo-note { color: #d0dced; }
+#vista-auth .auth-card { max-width: 29rem; }
+#vista-auth .auth-card__scene { height: 4rem; }
+
+/* Perfil: cuenta, avatar y preferencias mantienen sus controles originales. */
+.profile-page:not(.hidden) { grid-template-columns: minmax(280px, .8fr) minmax(0, 1.4fr); gap: 1.25rem; }
+.profile-card, .profile-preferences > section, .profile-preferences-grid > section { border-color: color-mix(in srgb, var(--accent) 24%, var(--border-color)); box-shadow: 0 12px 40px rgba(2, 8, 23, .1); }
+.profile-identity { padding: .5rem 0 1.35rem; }
+#perfil-avatar { width: 7rem; height: 7rem; background: color-mix(in srgb, var(--accent) 18%, var(--bg-input)); }
+.profile-avatar-edit { min-height: 2.5rem; margin-top: .35rem; padding: .45rem .75rem; border: 1px solid var(--border-color); border-radius: .7rem; color: var(--text-secondary); background: var(--bg-input); font-size: .75rem; cursor: pointer; }
+.profile-avatar-edit:hover { color: var(--accent); border-color: var(--accent); }
+.avatar-choice-icon { overflow: hidden; }
+.avatar-choice-icon img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.avatar-choice > span:last-child { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
+
+/* Gestión: cabecera, filtros y listado con espacio adaptable al ancho real. */
+#vista-admin-usuarios > div { border-radius: 1.4rem; }
+.admin-users-heading { align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
+.admin-users-heading .admin-users-intro { flex: 1 1 18rem; }
+.admin-users-heading h2 { font-size: clamp(1.6rem, 2.3vw, 2rem); }
+.admin-users-heading p { margin-top: .4rem; line-height: 1.5; }
+.admin-users-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: .7rem; padding: .85rem; margin-bottom: 1.1rem; border: 1px solid var(--border-color); border-radius: 1rem; background: color-mix(in srgb, var(--accent) 5%, var(--bg-input)); }
+.admin-users-toolbar .admin-users-search { flex: 1 1 15rem; }
+.admin-users-toolbar .admin-user-filters { flex: 1 1 17rem; }
+.admin-users-toolbar label { line-height: 1.3; }
+#admin-users-table { border: 1px solid var(--border-color); border-radius: 1rem; }
+#admin-users-table thead th { color: var(--text-secondary); font-size: .7rem; letter-spacing: .04em; }
+#admin-users-table tbody td { padding: 1rem .7rem; }
+.admin-row-avatar { width: 2.8rem; height: 2.8rem; }
+.admin-filter-results { margin: .3rem 0 .8rem; }
+
+/* Clima: resumen y pronóstico comparten la primera vista. */
+#weather-local-panel { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(300px, .95fr); gap: 1rem; }
+#weather-local-panel.hidden { display: none; }
+#weather-local-panel .feature-panel-heading, #weather-local-panel .weather-credit { grid-column: 1 / -1; }
+#weather-local-panel .weather-current { display: grid; grid-template-columns: minmax(0, 1fr); margin-top: 0; }
+#weather-local-panel .weather-current-summary { min-height: 14rem; }
+#weather-local-panel .weather-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#weather-local-panel .weather-card { min-height: 6.5rem; }
+#weather-local-panel .weather-forecast { min-width: 0; margin-top: 0; padding: 1rem; border: 1px solid var(--border-color); border-radius: 1.15rem; background: color-mix(in srgb, var(--accent) 5%, var(--bg-input)); }
+#weather-local-panel .weather-hourly-forecast { display: grid; grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 27rem; overflow-x: hidden; overflow-y: auto; }
+#weather-local-panel .weather-hour-card { min-width: 0; }
+
+/* Brunito: el chat conserva el flujo de consulta y añade accesos sugeridos. */
+#brunito-chat-window:not(.hidden) { display: flex; flex-direction: column; width: min(31rem, calc(100vw - 2rem)); height: min(39rem, 78dvh); max-height: calc(100dvh - 6rem); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border-color)); border-radius: 1.25rem; color: var(--text-primary); background: var(--bg-card); overflow: hidden; }
+.brunito-header, .brunito-header-identity { display: flex; align-items: center; gap: .75rem; }
+.brunito-header { flex: 0 0 auto; justify-content: space-between; padding: 1rem; border-bottom: 1px solid var(--border-color); background: color-mix(in srgb, var(--accent) 8%, var(--bg-card)); }
+.brunito-header h4 { color: var(--text-primary); font-size: 1rem; font-weight: 750; }
+.brunito-header p { color: var(--text-secondary); font-size: .73rem; }
+.brunito-header > button { min-width: 2.75rem; min-height: 2.75rem; border-radius: .75rem; color: var(--text-primary); background: var(--bg-input); }
+.brunito-avatar { width: 2.7rem; height: 2.7rem; border-radius: 50%; background: #215574; object-fit: cover; }
+#chat-mensajes { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1rem; }
+.brunito-welcome { display: flex; align-items: center; gap: .9rem; padding: 1rem; border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border-color)); border-radius: 1rem; background: color-mix(in srgb, var(--accent) 9%, var(--bg-input)); }
+.brunito-welcome-avatar { flex: 0 0 auto; width: 4.4rem; height: 4.4rem; border-radius: 50%; background: #215574; object-fit: cover; }
+#btn-chat-launcher img { display: block; width: 85%; height: 85%; border-radius: 50%; object-fit: cover; }
+.brunito-welcome strong { color: var(--text-primary); font-size: 1rem; }
+.brunito-welcome p { margin-top: .3rem; color: var(--text-secondary); font-size: .78rem; line-height: 1.5; }
+.brunito-suggestions { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .8rem; }
+.brunito-suggestions button { min-height: 2.5rem; padding: .5rem .7rem; border: 1px solid var(--border-color); border-radius: .75rem; color: var(--text-primary); background: var(--bg-input); font-size: .72rem; text-align: left; }
+.brunito-suggestions button:hover { border-color: var(--accent); }
+#chat-mensajes > div:not(.brunito-welcome):not(.brunito-suggestions) { max-width: 90%; margin-top: .75rem; padding: .75rem .85rem; border-radius: .9rem; color: var(--text-primary); background: var(--bg-input); font-size: .8rem; line-height: 1.5; white-space: pre-wrap; }
+#chat-mensajes > div.ml-auto { margin-left: auto; color: #fff !important; background: #2563eb !important; }
+#brunito-chat-window .brunito-chat-form { flex: 0 0 auto; padding: .85rem; border-top: 1px solid var(--border-color); background: var(--bg-card); }
+#brunito-chat-window #chat-input { min-width: 0; min-height: 2.75rem; padding: .65rem .8rem; border: 1px solid var(--border-color); border-radius: .75rem; color: var(--text-primary); background: var(--bg-input); font-size: .85rem; }
+#brunito-chat-window .brunito-chat-controls > button { min-width: 2.75rem; min-height: 2.75rem; padding: .55rem .8rem; border-radius: .75rem; }
+#brunito-chat-window .brunito-chat-controls > button[type="submit"] { color: #fff; background: #2563eb; }
+#brunito-chat-window .chat-voice-status { margin-top: .4rem; color: var(--text-secondary); line-height: 1.35; }
+
+@container (max-width: 880px) { #admin-users-table { border: 0; } }
+@media (max-width: 1000px) { #weather-local-panel { grid-template-columns: minmax(0, 1fr); } #weather-local-panel .feature-panel-heading, #weather-local-panel .weather-credit { grid-column: auto; } }
+@media (max-width: 800px) { .profile-page:not(.hidden) { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 767px) {
+    body.login-only .auth-layout { display: flex; flex-direction: column; padding: 1rem; }
+    #vista-auth .auth-card { order: 0; width: 100%; }
+    #vista-auth .auth-mission { order: 1; width: 100%; min-height: 16rem; padding: 1.4rem; }
+    #vista-auth .auth-mission h2 { font-size: 2rem; }
+    #vista-auth .mission-vision-grid { grid-template-columns: 1fr; }
+    .admin-users-toolbar .admin-user-filters { flex-basis: 100%; }
+    #weather-local-panel .weather-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #weather-local-panel .weather-hourly-forecast { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; overflow: visible; }
+    #brunito-chat-window:not(.hidden) { right: .75rem !important; bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px)) !important; width: calc(100vw - 2.5rem); height: min(36rem, 72dvh); }
+}
+@media (prefers-reduced-motion: reduce) { .profile-avatar-edit, .brunito-suggestions button { transition: none !important; } }
+#weather-hourly-forecast:focus-visible, .brunito-suggestions button:focus-visible, .profile-avatar-edit:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
