@@ -163,6 +163,15 @@ function mostrarUsuariosTabla(usuarios) {
             </td>
         `;
 
+        if (/^https:\/\//i.test(usuario.avatar || "")) {
+            const contenedor = tr.querySelector(".admin-row-avatar");
+            const imagen = document.createElement("img");
+            imagen.src = usuario.avatar;
+            imagen.alt = "";
+            imagen.referrerPolicy = "no-referrer";
+            imagen.onerror = () => { contenedor.textContent = iconoAvatar(""); };
+            contenedor.replaceChildren(imagen);
+        }
         tabla.appendChild(tr);
     });
 }
