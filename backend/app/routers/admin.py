@@ -16,7 +16,7 @@ def listar_usuarios_admin(admin: dict = Depends(requerir_admin)):
             """
             SELECT u.id_usuario AS id, u.nombre, u.email, u.nombre_usuario AS username, u.id_rol,
                    COALESCE(u.estado, 'activo'), u.fecha_registro, u.ultimo_acceso,
-                   r.nombre
+                   r.nombre, u.avatar
             FROM usuarios AS u LEFT JOIN public.roles AS r ON r.id_rol = u.id_rol
             WHERE u.id_usuario_auth IS NOT NULL ORDER BY u.id_usuario ASC
             """
@@ -35,7 +35,8 @@ def listar_usuarios_admin(admin: dict = Depends(requerir_admin)):
                 "rol": {"admin": "👑 Administrador", "operador": "🛠️ Operador", "usuario": "👤 Usuario"}.get(f[8], "Rol desconocido"),
                 "estado": f[5],
                 "fecha_registro": str(f[6]),
-                "ultimo_acceso": str(f[7])
+                "ultimo_acceso": str(f[7]),
+                "avatar": f[9] or ""
             } for f in filas
         ]
     except Exception as e:

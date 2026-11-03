@@ -78,7 +78,7 @@
                 <div id="account-menu-wrap" class="hidden relative">
                     <button id="usuario-badge" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="account-menu" onclick="toggleAccountMenu()" class="flex items-center gap-2 bg-slate-700/40 border border-slate-600/50 rounded-xl px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 transition">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true"></span>
-                        <svg class="account-header-avatar" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20a7 7 0 0 1 14 0"></path></svg>
+                        <span id="header-user-avatar" class="account-header-avatar user-avatar" aria-hidden="true">👤</span>
                         <span id="nav-usuario-nombre" class="font-semibold text-white max-w-28 truncate">Usuario</span>
                         <span aria-hidden="true">⌄</span>
                     </button>
@@ -898,6 +898,7 @@
                         <label>Rol<select id="admin-filter-role" onchange="filtrarUsuarios()"><option value="todos">Todos</option><option value="1">Administradores</option><option value="2">Usuarios</option><option value="3">Operadores</option></select></label>
                         <label>Estado<select id="admin-filter-state" onchange="filtrarUsuarios()"><option value="todos">Todos</option><option value="activo">Activos</option><option value="inactivo">Inactivos</option></select></label>
                     </div>
+                    <button type="button" class="admin-refresh" onclick="cargarUsuariosAdmin()">↻ Actualizar</button>
                 </div>
 
                 <div id="admin-summary-grid" class="admin-summary-grid" aria-label="Resumen de cuentas">
@@ -1074,6 +1075,18 @@
                 <div>
                     <label for="edit-username" class="block text-xs text-slate-300 mb-1">Nombre de Usuario (Username)</label>
                     <input type="text" id="edit-username" autocomplete="username" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
+                </div>
+                <div class="avatar-picker">
+                    <label for="edit-avatar">Tu avatar</label>
+                    <select id="edit-avatar">
+                        <option value="">👤 Predeterminado</option>
+                        <option value="avatar:explorador">🧑‍🚀 Explorador</option>
+                        <option value="avatar:ciudadana">👩‍💻 Ciudadana</option>
+                        <option value="avatar:ciudadano">👨‍💻 Ciudadano</option>
+                        <option value="avatar:creativa">👩‍🎨 Creativa</option>
+                        <option value="avatar:ingeniero">👨‍🔧 Ingeniero</option>
+                        <option value="avatar:robot">🤖 Robot</option>
+                    </select>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
                     <button type="button" onclick="cerrarModal('modal-editar-perfil')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-700 text-slate-300 hover:text-white">Cancelar</button>

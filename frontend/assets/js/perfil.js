@@ -2,6 +2,30 @@
 // 👤 MÓDULO DE PERFIL DE USUARIO (FASE 1)
 // ============================================================
 
+const AVATARES_SMARTCITY = Object.freeze({
+    "": "👤", "avatar:explorador": "🧑‍🚀", "avatar:ciudadana": "👩‍💻",
+    "avatar:ciudadano": "👨‍💻", "avatar:creativa": "👩‍🎨",
+    "avatar:ingeniero": "👨‍🔧", "avatar:robot": "🤖"
+});
+let avatarPerfilActual = "";
+function iconoAvatar(valor) { return Object.hasOwn(AVATARES_SMARTCITY, valor || "") ? AVATARES_SMARTCITY[valor || ""] : AVATARES_SMARTCITY[""]; }
+function mostrarAvatarCuenta(valor) {
+    avatarPerfilActual = valor || "";
+    for (const id of ["perfil-avatar", "account-menu-avatar", "header-user-avatar"]) {
+        const elemento = document.getElementById(id);
+        if (!elemento) continue;
+        elemento.textContent = iconoAvatar(avatarPerfilActual);
+        if (/^https:\/\//i.test(avatarPerfilActual)) {
+            const imagen = document.createElement("img");
+            imagen.src = avatarPerfilActual;
+            imagen.alt = "";
+            imagen.referrerPolicy = "no-referrer";
+            imagen.onerror = () => { elemento.textContent = iconoAvatar(""); };
+            elemento.replaceChildren(imagen);
+        }
+    }
+}
+
 async function cargarPerfilUsuario() {
     const token = obtenerToken();
     if (!token) {
@@ -57,13 +81,7 @@ async function cargarPerfilUsuario() {
         if (perfReg) perfReg.innerText = formatearFecha(data.fecha_registro);
         if (perfAcc) perfAcc.innerText = formatearFecha(data.ultimo_acceso);
 
-        if (perfAvatar) {
-            if (data.avatar) {
-                perfAvatar.innerHTML = `<img src="${data.avatar}" alt="Avatar" class="w-full h-full object-cover">`;
-            } else {
-                perfAvatar.innerText = "👤";
-            }
-        }
+        mostrarAvatarCuenta(data.avatar);
 
     } catch (error) {
         console.error("❌ Error cargando perfil:", error);
@@ -97,6 +115,12 @@ function abrirModalEditarPerfil() {
 
     if (inputNombre) inputNombre.value = nombre;
     if (inputUser) inputUser.value = username;
+    const selectorAvatar = document.getElementById("edit-avatar");
+    selectorAvatar.querySelector('[value="__existente__"]')?.remove();
+    if (avatarPerfilActual && !Object.hasOwn(AVATARES_SMARTCITY, avatarPerfilActual)) {
+        selectorAvatar.add(new Option("Conservar avatar actual", "__existente__"));
+        selectorAvatar.value = "__existente__";
+    } else selectorAvatar.value = avatarPerfilActual;
 
     document.getElementById("modal-editar-perfil")?.classList.remove("hidden");
     inputNombre?.focus();
@@ -128,10 +152,12 @@ async function guardarEdicionPerfil(e) {
         return;
     }
 
+    const avatarSeleccionado = document.getElementById("edit-avatar").value;
+    const avatar = avatarSeleccionado === "__existente__" ? avatarPerfilActual : avatarSeleccionado;
     try {
         const { ok, data } = await apiFetch("/api/perfil/editar", {
             method: "PUT",
-            body: JSON.stringify({ nombre, username })
+            body: JSON.stringify({ nombre, username, avatar })
         });
 
         if (ok) {
@@ -144,8 +170,7 @@ async function guardarEdicionPerfil(e) {
             if (navNombre) navNombre.innerText = nombre;
             const accountName = document.getElementById("account-menu-name");
             if (accountName) accountName.textContent = nombre;
-            const accountAvatar = document.getElementById("account-menu-avatar");
-            if (accountAvatar) accountAvatar.textContent = nombre.trim().charAt(0).toLocaleUpperCase("es");
+            mostrarAvatarCuenta(avatar);
         } else {
             alert("❌ " + (data.detail || "Error actualizando perfil."));
         }

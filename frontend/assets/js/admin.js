@@ -107,8 +107,9 @@ function mostrarUsuariosTabla(usuarios) {
 
             <td class="px-4 py-3" data-label="Usuario">
                 <div class="admin-user-identity">
-                    <div class="font-semibold text-white">${escapeHTML(usuario.nombre)}</div>
-                    <div class="text-xs text-slate-500">@${escapeHTML(usuario.username)}</div>
+                    <span class="user-avatar admin-row-avatar" aria-hidden="true">${iconoAvatar(usuario.avatar)}</span>
+                    <div><div class="font-semibold text-white">${escapeHTML(usuario.nombre)}</div>
+                    <div class="text-xs text-slate-500">@${escapeHTML(usuario.username)}</div></div>
                 </div>
             </td>
 

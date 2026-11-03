@@ -431,6 +431,7 @@ function mostrarDashboard(nombre, idRol) {
     navegarA("dashboard");
     configurarMonitoreoSistema();
     if (typeof prepararActivacionWakeBrunito === "function") prepararActivacionWakeBrunito();
+    void cargarResumenCuenta();
 }
 
 function toggleMobileNav() {
@@ -868,8 +869,7 @@ async function cargarResumenCuenta() {
         const { ok, data } = await apiFetch("/api/perfil");
         if (!ok) return;
         if (nombre) nombre.textContent = data.nombre || "Usuario";
-        const avatar = document.getElementById("account-menu-avatar");
-        if (avatar) avatar.textContent = (data.nombre || "U").trim().charAt(0).toLocaleUpperCase("es");
+        mostrarAvatarCuenta(data.avatar);
         if (email) email.textContent = data.email || "";
         if (rol) rol.textContent = data.rol || "Cuenta activa";
     } catch (error) {
