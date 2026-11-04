@@ -287,7 +287,7 @@ function sincronizarVisorMaqueta(vista) {
 }
 function navegarA(vista) {
     const chatBrunito = document.getElementById("brunito-chat-window");
-    if (window.matchMedia?.("(pointer: coarse)").matches && chatBrunito && !chatBrunito.classList.contains("hidden")) {
+    if (typeof esDispositivoTactilBrunito === "function" && esDispositivoTactilBrunito() && chatBrunito && !chatBrunito.classList.contains("hidden")) {
         toggleChatBrunito();
     }
     document.body.classList.toggle("login-only", vista === "auth");

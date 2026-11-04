@@ -49,6 +49,7 @@ function renderizarOpcionesAvatar() {
     if (!select || !contenedor) return;
     contenedor.replaceChildren();
     for (const option of select.options) {
+        if (option.hidden) continue;
         const boton = document.createElement("button");
         boton.type = "button";
         boton.className = "avatar-choice";
@@ -58,9 +59,7 @@ function renderizarOpcionesAvatar() {
         icono.className = "avatar-choice-icon";
         icono.setAttribute("aria-hidden", "true");
         pintarAvatar(icono, option.value === "__existente__" ? avatarPerfilActual : option.value);
-        const nombre = document.createElement("span");
-        nombre.textContent = option.textContent.replace(/^\S+\s*/, "");
-        boton.append(icono, nombre);
+        boton.append(icono);
         boton.addEventListener("click", () => {
             select.value = option.value;
             renderizarOpcionesAvatar();
@@ -161,11 +160,13 @@ function abrirModalEditarPerfil() {
     if (inputUser) inputUser.value = username;
     const selectorAvatar = document.getElementById("edit-avatar");
     if (!selectorAvatar.querySelector('[value="avatar:retrato-1"]')) {
-        for (let i = 1; i <= 20; i++) selectorAvatar.add(new Option(`👤 Retrato ${i}`, `avatar:retrato-${i}`));
+        for (let i = 1; i <= 20; i++) selectorAvatar.add(new Option(`Avatar ${i}`, `avatar:retrato-${i}`));
     }
     selectorAvatar.querySelector('[value="__existente__"]')?.remove();
-    if (avatarPerfilActual && !Object.hasOwn(AVATARES_SMARTCITY, avatarPerfilActual)) {
-        selectorAvatar.add(new Option("Conservar avatar actual", "__existente__"));
+    if (!/^avatar:retrato-([1-9]|1[0-9]|20)$/.test(avatarPerfilActual)) {
+        const existente = new Option("Conservar avatar actual", "__existente__");
+        existente.hidden = true;
+        selectorAvatar.add(existente);
         selectorAvatar.value = "__existente__";
     } else selectorAvatar.value = avatarPerfilActual;
     renderizarOpcionesAvatar();

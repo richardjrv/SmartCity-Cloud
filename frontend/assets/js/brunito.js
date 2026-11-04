@@ -37,7 +37,9 @@ function actualizarBotonWakeBrunito(activo) {
 }
 
 function esDispositivoTactilBrunito() {
-    return window.matchMedia?.("(pointer: coarse)").matches === true;
+    return window.matchMedia?.("(pointer: coarse)").matches === true
+        || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+        || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
 function limpiarEsperaComandoWakeBrunito() {
@@ -270,11 +272,11 @@ function prepararActivacionWakeBrunito() {
     if (brunitoWakeEnabled || brunitoWakeGestureHandler || !obtenerToken()) return;
     const launcher = document.getElementById("btn-chat-launcher");
     // En teléfonos no pedimos acceso al micrófono al tocar el contenido de la página.
-    // El permiso se solicita desde la acción explícita de abrir el asistente.
+    // El permiso se solicita únicamente al pulsar el botón de dictado.
     if (esDispositivoTactilBrunito()) {
         if (launcher) {
-            launcher.title = "Abre Brunito para activar el micrófono. Se detiene al cerrar el chat.";
-            launcher.setAttribute("aria-label", "Abrir chat con Brunito. El micrófono solo se activa con este botón.");
+            launcher.title = "Abre Brunito; pulsa el micrófono dentro del chat para dictar.";
+            launcher.setAttribute("aria-label", "Abrir chat con Brunito");
         }
         return;
     }
@@ -283,7 +285,7 @@ function prepararActivacionWakeBrunito() {
         launcher.setAttribute("aria-label", "Abrir chat con Brunito. La activación por voz se preparará al interactuar con el sitio.");
     }
     brunitoWakeGestureHandler = evento => {
-        if (!evento.isTrusted || !obtenerToken() || document.body.classList.contains("login-only")) return;
+        if (evento.pointerType === "touch" || esDispositivoTactilBrunito() || !evento.isTrusted || !obtenerToken() || document.body.classList.contains("login-only")) return;
         quitarActivadoresWakeBrunito();
         activarEscuchaWakeBrunito();
     };
@@ -404,7 +406,9 @@ function toggleChatBrunito() {
     if (!windowChat) return;
 
     const opening = windowChat.classList.contains("hidden");
-    if (!opening && brunitoListening && brunitoRecognition) brunitoRecognition.stop();
+    if (!opening && brunitoRecognition) {
+        try { brunitoRecognition.stop(); } catch (error) { /* Ya estaba detenido. */ }
+    }
     windowChat.classList.toggle("hidden", !opening);
     const launcher = document.getElementById("btn-chat-launcher");
     launcher?.setAttribute("aria-expanded", String(opening));
@@ -413,8 +417,8 @@ function toggleChatBrunito() {
         : "Abrir chat con Brunito");
 
     if (esDispositivoTactilBrunito()) {
-        if (opening && obtenerToken()) activarEscuchaWakeBrunito();
-        else if (!opening) detenerEscuchaWakeBrunito();
+        if (opening) actualizarEstadoVozBrunito("Pulsa el micrófono para dictar. Revisa el texto y presiona Enviar.");
+        else detenerEscuchaWakeBrunito();
     } else if (!opening && brunitoWakeEnabled && !brunitoWakeRecognition && !brunitoWakeStarting) {
         // En escritorio se conserva la activación por frase que ya se habilitó de forma explícita.
         programarReinicioWakeBrunito();
