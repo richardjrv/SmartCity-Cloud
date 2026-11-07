@@ -4,7 +4,7 @@ const chartSensorConfig = [
     { id: "lluvia", area: "ambiental", name: "Sensor de lluvia", icon: "🌧️", description: "Presencia de lluvia", fields: [{ key: "lluvia_detectada", label: "Detección", kind: "boolean", trueLabel: "Sí", falseLabel: "No", color: "#0284c7" }] },
     { id: "ldr", area: "ambiental", name: "LDR", icon: "☀️", description: "Luminosidad; lectura sin calibrar", fields: [{ key: "luminosidad", label: "Luminosidad", unit: "lectura", color: "#d97706" }] },
     { id: "nivel-agua", area: "agua", name: "Nivel de agua", icon: "💧", description: "Lectura cruda; requiere calibración para expresarla en porcentaje", fields: [{ key: "nivel_agua", label: "Nivel", unit: "lectura", color: "#0f9f92" }] },
-    { id: "dht22", area: "ambiental", name: "DHT22", icon: "🌡️", description: "Temperatura y humedad ambiental", fields: [
+    { id: "dht22", area: "ambiental", name: "Temperatura y humedad", icon: "🌡️", description: "Sensor ambiental · modelo por confirmar", fields: [
         { key: "temperatura", label: "Temperatura", unit: "°C", color: "#38bdf8", threshold: "temperatura" },
         { key: "humedad", label: "Humedad", unit: "%", color: "#34d399", threshold: "humedad" }
     ] },

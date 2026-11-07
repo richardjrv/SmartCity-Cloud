@@ -461,7 +461,7 @@ function normalizarConsultaClimaBrunito(texto) {
 
 function esConsultaClimaBrunito(texto) {
     const consulta = normalizarConsultaClimaBrunito(texto);
-    const consultaDeSensor = /\b(sensor|sensores|esp32|dht22|lectura|lecturas|datos guardados|registrados)\b/.test(consulta);
+    const consultaDeSensor = /\b(sensor|sensores|esp32|dht11|dht22|lectura|lecturas|datos guardados|registrados)\b/.test(consulta);
     const consultaMeteorologica = /\b(clima|tiempo|weather|pronostico|prevision|open meteo|sensacion termica|probabilidad|indice uv|uv|ultravioleta|radiacion|soleado|soleada|despejado|despejada|nublado|nublada|cielo|viento|rafaga|rafagas)\b/.test(consulta);
     const consultaConUbicacion = /\b(?:en|de|para)\s+(?:puerto francisco de orellana|francisco de orellana|orellana|el coca)\b/.test(consulta)
         && /\b(temperatura|humedad|lluvia|precipitacion)\b/.test(consulta);
@@ -472,7 +472,7 @@ function esConsultaSensoresBrunito(texto) {
     const consulta = normalizarConsultaClimaBrunito(texto);
     const consultaConceptual = /\b(que es|que significa|como funciona|para que sirve|explica|definicion|diferencia entre|que mide)\b/.test(consulta);
     if (consultaConceptual) return false;
-    const mencionaSensor = /\b(sensor|sensores|esp32|dht22)\b/.test(consulta);
+    const mencionaSensor = /\b(sensor|sensores|esp32|dht11|dht22)\b/.test(consulta);
     const pideLecturaGuardada = /\b(lectura|lecturas|datos guardados|registrados|ultima medicion|reporta)\b/.test(consulta);
     const consultaDeMetrica = /\b(temperatura|humedad|calidad del aire|calidad aire|distancia|lluvia|luminosidad|luz|nivel de agua|reflectancia|tcrt5000)\b/.test(consulta);
     const consultaMeteorologica = /\b(clima|tiempo|weather|pronostico|prevision|open meteo)\b/.test(consulta);
