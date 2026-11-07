@@ -40,7 +40,7 @@ function actualizarIndicadoresModoDatos() {
     if (eyebrow) eyebrow.textContent = demo ? "DATOS DE DEMOSTRACIÓN" : "HISTORIAL DEL ESP32";
     if (note) note.textContent = demo
         ? "Las curvas se generan en este navegador; no provienen del ESP32 ni se guardan en la base de datos."
-        : "Se muestran las lecturas recibidas desde la API del ESP32.";
+        : "Lecturas recibidas por la API. El historial puede incluir valores de prueba y no confirma que haya sensores físicos conectados.";
     if (totalLabel) totalLabel.textContent = demo ? "Puntos simulados" : "Registros recibidos";
     if (activeLabel) activeLabel.textContent = demo ? "Sensores modelados" : "Sensores con datos";
     if (alertLabel) alertLabel.textContent = demo ? "Alertas simuladas" : "Lecturas fuera de límite";
@@ -55,6 +55,12 @@ function actualizarIndicadoresModoDatos() {
     if (trendEyebrow) trendEyebrow.textContent = demo ? "Datos de demostración" : "Lecturas guardadas";
     const trendTitle = document.getElementById("dashboard-trends-title");
     if (trendTitle) trendTitle.textContent = demo ? "Tendencia de sensores" : "Tendencia reciente del ESP32";
+    const trendDescription = document.querySelector("#dashboard-trends .dashboard-trends-heading div > p:last-child");
+    if (trendDescription) trendDescription.textContent = demo ? "Temperatura y humedad simuladas para mostrar cómo se verá el historial." : "Datos guardados de las últimas 24 horas; pueden incluir pruebas.";
+    const urbanTitle = document.getElementById("urban-sensors-title");
+    if (urbanTitle) urbanTitle.textContent = demo ? "Lecturas de demostración" : "Últimos datos recibidos";
+    const urbanNote = document.querySelector("[aria-labelledby='urban-sensors-title'] .dashboard-metric-group-note");
+    if (urbanNote) urbanNote.textContent = demo ? "Valores de ejemplo generados en el navegador." : "Los datos guardados pueden incluir pruebas sin sensores físicos.";
     document.getElementById("sensor-trend-chart")?.setAttribute("aria-label", demo
         ? "Tendencia demostrativa de temperatura y humedad en las últimas 24 horas"
         : "Tendencia de temperatura y humedad medidas por el ESP32 en las últimas 24 horas");
