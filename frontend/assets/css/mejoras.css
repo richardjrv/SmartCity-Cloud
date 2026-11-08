@@ -476,7 +476,7 @@ html[data-theme="light"] .chart-sensor-status.has-data { color: #047857; }
 .dashboard-welcome-copy p { margin-top: .12rem; color: var(--text-secondary); font-size: .7rem; line-height: 1.45; }
 .dashboard-welcome-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .45rem; }
 .dashboard-welcome-actions button { min-height: 2.35rem; padding: .5rem .7rem; border: 1px solid var(--border-color); border-radius: .65rem; color: var(--text-secondary); font-size: .68rem; font-weight: 750; }
-.dashboard-welcome-actions button:first-child { border-color: color-mix(in srgb, var(--accent) 40%, transparent); color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.dashboard-welcome-actions button:first-child { border-color: color-mix(in srgb, var(--accent) 40%, transparent); color: var(--text-primary); background: color-mix(in srgb, var(--accent) 9%, transparent); }
 .dashboard-welcome-actions button:hover { color: var(--text-primary); border-color: var(--accent); }
 .alert-report-hint { color: var(--text-muted); font-size: .65rem; font-weight: 450; line-height: 1.45; }
 .alert-report-char-count { justify-self: end; color: var(--text-muted); font-size: .63rem; font-variant-numeric: tabular-nums; }
@@ -1046,7 +1046,7 @@ html[data-theme="light"] #urban-pulse-strip > .pulse-stat {
     border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border-color));
     border-radius: .7rem;
     padding: .55rem .75rem;
-    color: var(--accent);
+    color: var(--text-primary);
     background: color-mix(in srgb, var(--accent) 9%, var(--bg-input));
     font-size: .72rem;
     font-weight: 800;
