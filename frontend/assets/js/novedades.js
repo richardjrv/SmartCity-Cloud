@@ -1,6 +1,11 @@
 const NOVEDADES_MAX_BYTES = 3 * 1024 * 1024;
 
-// Al entrar, destacamos la publicación más reciente sin interrumpir la navegación.
+function fechaLocalNovedad() {
+    const ahora = new Date();
+    return `${ahora.getFullYear()}-${ahora.getMonth() + 1}-${ahora.getDate()}`;
+}
+
+// El aviso se muestra al entrar; el usuario puede ocultar esa novedad por hoy.
 async function mostrarNovedadInicio() {
     const usuarioId = localStorage.getItem("user_id_cloud");
     if (!usuarioId) return;
@@ -10,45 +15,70 @@ async function mostrarNovedadInicio() {
             localStorage.getItem("user_id_cloud") !== usuarioId || !obtenerToken()) return;
         const inicio = document.getElementById("dashboard-overview");
         const dashboard = document.getElementById("vista-dashboard");
-        if (!inicio || !dashboard) return;
+        if (!inicio || !dashboard || dashboard.classList.contains("hidden") || dashboard.dataset.currentView !== "dashboard") return;
         document.getElementById("novedad-inicio")?.remove();
         const novedad = respuesta.data[0];
-        const tarjeta = document.createElement("aside");
+        const clave = `smartcity_novedad_oculta_${usuarioId}_${novedad.id}`;
+        try { if (localStorage.getItem(clave) === fechaLocalNovedad()) return; } catch { /* El aviso sigue disponible sin almacenamiento local. */ }
+        const tarjeta = document.createElement("dialog");
         tarjeta.id = "novedad-inicio";
         tarjeta.className = "novedad-inicio";
-        tarjeta.dataset.dashboardPanel = "dashboard";
-        tarjeta.classList.toggle("hidden", dashboard.dataset.currentView !== "dashboard");
         tarjeta.setAttribute("aria-labelledby", "novedad-inicio-titulo");
+        const imagenMarco = document.createElement("div");
+        imagenMarco.className = "novedad-inicio-portada";
         if (novedad.imagen_url) {
             const imagen = document.createElement("img");
             imagen.className = "novedad-inicio-imagen";
             imagen.src = novedad.imagen_url;
-            imagen.alt = "";
-            tarjeta.appendChild(imagen);
+            imagen.alt = `Imagen de la novedad: ${novedad.titulo}`;
+            imagenMarco.appendChild(imagen);
         }
+        const cerrarSuperior = document.createElement("button");
+        cerrarSuperior.type = "button";
+        cerrarSuperior.className = "novedad-inicio-cerrar";
+        cerrarSuperior.textContent = "×";
+        cerrarSuperior.setAttribute("aria-label", "Cerrar novedad");
+        cerrarSuperior.addEventListener("click", () => tarjeta.close());
+        imagenMarco.appendChild(cerrarSuperior);
+        tarjeta.appendChild(imagenMarco);
         const contenido = document.createElement("div");
         contenido.className = "novedad-inicio-contenido";
         const etiqueta = document.createElement("p");
         etiqueta.className = "novedad-inicio-etiqueta";
-        etiqueta.textContent = "Novedades";
+        etiqueta.textContent = "Novedad · SmartCity Cloud";
         const titulo = document.createElement("h2");
         titulo.id = "novedad-inicio-titulo";
         titulo.textContent = novedad.titulo;
         const acciones = document.createElement("div");
         acciones.className = "novedad-inicio-acciones";
+        const ocultarEtiqueta = document.createElement("label");
+        ocultarEtiqueta.className = "novedad-inicio-ocultar";
+        const ocultar = document.createElement("input");
+        ocultar.type = "checkbox";
+        ocultarEtiqueta.append(ocultar, document.createTextNode(" No volver a mostrar hoy"));
+        const botones = document.createElement("div");
+        botones.className = "novedad-inicio-botones";
         const ver = document.createElement("button");
         ver.type = "button";
         ver.textContent = "Ver todas las novedades";
-        ver.addEventListener("click", () => navegarA("novedades"));
+        ver.addEventListener("click", () => { tarjeta.close(); navegarA("novedades"); });
         const cerrar = document.createElement("button");
         cerrar.type = "button";
-        cerrar.textContent = "Cerrar";
+        cerrar.className = "novedad-inicio-boton-principal";
+        cerrar.textContent = "Cerrar novedad";
         cerrar.setAttribute("aria-label", "Cerrar novedad destacada");
-        cerrar.addEventListener("click", () => { tarjeta.remove(); document.getElementById("main-content")?.focus({ preventScroll: true }); });
-        acciones.append(ver, cerrar);
+        cerrar.addEventListener("click", () => tarjeta.close());
+        botones.append(ver, cerrar);
+        acciones.append(ocultarEtiqueta, botones);
         contenido.append(etiqueta, titulo, acciones);
         tarjeta.appendChild(contenido);
-        inicio.insertAdjacentElement("afterend", tarjeta);
+        tarjeta.addEventListener("close", () => {
+            if (ocultar.checked) { try { localStorage.setItem(clave, fechaLocalNovedad()); } catch { /* Sin persistencia, podrá mostrarse de nuevo. */ } }
+            tarjeta.remove();
+        }, { once: true });
+        document.body.appendChild(tarjeta);
+        tarjeta.showModal();
+        cerrarSuperior.focus();
     } catch (error) {
         console.info("No se pudo cargar la novedad de inicio.", error);
     }
