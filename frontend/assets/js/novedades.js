@@ -1,5 +1,59 @@
 const NOVEDADES_MAX_BYTES = 3 * 1024 * 1024;
 
+// Al entrar, destacamos la publicación más reciente sin interrumpir la navegación.
+async function mostrarNovedadInicio() {
+    const usuarioId = localStorage.getItem("user_id_cloud");
+    if (!usuarioId) return;
+    try {
+        const respuesta = await apiFetch("/novedades");
+        if (!respuesta.ok || !Array.isArray(respuesta.data) || !respuesta.data.length ||
+            localStorage.getItem("user_id_cloud") !== usuarioId || !obtenerToken()) return;
+        const inicio = document.getElementById("dashboard-overview");
+        const dashboard = document.getElementById("vista-dashboard");
+        if (!inicio || !dashboard) return;
+        document.getElementById("novedad-inicio")?.remove();
+        const novedad = respuesta.data[0];
+        const tarjeta = document.createElement("aside");
+        tarjeta.id = "novedad-inicio";
+        tarjeta.className = "novedad-inicio";
+        tarjeta.dataset.dashboardPanel = "dashboard";
+        tarjeta.classList.toggle("hidden", dashboard.dataset.currentView !== "dashboard");
+        tarjeta.setAttribute("aria-labelledby", "novedad-inicio-titulo");
+        if (novedad.imagen_url) {
+            const imagen = document.createElement("img");
+            imagen.className = "novedad-inicio-imagen";
+            imagen.src = novedad.imagen_url;
+            imagen.alt = "";
+            tarjeta.appendChild(imagen);
+        }
+        const contenido = document.createElement("div");
+        contenido.className = "novedad-inicio-contenido";
+        const etiqueta = document.createElement("p");
+        etiqueta.className = "novedad-inicio-etiqueta";
+        etiqueta.textContent = "Novedades";
+        const titulo = document.createElement("h2");
+        titulo.id = "novedad-inicio-titulo";
+        titulo.textContent = novedad.titulo;
+        const acciones = document.createElement("div");
+        acciones.className = "novedad-inicio-acciones";
+        const ver = document.createElement("button");
+        ver.type = "button";
+        ver.textContent = "Ver todas las novedades";
+        ver.addEventListener("click", () => navegarA("novedades"));
+        const cerrar = document.createElement("button");
+        cerrar.type = "button";
+        cerrar.textContent = "Cerrar";
+        cerrar.setAttribute("aria-label", "Cerrar novedad destacada");
+        cerrar.addEventListener("click", () => { tarjeta.remove(); document.getElementById("main-content")?.focus({ preventScroll: true }); });
+        acciones.append(ver, cerrar);
+        contenido.append(etiqueta, titulo, acciones);
+        tarjeta.appendChild(contenido);
+        inicio.insertAdjacentElement("afterend", tarjeta);
+    } catch (error) {
+        console.info("No se pudo cargar la novedad de inicio.", error);
+    }
+}
+
 async function cargarNovedades() {
     const form = document.getElementById("novedades-form");
     const lista = document.getElementById("novedades-lista");

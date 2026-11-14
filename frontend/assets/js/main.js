@@ -318,6 +318,7 @@ function navegarA(vista) {
     actualizarNavegacionLateral(vista);
 
     if (vista === "auth") {
+        document.getElementById("novedad-inicio")?.remove();
         // La sesión es el requisito para mostrar la navegación de la aplicación.
         document.getElementById("app-sidebar")?.classList.add("hidden");
         document.getElementById("btn-mobile-nav")?.classList.add("hidden");
@@ -438,6 +439,7 @@ function mostrarDashboard(nombre, idRol) {
     }
 
     navegarA("dashboard");
+    void mostrarNovedadInicio();
     configurarMonitoreoSistema();
     if (typeof prepararActivacionWakeBrunito === "function") prepararActivacionWakeBrunito();
     void cargarResumenCuenta();
