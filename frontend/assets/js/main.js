@@ -312,6 +312,7 @@ function navegarA(vista) {
     document.getElementById("vista-operador-config")?.classList.add("hidden");
     document.getElementById("vista-admin-usuarios")?.classList.add("hidden");
     document.getElementById("vista-inventario-sensores")?.classList.add("hidden");
+    document.getElementById("vista-novedades")?.classList.add("hidden");
     document.getElementById("vista-auth")?.classList.add("hidden");
     cerrarAccountMenu();
     actualizarNavegacionLateral(vista);
@@ -344,6 +345,10 @@ function navegarA(vista) {
         if (vistaDashboard === "graficas" && typeof cargarGraficasSensores === "function") void cargarGraficasSensores();
         const behavior = document.body.classList.contains("reduce-motion") ? "auto" : "smooth";
         requestAnimationFrame(() => window.scrollTo({ top: 0, behavior }));
+    } else if (vista === "novedades") {
+        document.getElementById("vista-novedades")?.classList.remove("hidden");
+        void cargarNovedades();
+        window.scrollTo({ top: 0, behavior: "auto" });
     } else if (vista === "inventario-sensores") {
         document.getElementById("vista-inventario-sensores")?.classList.remove("hidden");
         void cargarCatalogoSensores();
@@ -550,7 +555,7 @@ function toggleSidebar() {
 }
 
 function actualizarNavegacionLateral(vista) {
-    const vistas = ["dashboard", "maqueta", "inventario-sensores", "clima", "alertas", "reportes", "graficas", "operador-config", "admin-usuarios"];
+    const vistas = ["dashboard", "maqueta", "inventario-sensores", "clima", "novedades", "alertas", "reportes", "graficas", "operador-config", "admin-usuarios"];
     const activa = vistas.includes(vista) ? vista : null;
     const nav = document.querySelector(".sidebar-nav");
     document.querySelectorAll("[data-sidebar-view]").forEach(button => {

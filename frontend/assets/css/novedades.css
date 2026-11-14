@@ -1,0 +1,20 @@
+.novedades-page { width: min(100%, 1180px); margin: 0 auto; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--border-color); border-radius: 1.5rem; background: var(--bg-card); color: var(--text-primary); }
+.novedades-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+.novedades-heading h2 { margin: .35rem 0; font-size: clamp(1.65rem, 3vw, 2.2rem); font-weight: 750; }
+.novedades-heading p:last-child, .novedades-form p, .novedades-status { color: var(--text-secondary); font-size: .9rem; }
+.novedades-page button, .novedades-form input { min-height: 2.75rem; padding: .65rem .85rem; border: 1px solid var(--border-color); border-radius: .75rem; background: var(--bg-input); color: var(--text-primary); font: inherit; }
+.novedades-page button { cursor: pointer; font-weight: 650; }
+.novedades-page button:hover { border-color: var(--accent); }
+.novedades-page button:focus-visible, .novedades-form input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.novedades-page button:disabled { opacity: .65; cursor: wait; }
+.novedades-form { display: grid; gap: .6rem; max-width: 42rem; padding: 1.2rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color); border-radius: 1rem; background: var(--bg-input); }
+.novedades-form.hidden { display: none; }
+.novedades-form h3 { font-size: 1.1rem; font-weight: 700; }
+.novedades-form label { font-size: .88rem; font-weight: 650; }
+.novedades-form p { margin: 0; }
+.novedades-form button { justify-self: start; background: var(--accent); color: white; }
+.novedades-status { margin: .75rem 0; }
+.novedades-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 1rem; }
+.novedades-card { min-width: 0; overflow: hidden; border: 1px solid var(--border-color); border-radius: 1rem; background: var(--bg-input); }
+.novedades-card img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.novedades-card h3 { margin: 0; padding: 1rem; font-weight: 700; overflow-wrap: anywhere; }

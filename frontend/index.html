@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="assets/css/graficas.css">
     <link rel="stylesheet" href="assets/css/clima.css">
     <link rel="stylesheet" href="assets/css/sensores-admin.css">
+    <link rel="stylesheet" href="assets/css/novedades.css">
     <script>
         if (["localhost", "127.0.0.1", "::1"].includes(window.location.hostname) && new URLSearchParams(window.location.search).has("cssstudio")) {
             const cssStudio = document.createElement("script");
@@ -129,6 +130,9 @@
                 </button>
                 <button type="button" class="sidebar-link" data-sidebar-view="clima" onclick="navegarA('clima')" aria-label="Clima local">
                     <span class="sidebar-icon" aria-hidden="true">🌦️</span><span class="sidebar-link-label">Clima local</span>
+                </button>
+                <button type="button" class="sidebar-link" data-sidebar-view="novedades" onclick="navegarA('novedades')" aria-label="Novedades">
+                    <span class="sidebar-icon" aria-hidden="true">✦</span><span class="sidebar-link-label">Novedades</span>
                 </button>
                 <button id="btn-menu-alertas" type="button" class="sidebar-link" data-sidebar-view="alertas" onclick="navegarA('alertas')" aria-label="Centro de alertas">
                     <span class="sidebar-icon" aria-hidden="true">⚑</span><span id="sidebar-alertas-label" class="sidebar-link-label">Centro de alertas</span>
@@ -623,6 +627,24 @@
             </section>
         </section>
 
+
+        <section id="vista-novedades" class="hidden novedades-page" aria-labelledby="novedades-title">
+            <header class="novedades-heading">
+                <div><p class="feature-eyebrow">SMARTCITY CLOUD</p><h2 id="novedades-title">Novedades</h2><p>Descubre las últimas novedades del proyecto.</p></div>
+                <button id="novedades-refresh" type="button">↻ Actualizar</button>
+            </header>
+            <form id="novedades-form" class="novedades-form hidden">
+                <h3>Publicar novedad</h3>
+                <label for="novedades-titulo">Título</label>
+                <input id="novedades-titulo" name="titulo" maxlength="120" required placeholder="Escribe un título">
+                <label for="novedades-imagen">Imagen</label>
+                <input id="novedades-imagen" name="imagen" type="file" accept="image/jpeg,image/png,image/webp" required>
+                <p>JPG, PNG o WebP · máximo 3 MB.</p>
+                <button id="novedades-publicar" type="submit">Publicar novedad</button>
+            </form>
+            <p id="novedades-status" class="novedades-status" role="status" aria-live="polite"></p>
+            <div id="novedades-lista" class="novedades-grid" aria-live="polite"></div>
+        </section>
 
         <section id="vista-inventario-sensores" class="hidden sensor-catalog-page" aria-labelledby="sensor-catalog-title">
             <header class="sensor-catalog-heading">
@@ -1136,6 +1158,7 @@
     <script src="assets/js/clima.js"></script>
     <script src="assets/js/sensores-admin.js"></script>
     <script src="assets/js/graficas.js"></script>
+    <script src="assets/js/novedades.js"></script>
     <script src="assets/js/main.js"></script>
     <script type="module" src="/src/main.jsx"></script>
 
