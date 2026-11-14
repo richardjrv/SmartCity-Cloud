@@ -1,6 +1,7 @@
 import base64
 import json
 import unittest
+from urllib.error import HTTPError
 from datetime import datetime, timezone
 from io import BytesIO
 from unittest.mock import MagicMock, patch
@@ -68,6 +69,19 @@ class NovedadesTests(unittest.TestCase):
         with patch("app.services.novedades.storage_request", return_value=b'{"public": true}'):
             with self.assertRaisesRegex(Exception, "privado"):
                 novedades.asegurar_bucket_privado()
+
+    def test_storage_reconoce_bucket_ausente_como_error_400(self):
+        error = HTTPError("https://ejemplo.test", 400, "Bad Request", {}, BytesIO(b'{"statusCode":"404","error":"Bucket not found","message":"Bucket not found"}'))
+        with patch.object(novedades.settings, "SUPABASE_URL", "https://ejemplo.test"), patch.object(novedades.settings, "SUPABASE_SERVICE_ROLE_KEY", "privada"), patch("app.services.novedades.urlopen", side_effect=error):
+            with self.assertRaises(novedades.StorageNoExiste):
+                novedades.storage_request("GET", "/bucket/novedades")
+
+    def test_otro_error_400_no_se_confunde_con_bucket_ausente(self):
+        error = HTTPError("https://ejemplo.test", 400, "Bad Request", {}, BytesIO(b'{"message":"Invalid request"}'))
+        with patch.object(novedades.settings, "SUPABASE_URL", "https://ejemplo.test"), patch.object(novedades.settings, "SUPABASE_SERVICE_ROLE_KEY", "privada"), patch("app.services.novedades.urlopen", side_effect=error):
+            with self.assertRaises(Exception) as fallo:
+                novedades.storage_request("GET", "/bucket/novedades")
+        self.assertEqual(fallo.exception.status_code, 503)
 
     def test_lista_devuelve_url_firmada_sin_clave_privada(self):
         conexion = MagicMock()

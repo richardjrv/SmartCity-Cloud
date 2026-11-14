@@ -53,7 +53,22 @@ def storage_request(method: str, path: str, body: bytes | None = None, content_t
         with urlopen(request, timeout=25) as response:
             return response.read()
     except HTTPError as error:
-        if error.code == 404:
+        # Storage puede informar un bucket inexistente con HTTP 400 y código
+        # NoSuchBucket (además del habitual 404). No tratar otros 400 igual.
+        detalle = {}
+        try:
+            detalle = json.loads(error.read().decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            pass
+        es_bucket_ausente = (
+            method == "GET" and path == f"/bucket/{BUCKET}"
+            and error.code == 400 and isinstance(detalle, dict)
+            and (str(detalle.get("statusCode")) == "404"
+                 or detalle.get("code") == "NoSuchBucket"
+                 or detalle.get("error") == "Bucket not found"
+                 or detalle.get("message") == "Bucket not found")
+        )
+        if error.code == 404 or es_bucket_ausente:
             raise StorageNoExiste() from error
         raise HTTPException(status_code=503, detail="No se pudo acceder al almacenamiento de novedades.") from error
     except (URLError, TimeoutError) as error:
