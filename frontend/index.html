@@ -637,6 +637,13 @@
                 <h3>Publicar novedad</h3>
                 <label for="novedades-titulo">Título</label>
                 <input id="novedades-titulo" name="titulo" maxlength="120" required placeholder="Escribe un título">
+                <label for="novedades-categoria">Categoría</label>
+                <select id="novedades-categoria" name="categoria" required>
+                    <option value="comunicado_oficial">Comunicado oficial</option>
+                    <option value="aviso_importante">Aviso importante</option>
+                    <option value="novedad_sistema" selected>Novedad del sistema</option>
+                    <option value="mantenimiento_programado">Mantenimiento programado</option>
+                </select>
                 <label for="novedades-imagen">Imagen</label>
                 <input id="novedades-imagen" name="imagen" type="file" accept="image/jpeg,image/png,image/webp" required>
                 <p>JPG, PNG o WebP · máximo 3 MB.</p>

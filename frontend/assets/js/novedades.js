@@ -1,4 +1,14 @@
 const NOVEDADES_MAX_BYTES = 3 * 1024 * 1024;
+const NOVEDADES_CATEGORIAS = Object.freeze({
+    comunicado_oficial: "Comunicado oficial",
+    aviso_importante: "Aviso importante",
+    novedad_sistema: "Novedad del sistema",
+    mantenimiento_programado: "Mantenimiento programado"
+});
+
+function nombreCategoriaNovedad(categoria) {
+    return NOVEDADES_CATEGORIAS[categoria] || "Novedad del sistema";
+}
 
 function fechaLocalNovedad() {
     const ahora = new Date();
@@ -45,7 +55,7 @@ async function mostrarNovedadInicio() {
         contenido.className = "novedad-inicio-contenido";
         const etiqueta = document.createElement("p");
         etiqueta.className = "novedad-inicio-etiqueta";
-        etiqueta.textContent = "Novedad · SmartCity Cloud";
+        etiqueta.textContent = `${nombreCategoriaNovedad(novedad.categoria)} · SmartCity Cloud`;
         const titulo = document.createElement("h2");
         titulo.id = "novedad-inicio-titulo";
         titulo.textContent = novedad.titulo;
@@ -108,6 +118,10 @@ async function cargarNovedades() {
             }
             const titulo = document.createElement("h3");
             titulo.textContent = novedad.titulo;
+            const categoria = document.createElement("p");
+            categoria.className = "novedades-card-categoria";
+            categoria.textContent = nombreCategoriaNovedad(novedad.categoria);
+            tarjeta.appendChild(categoria);
             tarjeta.appendChild(titulo);
             lista.appendChild(tarjeta);
         });
@@ -132,6 +146,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const boton = document.getElementById("novedades-publicar");
         const archivo = document.getElementById("novedades-imagen").files[0];
         const titulo = document.getElementById("novedades-titulo").value.trim();
+        const categoria = document.getElementById("novedades-categoria").value;
         if (!titulo || !archivo) { status.textContent = "Escribe un título y selecciona una imagen."; return; }
         if (archivo.size > NOVEDADES_MAX_BYTES || !["image/jpeg", "image/png", "image/webp"].includes(archivo.type)) {
             status.textContent = "Selecciona una imagen JPG, PNG o WebP de hasta 3 MB."; return;
@@ -140,7 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
         status.textContent = "Publicando novedad…";
         try {
             const imagen_base64 = await leerImagenNovedad(archivo);
-            const respuesta = await apiFetch("/novedades", { method: "POST", body: JSON.stringify({ titulo, imagen_base64 }) });
+            const respuesta = await apiFetch("/novedades", { method: "POST", body: JSON.stringify({ titulo, categoria, imagen_base64 }) });
             if (!respuesta.ok) throw new Error(typeof respuesta.data?.detail === "string" ? respuesta.data.detail : "No se pudo publicar la novedad.");
             form.reset();
             await cargarNovedades();
