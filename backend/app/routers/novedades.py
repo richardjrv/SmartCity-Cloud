@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
@@ -10,6 +12,7 @@ router = APIRouter(prefix="/novedades", tags=["Novedades"])
 class NuevaNovedad(BaseModel):
     titulo: str = Field(min_length=1, max_length=120)
     imagen_base64: str = Field(min_length=1, max_length=4 * 1024 * 1024 + 8)
+    categoria: Literal["comunicado_oficial", "aviso_importante", "novedad_sistema", "mantenimiento_programado"] = "novedad_sistema"
 
 
 @router.get("")
@@ -19,4 +22,4 @@ def obtener_novedades(usuario: dict = Depends(obtener_usuario_actual)):
 
 @router.post("", status_code=201)
 def publicar_novedad(datos: NuevaNovedad, usuario: dict = Depends(requerir_gestor_alertas)):
-    return novedades.crear_novedad(datos.titulo, datos.imagen_base64, usuario["user_id"])
+    return novedades.crear_novedad(datos.titulo, datos.imagen_base64, usuario["user_id"], datos.categoria)

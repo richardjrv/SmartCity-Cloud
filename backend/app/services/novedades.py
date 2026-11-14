@@ -96,7 +96,7 @@ def asegurar_bucket_privado():
         raise HTTPException(status_code=503, detail="El almacenamiento de novedades debe ser privado.")
 
 
-def crear_novedad(titulo: str, imagen: str, usuario_id: int) -> dict:
+def crear_novedad(titulo: str, imagen: str, usuario_id: int, categoria: str = "novedad_sistema") -> dict:
     titulo = titulo.strip()
     if not titulo or len(titulo) > 120:
         raise HTTPException(status_code=422, detail="Escribe un título de hasta 120 caracteres.")
@@ -109,8 +109,8 @@ def crear_novedad(titulo: str, imagen: str, usuario_id: int) -> dict:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO public.novedades (titulo, imagen_ruta, id_usuario_autor) VALUES (%s, %s, %s) RETURNING id_novedad",
-            (titulo, ruta, usuario_id),
+            "INSERT INTO public.novedades (titulo, imagen_ruta, id_usuario_autor, categoria) VALUES (%s, %s, %s, %s) RETURNING id_novedad",
+            (titulo, ruta, usuario_id, categoria),
         )
         identificador = cursor.fetchone()[0]
         conn.commit()
@@ -135,7 +135,7 @@ def listar_novedades() -> list[dict]:
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id_novedad, titulo, imagen_ruta, creado_en FROM public.novedades ORDER BY creado_en DESC, id_novedad DESC LIMIT 100")
+        cursor.execute("SELECT id_novedad, titulo, imagen_ruta, creado_en, categoria FROM public.novedades ORDER BY creado_en DESC, id_novedad DESC LIMIT 100")
         filas = cursor.fetchall()
     except Exception as error:
         raise HTTPException(status_code=503, detail="No se pudieron consultar las novedades.") from error
@@ -153,8 +153,8 @@ def listar_novedades() -> list[dict]:
     except (ValueError, KeyError, TypeError) as error:
         raise HTTPException(status_code=503, detail="No se pudieron cargar las imágenes.") from error
     salida = []
-    for identificador, titulo, ruta, fecha in filas:
+    for identificador, titulo, ruta, fecha, categoria in filas:
         firmada = firmadas.get(ruta)
-        salida.append({"id": identificador, "titulo": titulo, "creado_en": fecha.isoformat(),
+        salida.append({"id": identificador, "titulo": titulo, "categoria": categoria, "creado_en": fecha.isoformat(),
                        "imagen_url": f"{settings.SUPABASE_URL}/storage/v1{firmada}" if firmada else None})
     return salida

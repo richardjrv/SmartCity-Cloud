@@ -46,6 +46,17 @@ class NovedadesTests(unittest.TestCase):
                 self.assertEqual(respuesta.status_code, 201)
                 self.assertEqual(crear.call_args.args[2], 7)
 
+    def test_categoria_se_valida_y_se_envia_al_servicio(self):
+        self.usuario(3)
+        with patch("app.services.novedades.crear_novedad", return_value={"id_novedad": 5}) as crear:
+            respuesta = self.client.post("/novedades", json={"titulo": "Aviso", "imagen_base64": imagen_png(), "categoria": "mantenimiento_programado"})
+        self.assertEqual(respuesta.status_code, 201)
+        self.assertEqual(crear.call_args.args[3], "mantenimiento_programado")
+        with patch("app.services.novedades.crear_novedad") as crear:
+            respuesta = self.client.post("/novedades", json={"titulo": "Aviso", "imagen_base64": imagen_png(), "categoria": "desconocida"})
+        self.assertEqual(respuesta.status_code, 422)
+        crear.assert_not_called()
+
     def test_lista_requiere_sesion(self):
         respuesta = self.client.get("/novedades")
         self.assertIn(respuesta.status_code, (401, 422))
@@ -85,11 +96,12 @@ class NovedadesTests(unittest.TestCase):
 
     def test_lista_devuelve_url_firmada_sin_clave_privada(self):
         conexion = MagicMock()
-        conexion.cursor.return_value.fetchall.return_value = [(1, "Hola", "foto.png", datetime.now(timezone.utc))]
+        conexion.cursor.return_value.fetchall.return_value = [(1, "Hola", "foto.png", datetime.now(timezone.utc), "aviso_importante")]
         firmadas = json.dumps([{"path": "foto.png", "signedURL": "/object/sign/novedades/foto.png?token=demo"}]).encode()
         with patch("app.services.novedades.storage_request", return_value=firmadas), patch("app.services.novedades.get_db_connection", return_value=conexion), patch.object(novedades.settings, "SUPABASE_URL", "https://ejemplo.test"):
             result = novedades.listar_novedades()
         self.assertEqual(result[0]["imagen_url"], "https://ejemplo.test/storage/v1/object/sign/novedades/foto.png?token=demo")
+        self.assertEqual(result[0]["categoria"], "aviso_importante")
 
 
 if __name__ == "__main__":
