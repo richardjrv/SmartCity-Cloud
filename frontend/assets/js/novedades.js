@@ -90,7 +90,9 @@ async function mostrarNovedadInicio() {
         const inicio = document.getElementById("dashboard-overview");
         const dashboard = document.getElementById("vista-dashboard");
         if (!inicio || !dashboard || dashboard.classList.contains("hidden") || dashboard.dataset.currentView !== "dashboard") return;
-        document.getElementById("novedad-inicio")?.remove();
+        const anuncioExistente = document.getElementById("novedad-inicio");
+        if (anuncioExistente?.open) return;
+        anuncioExistente?.remove();
         const novedad = respuesta.data[0];
         const clave = `smartcity_novedad_oculta_${usuarioId}_${novedad.id}`;
         try { if (localStorage.getItem(clave) === fechaLocalNovedad()) return; } catch { /* El aviso sigue disponible sin almacenamiento local. */ }
@@ -147,8 +149,17 @@ async function mostrarNovedadInicio() {
         acciones.append(ocultarEtiqueta, botones);
         contenido.append(etiqueta, titulo, acciones);
         tarjeta.appendChild(contenido);
+        // Los diálogos nativos se dibujan en una capa superior a la página.
+        // Mover el cursor a esa capa lo mantiene visible sin bloquear los clics.
+        const cursor = document.getElementById("orbital-cursor");
+        const contenedorCursor = cursor?.parentNode;
+        const siguienteCursor = cursor?.nextSibling;
+        if (cursor) tarjeta.appendChild(cursor);
         tarjeta.addEventListener("close", () => {
             if (ocultar.checked) { try { localStorage.setItem(clave, fechaLocalNovedad()); } catch { /* Sin persistencia, podrá mostrarse de nuevo. */ } }
+            if (cursor && contenedorCursor) {
+                contenedorCursor.insertBefore(cursor, siguienteCursor?.parentNode === contenedorCursor ? siguienteCursor : null);
+            }
             tarjeta.remove();
         }, { once: true });
         document.body.appendChild(tarjeta);

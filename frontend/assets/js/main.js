@@ -318,7 +318,9 @@ function navegarA(vista) {
     actualizarNavegacionLateral(vista);
 
     if (vista === "auth") {
-        document.getElementById("novedad-inicio")?.remove();
+        const anuncio = document.getElementById("novedad-inicio");
+        if (anuncio?.open) anuncio.close();
+        else anuncio?.remove();
         // La sesión es el requisito para mostrar la navegación de la aplicación.
         document.getElementById("app-sidebar")?.classList.add("hidden");
         document.getElementById("btn-mobile-nav")?.classList.add("hidden");
