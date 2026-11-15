@@ -5,6 +5,8 @@ const NOVEDADES_CATEGORIAS = Object.freeze({
     novedad_sistema: "Novedad del sistema",
     mantenimiento_programado: "Mantenimiento programado"
 });
+let diaVigenciaNovedades = null;
+let relojVigenciaNovedades = null;
 
 function nombreCategoriaNovedad(categoria) {
     return NOVEDADES_CATEGORIAS[categoria] || "Novedad del sistema";
@@ -41,6 +43,21 @@ function inicializarFechasNovedad() {
 function formatearFechaNovedad(valor) {
     const partes = String(valor || "").split("-");
     return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : "";
+}
+
+function revisarCambioDiaNovedades() {
+    const hoy = fechaHoyEcuador();
+    if (diaVigenciaNovedades && diaVigenciaNovedades !== hoy) {
+        const aviso = document.getElementById("novedad-inicio");
+        if (aviso?.open && aviso.dataset.fechaFin && aviso.dataset.fechaFin < hoy) aviso.close();
+        const vista = document.getElementById("vista-novedades");
+        if (vista && !vista.classList.contains("hidden") && obtenerToken()) void cargarNovedades();
+    }
+    diaVigenciaNovedades = hoy;
+    clearTimeout(relojVigenciaNovedades);
+    const [ano, mes, dia] = hoy.split("-").map(Number);
+    const proximaMedianoche = Date.UTC(ano, mes - 1, dia + 1, 5);
+    relojVigenciaNovedades = setTimeout(revisarCambioDiaNovedades, Math.max(1000, proximaMedianoche - Date.now() + 1000));
 }
 
 async function eliminarNovedad(id, titulo, boton, status) {
@@ -80,6 +97,7 @@ async function mostrarNovedadInicio() {
         const tarjeta = document.createElement("dialog");
         tarjeta.id = "novedad-inicio";
         tarjeta.className = "novedad-inicio";
+        tarjeta.dataset.fechaFin = novedad.fecha_fin || "";
         tarjeta.setAttribute("aria-labelledby", "novedad-inicio-titulo");
         const imagenMarco = document.createElement("div");
         imagenMarco.className = "novedad-inicio-portada";
@@ -200,6 +218,8 @@ function leerImagenNovedad(archivo) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    revisarCambioDiaNovedades();
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) revisarCambioDiaNovedades(); });
     inicializarFechasNovedad();
     document.getElementById("novedades-inicio")?.addEventListener("change", actualizarFechasNovedad);
     document.getElementById("novedades-refresh")?.addEventListener("click", cargarNovedades);
