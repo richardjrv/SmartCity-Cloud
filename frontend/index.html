@@ -644,6 +644,11 @@
                     <option value="novedad_sistema" selected>Novedad del sistema</option>
                     <option value="mantenimiento_programado">Mantenimiento programado</option>
                 </select>
+                <div class="novedades-fechas">
+                    <div><label for="novedades-inicio">Mostrar desde</label><input id="novedades-inicio" name="fecha_inicio" type="date" required></div>
+                    <div><label for="novedades-fin">Mostrar hasta</label><input id="novedades-fin" name="fecha_fin" type="date" required></div>
+                </div>
+                <p>Las fechas incluyen el día inicial y final. Máximo un mes, hora de Ecuador continental.</p>
                 <label for="novedades-imagen">Imagen</label>
                 <input id="novedades-imagen" name="imagen" type="file" accept="image/jpeg,image/png,image/webp" required>
                 <p>JPG, PNG o WebP · máximo 3 MB.</p>

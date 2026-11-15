@@ -10,6 +10,53 @@ function nombreCategoriaNovedad(categoria) {
     return NOVEDADES_CATEGORIAS[categoria] || "Novedad del sistema";
 }
 
+function fechaHoyEcuador() {
+    const partes = new Intl.DateTimeFormat("en-CA", {timeZone:"America/Guayaquil", year:"numeric", month:"2-digit", day:"2-digit"}).formatToParts(new Date());
+    const valores = Object.fromEntries(partes.map(parte => [parte.type, parte.value]));
+    return `${valores.year}-${valores.month}-${valores.day}`;
+}
+
+function actualizarFechasNovedad() {
+    const inicio = document.getElementById("novedades-inicio");
+    const fin = document.getElementById("novedades-fin");
+    if (!inicio || !fin || !inicio.value) return;
+    const [ano, mes, dia] = inicio.value.split("-").map(Number);
+    const ultimoDia = new Date(Date.UTC(ano, mes + 1, 0)).getUTCDate();
+    const limite = new Date(Date.UTC(ano, mes, Math.min(dia, ultimoDia)));
+    limite.setUTCDate(limite.getUTCDate() - 1);
+    fin.min = inicio.value;
+    fin.max = limite.toISOString().slice(0, 10);
+    if (!fin.value || fin.value < fin.min || fin.value > fin.max) fin.value = fin.min;
+}
+
+function inicializarFechasNovedad() {
+    const inicio = document.getElementById("novedades-inicio");
+    const fin = document.getElementById("novedades-fin");
+    if (!inicio || !fin) return;
+    inicio.value = fechaHoyEcuador();
+    fin.value = inicio.value;
+    actualizarFechasNovedad();
+}
+
+function formatearFechaNovedad(valor) {
+    const partes = String(valor || "").split("-");
+    return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : "";
+}
+
+async function eliminarNovedad(id, titulo, boton, status) {
+    if (!window.confirm(`¿Eliminar «${titulo}»? Dejará de mostrarse; se conservará para recuperación.`)) return;
+    boton.disabled = true;
+    try {
+        const respuesta = await apiFetch(`/novedades/${encodeURIComponent(id)}`, {method: "DELETE"});
+        if (!respuesta.ok) throw new Error(respuesta.data?.detail || "No se pudo eliminar la novedad.");
+        await cargarNovedades();
+        status.textContent = "Novedad retirada del sitio.";
+    } catch (error) {
+        status.textContent = error.message || "No se pudo eliminar la novedad.";
+        boton.disabled = false;
+    }
+}
+
 function fechaLocalNovedad() {
     const ahora = new Date();
     return `${ahora.getFullYear()}-${ahora.getMonth() + 1}-${ahora.getDate()}`;
@@ -99,11 +146,12 @@ async function cargarNovedades() {
     const lista = document.getElementById("novedades-lista");
     const status = document.getElementById("novedades-status");
     if (!form || !lista || !status) return;
-    form.classList.toggle("hidden", ![1, 3].includes(Number(localStorage.getItem("user_role_cloud"))));
+    const puedeGestionar = [1, 3].includes(Number(localStorage.getItem("user_role_cloud")));
+    form.classList.toggle("hidden", !puedeGestionar);
     status.textContent = "Cargando novedades…";
     lista.replaceChildren();
     try {
-        const respuesta = await apiFetch("/novedades");
+        const respuesta = await apiFetch(puedeGestionar ? "/novedades?gestion=true" : "/novedades");
         if (!respuesta.ok || !Array.isArray(respuesta.data)) throw new Error(respuesta.data?.detail || "No se pudieron cargar las novedades.");
         status.textContent = respuesta.data.length ? "" : "Todavía no hay novedades publicadas.";
         respuesta.data.forEach(novedad => {
@@ -123,6 +171,20 @@ async function cargarNovedades() {
             categoria.textContent = nombreCategoriaNovedad(novedad.categoria);
             tarjeta.appendChild(categoria);
             tarjeta.appendChild(titulo);
+            const vigencia = document.createElement("p");
+            vigencia.className = "novedades-card-vigencia";
+            const estado = novedad.activa ? "Vigente" : (novedad.fecha_inicio > fechaHoyEcuador() ? "Programada" : "Finalizada");
+            vigencia.textContent = `${estado} · ${formatearFechaNovedad(novedad.fecha_inicio)} al ${formatearFechaNovedad(novedad.fecha_fin)}`;
+            tarjeta.appendChild(vigencia);
+            if (puedeGestionar) {
+                const eliminar = document.createElement("button");
+                eliminar.type = "button";
+                eliminar.className = "novedades-card-eliminar";
+                eliminar.textContent = "Eliminar";
+                eliminar.setAttribute("aria-label", `Eliminar novedad ${novedad.titulo}`);
+                eliminar.addEventListener("click", () => eliminarNovedad(novedad.id, novedad.titulo, eliminar, status));
+                tarjeta.appendChild(eliminar);
+            }
             lista.appendChild(tarjeta);
         });
     } catch (error) { status.textContent = error.message || "No se pudieron cargar las novedades."; }
@@ -138,6 +200,8 @@ function leerImagenNovedad(archivo) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    inicializarFechasNovedad();
+    document.getElementById("novedades-inicio")?.addEventListener("change", actualizarFechasNovedad);
     document.getElementById("novedades-refresh")?.addEventListener("click", cargarNovedades);
     document.getElementById("novedades-form")?.addEventListener("submit", async event => {
         event.preventDefault();
@@ -147,7 +211,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const archivo = document.getElementById("novedades-imagen").files[0];
         const titulo = document.getElementById("novedades-titulo").value.trim();
         const categoria = document.getElementById("novedades-categoria").value;
+        const fecha_inicio = document.getElementById("novedades-inicio").value;
+        const fecha_fin = document.getElementById("novedades-fin").value;
         if (!titulo || !archivo) { status.textContent = "Escribe un título y selecciona una imagen."; return; }
+        if (!fecha_inicio || !fecha_fin || !document.getElementById("novedades-fin").checkValidity()) { status.textContent = "Elige un periodo válido de hasta un mes."; return; }
         if (archivo.size > NOVEDADES_MAX_BYTES || !["image/jpeg", "image/png", "image/webp"].includes(archivo.type)) {
             status.textContent = "Selecciona una imagen JPG, PNG o WebP de hasta 3 MB."; return;
         }
@@ -155,9 +222,10 @@ document.addEventListener("DOMContentLoaded", () => {
         status.textContent = "Publicando novedad…";
         try {
             const imagen_base64 = await leerImagenNovedad(archivo);
-            const respuesta = await apiFetch("/novedades", { method: "POST", body: JSON.stringify({ titulo, categoria, imagen_base64 }) });
+            const respuesta = await apiFetch("/novedades", { method: "POST", body: JSON.stringify({ titulo, categoria, fecha_inicio, fecha_fin, imagen_base64 }) });
             if (!respuesta.ok) throw new Error(typeof respuesta.data?.detail === "string" ? respuesta.data.detail : "No se pudo publicar la novedad.");
             form.reset();
+            inicializarFechasNovedad();
             await cargarNovedades();
             status.textContent = "Novedad publicada.";
         } catch (error) { status.textContent = error.message || "No se pudo publicar la novedad."; }
