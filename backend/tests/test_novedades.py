@@ -2,7 +2,7 @@ import base64
 import json
 import unittest
 from urllib.error import HTTPError
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 
@@ -61,6 +61,46 @@ class NovedadesTests(unittest.TestCase):
         respuesta = self.client.get("/novedades")
         self.assertIn(respuesta.status_code, (401, 422))
 
+    def test_vigencia_inclusiva_y_maximo_un_mes(self):
+        for inicio, fin in ((date(2026, 1, 1), date(2026, 1, 1)), (date(2026, 1, 1), date(2026, 1, 31)), (date(2024, 1, 31), date(2024, 2, 28))):
+            self.assertEqual(novedades.validar_vigencia(inicio, fin), (inicio, fin))
+        for inicio, fin in ((date(2026, 1, 1), date(2026, 2, 1)), (date(2026, 4, 10), date(2026, 4, 9)), (date(2026, 1, 1), None)):
+            with self.assertRaises(Exception) as error:
+                novedades.validar_vigencia(inicio, fin)
+            self.assertEqual(error.exception.status_code, 422)
+
+    def test_solo_gestores_pueden_consultar_inactivas_y_eliminar(self):
+        self.usuario(2)
+        with patch("app.services.novedades.listar_novedades") as listar, patch("app.services.novedades.eliminar_novedad") as eliminar:
+            self.assertEqual(self.client.get("/novedades?gestion=true").status_code, 403)
+            self.assertEqual(self.client.delete("/novedades/1").status_code, 403)
+            listar.assert_not_called()
+            eliminar.assert_not_called()
+        for rol in (1, 3):
+            self.usuario(rol)
+            with patch("app.services.novedades.listar_novedades", return_value=[]) as listar, patch("app.services.novedades.eliminar_novedad") as eliminar:
+                self.assertEqual(self.client.get("/novedades?gestion=true").status_code, 200)
+                listar.assert_called_once_with(incluir_inactivas=True)
+                self.assertEqual(self.client.delete("/novedades/1").status_code, 200)
+                eliminar.assert_called_once_with(1, 7)
+
+    def test_eliminacion_se_guarda_sin_borrar_la_imagen(self):
+        conexion = MagicMock()
+        conexion.cursor.return_value.fetchone.return_value = (1,)
+        with patch("app.services.novedades.get_db_connection", return_value=conexion), patch("app.services.novedades.storage_request") as storage:
+            novedades.eliminar_novedad(1, 7)
+        conexion.commit.assert_called_once()
+        storage.assert_not_called()
+
+    def test_eliminar_una_novedad_inexistente_da_404(self):
+        conexion = MagicMock()
+        conexion.cursor.return_value.fetchone.return_value = None
+        with patch("app.services.novedades.get_db_connection", return_value=conexion):
+            with self.assertRaises(Exception) as error:
+                novedades.eliminar_novedad(404, 7)
+        self.assertEqual(error.exception.status_code, 404)
+        conexion.rollback.assert_called_once()
+
     def test_imagen_invalida_no_se_sube(self):
         with patch("app.services.novedades.storage_request") as subir:
             with self.assertRaises(Exception):
@@ -96,12 +136,14 @@ class NovedadesTests(unittest.TestCase):
 
     def test_lista_devuelve_url_firmada_sin_clave_privada(self):
         conexion = MagicMock()
-        conexion.cursor.return_value.fetchall.return_value = [(1, "Hola", "foto.png", datetime.now(timezone.utc), "aviso_importante")]
+        conexion.cursor.return_value.fetchall.return_value = [(1, "Hola", "foto.png", datetime.now(timezone.utc), "aviso_importante", date(2026, 11, 1), date(2026, 11, 30), True)]
         firmadas = json.dumps([{"path": "foto.png", "signedURL": "/object/sign/novedades/foto.png?token=demo"}]).encode()
         with patch("app.services.novedades.storage_request", return_value=firmadas), patch("app.services.novedades.get_db_connection", return_value=conexion), patch.object(novedades.settings, "SUPABASE_URL", "https://ejemplo.test"):
             result = novedades.listar_novedades()
         self.assertEqual(result[0]["imagen_url"], "https://ejemplo.test/storage/v1/object/sign/novedades/foto.png?token=demo")
         self.assertEqual(result[0]["categoria"], "aviso_importante")
+        self.assertEqual(result[0]["fecha_fin"], "2026-11-30")
+        self.assertTrue(result[0]["activa"])
 
 
 if __name__ == "__main__":

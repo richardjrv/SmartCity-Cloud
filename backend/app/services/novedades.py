@@ -1,8 +1,10 @@
 """Publicaciones de título e imagen en un bucket privado de Supabase Storage."""
 import base64
 import binascii
+import calendar
 import json
 import uuid
+from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
@@ -96,10 +98,24 @@ def asegurar_bucket_privado():
         raise HTTPException(status_code=503, detail="El almacenamiento de novedades debe ser privado.")
 
 
-def crear_novedad(titulo: str, imagen: str, usuario_id: int, categoria: str = "novedad_sistema") -> dict:
+def validar_vigencia(inicio: date | None, fin: date | None) -> tuple[date, date]:
+    if (inicio is None) != (fin is None):
+        raise HTTPException(status_code=422, detail="Selecciona ambas fechas de vigencia.")
+    if inicio is None:
+        inicio = fin = datetime.now(timezone(timedelta(hours=-5))).date()
+    mes = inicio.month % 12 + 1
+    ano = inicio.year + (inicio.month == 12)
+    limite = date(ano, mes, min(inicio.day, calendar.monthrange(ano, mes)[1]))
+    if fin < inicio or fin >= limite:
+        raise HTTPException(status_code=422, detail="El periodo debe ser de al menos un día y máximo un mes.")
+    return inicio, fin
+
+
+def crear_novedad(titulo: str, imagen: str, usuario_id: int, categoria: str = "novedad_sistema", fecha_inicio: date | None = None, fecha_fin: date | None = None) -> dict:
     titulo = titulo.strip()
     if not titulo or len(titulo) > 120:
         raise HTTPException(status_code=422, detail="Escribe un título de hasta 120 caracteres.")
+    fecha_inicio, fecha_fin = validar_vigencia(fecha_inicio, fecha_fin)
     datos, mime, extension = validar_imagen(imagen)
     ruta = f"{uuid.uuid4().hex}.{extension}"
     asegurar_bucket_privado()
@@ -109,8 +125,8 @@ def crear_novedad(titulo: str, imagen: str, usuario_id: int, categoria: str = "n
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO public.novedades (titulo, imagen_ruta, id_usuario_autor, categoria) VALUES (%s, %s, %s, %s) RETURNING id_novedad",
-            (titulo, ruta, usuario_id, categoria),
+            "INSERT INTO public.novedades (titulo, imagen_ruta, id_usuario_autor, categoria, fecha_inicio, fecha_fin) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id_novedad",
+            (titulo, ruta, usuario_id, categoria, fecha_inicio, fecha_fin),
         )
         identificador = cursor.fetchone()[0]
         conn.commit()
@@ -130,12 +146,16 @@ def crear_novedad(titulo: str, imagen: str, usuario_id: int, categoria: str = "n
     return {"id_novedad": identificador}
 
 
-def listar_novedades() -> list[dict]:
+def listar_novedades(incluir_inactivas: bool = False) -> list[dict]:
     conn = cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id_novedad, titulo, imagen_ruta, creado_en, categoria FROM public.novedades ORDER BY creado_en DESC, id_novedad DESC LIMIT 100")
+        cursor.execute("""SELECT id_novedad, titulo, imagen_ruta, creado_en, categoria, fecha_inicio, fecha_fin,
+                       (now() AT TIME ZONE 'America/Guayaquil')::date BETWEEN fecha_inicio AND fecha_fin AS activa
+                       FROM public.novedades WHERE eliminado_en IS NULL
+                       AND (%s OR (now() AT TIME ZONE 'America/Guayaquil')::date BETWEEN fecha_inicio AND fecha_fin)
+                       ORDER BY creado_en DESC, id_novedad DESC LIMIT 100""", (incluir_inactivas,))
         filas = cursor.fetchall()
     except Exception as error:
         raise HTTPException(status_code=503, detail="No se pudieron consultar las novedades.") from error
@@ -153,8 +173,30 @@ def listar_novedades() -> list[dict]:
     except (ValueError, KeyError, TypeError) as error:
         raise HTTPException(status_code=503, detail="No se pudieron cargar las imágenes.") from error
     salida = []
-    for identificador, titulo, ruta, fecha, categoria in filas:
+    for identificador, titulo, ruta, fecha, categoria, fecha_inicio, fecha_fin, activa in filas:
         firmada = firmadas.get(ruta)
         salida.append({"id": identificador, "titulo": titulo, "categoria": categoria, "creado_en": fecha.isoformat(),
+                       "fecha_inicio": fecha_inicio.isoformat(), "fecha_fin": fecha_fin.isoformat(), "activa": activa,
                        "imagen_url": f"{settings.SUPABASE_URL}/storage/v1{firmada}" if firmada else None})
     return salida
+
+
+def eliminar_novedad(id_novedad: int, usuario_id: int) -> None:
+    """Oculta el comunicado y conserva su imagen y trazabilidad para recuperación."""
+    conn = cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE public.novedades SET eliminado_en = now(), id_usuario_eliminacion = %s WHERE id_novedad = %s AND eliminado_en IS NULL RETURNING id_novedad", (usuario_id, id_novedad))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="La novedad no existe o ya fue eliminada.")
+        conn.commit()
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=503, detail="No se pudo eliminar la novedad.") from error
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
