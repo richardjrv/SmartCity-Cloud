@@ -1482,14 +1482,15 @@ body.sidebar-collapsed .app-sidebar {
         gap: .5rem;
         padding: 0 .75rem;
     }
-    .header-brand-group { gap: .5rem; }
+    .header-brand-group { gap: .5rem; flex: 1 1 0; overflow: hidden; }
+    .header-brand-group .brand-home-button h1 { overflow: hidden; text-overflow: ellipsis; }
     .header-brand-group .brand-home-button { gap: .55rem; }
     .header-brand-group .brand-home-button > div:first-child { flex: 0 0 2.35rem; width: 2.35rem; height: 2.35rem; }
     .header-brand-group .brand-home-button h1 { font-size: .95rem; letter-spacing: -.025em; }
     #btn-mobile-nav { width: 2.75rem; height: 2.75rem; min-width: 2.75rem; min-height: 2.75rem; }
     header > div.max-w-7xl > .flex.items-center.gap-2 {
         min-width: 0;
-        flex: 1 1 auto;
+        flex: 0 0 auto;
         justify-content: flex-end;
         gap: .4rem;
     }

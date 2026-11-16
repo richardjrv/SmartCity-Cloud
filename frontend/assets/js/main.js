@@ -62,6 +62,20 @@ let pasosRecorridoActual = [];
 let vistaAntesDelRecorrido = "dashboard";
 let posicionOriginalBrunito = null;
 
+function organizarMenuMovil() {
+    const boton = document.getElementById("btn-mobile-nav");
+    const marca = document.getElementById("header-brand-group");
+    const acciones = document.getElementById("notification-menu-wrap")?.parentElement;
+    if (!boton || !marca || !acciones) return;
+    const movil = window.matchMedia("(max-width: 767px)");
+    const actualizar = () => {
+        if (movil.matches) acciones.appendChild(boton);
+        else marca.appendChild(boton);
+    };
+    actualizar();
+    movil.addEventListener("change", actualizar);
+}
+
 function organizarInicioYBrunito() {
     const copy = document.querySelector("#dashboard-overview .dashboard-overview-copy");
     if (copy && !document.getElementById("dashboard-purpose")) {
@@ -455,6 +469,7 @@ function mostrarDashboard(nombre, idRol) {
     document.getElementById("dashboard-header-context")?.classList.remove("hidden");
     document.getElementById("btn-dashboard-fullscreen")?.classList.remove("hidden");
     renderizarNotificaciones();
+    void actualizarNovedadesNotificaciones();
     configurarInicioPorRol(nombre, idRol);
     if (typeof configurarCentroAlertasPorRol === "function") configurarCentroAlertasPorRol(idRol);
     if (typeof cargarAlertasCompartidas === "function") void cargarAlertasCompartidas({ silencioso: true });
@@ -746,6 +761,7 @@ function cerrarRecorridoGuiado() {
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("login-only");
+    organizarMenuMovil();
     organizarInicioYBrunito();
     inicializarAnimacionLecturas();
     if (!obtenerToken()) animarEntradaAuth();

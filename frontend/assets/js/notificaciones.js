@@ -1,4 +1,29 @@
 // Centro de notificaciones: almacenamiento local por cuenta y avisos de sensores.
+let novedadesParaNotificaciones = [];
+let usuarioNovedadesNotificaciones = null;
+
+function idsNovedadesLeidas() {
+    try { const ids = JSON.parse(localStorage.getItem(claveNotificacionesUsuario("novedades_leidas")) || "[]"); return Array.isArray(ids) ? ids.map(String) : []; }
+    catch { return []; }
+}
+
+function guardarNovedadesLeidas(ids) {
+    try { localStorage.setItem(claveNotificacionesUsuario("novedades_leidas"), JSON.stringify([...new Set(ids.map(String))].slice(-500))); }
+    catch { /* La lectura seguirá disponible durante la sesión. */ }
+}
+
+async function actualizarNovedadesNotificaciones() {
+    const usuarioId = localStorage.getItem("user_id_cloud");
+    if (!usuarioId || !obtenerToken()) return;
+    try {
+        const respuesta = await apiFetch("/novedades");
+        if (localStorage.getItem("user_id_cloud") !== usuarioId) return;
+        if (!respuesta.ok || !Array.isArray(respuesta.data)) return;
+        usuarioNovedadesNotificaciones = usuarioId;
+        novedadesParaNotificaciones = respuesta.data;
+        renderizarNotificaciones();
+    } catch (error) { console.info("No se pudieron consultar las novedades para notificaciones.", error); }
+}
 
 function claveNotificacionesUsuario(sufijo) {
     const usuarioId = localStorage.getItem("user_id_cloud") || localStorage.getItem("user_name_cloud") || "usuario";
@@ -83,7 +108,13 @@ function renderizarNotificaciones() {
     const button = document.getElementById("btn-notificaciones");
     if (!list || !badge || !button) return;
 
-    const notificaciones = leerNotificacionesUsuario();
+    const leidas = new Set(idsNovedadesLeidas());
+    const usuarioActual = localStorage.getItem("user_id_cloud");
+    const novedades = usuarioNovedadesNotificaciones === usuarioActual ? novedadesParaNotificaciones.map(item => ({
+        id: `novedad-${item.id}`, novedadId: item.id, type: "novedad", titulo: item.titulo,
+        mensaje: "Novedad de SmartCity Cloud", fecha: item.creado_en, leida: leidas.has(String(item.id))
+    })) : [];
+    const notificaciones = [...novedades, ...leerNotificacionesUsuario()];
     const unread = notificaciones.filter(item => !item.leida).length;
     badge.textContent = unread > 99 ? "99+" : String(unread);
     badge.classList.toggle("hidden", unread === 0);
@@ -135,7 +166,7 @@ function renderizarNotificaciones() {
         }
         const action = document.createElement("span");
         action.className = "notification-open-hint";
-        action.textContent = item.type === "alerta_estado" ? "Ver alerta →" : "Abrir sensor →";
+        action.textContent = item.type === "novedad" ? "Ver novedad →" : item.type === "alerta_estado" ? "Ver alerta →" : "Abrir sensor →";
         tags.append(action);
         row.appendChild(tags);
         list.appendChild(row);
@@ -147,7 +178,7 @@ function toggleMenuNotificaciones() {
     const trigger = document.getElementById("btn-notificaciones");
     if (!menu || !trigger) return;
     const opening = menu.classList.contains("hidden");
-    if (opening) cerrarAccountMenu();
+    if (opening) { cerrarAccountMenu(); void actualizarNovedadesNotificaciones(); }
     menu.classList.toggle("hidden", !opening);
     trigger.setAttribute("aria-expanded", String(opening));
 }
@@ -159,10 +190,20 @@ function cerrarMenuNotificaciones() {
 
 function marcarTodasNotificacionesLeidas() {
     guardarNotificacionesUsuario(leerNotificacionesUsuario().map(item => ({ ...item, leida: true })));
+    guardarNovedadesLeidas([...idsNovedadesLeidas(), ...novedadesParaNotificaciones.map(item => item.id)]);
     renderizarNotificaciones();
 }
 
 function abrirNotificacion(id) {
+    if (String(id).startsWith("novedad-")) {
+        const item = novedadesParaNotificaciones.find(novedad => `novedad-${novedad.id}` === id);
+        if (!item) return;
+        guardarNovedadesLeidas([...idsNovedadesLeidas(), item.id]);
+        renderizarNotificaciones();
+        cerrarMenuNotificaciones();
+        void mostrarNovedadInicio(item.id);
+        return;
+    }
     const notificaciones = leerNotificacionesUsuario();
     const seleccionada = notificaciones.find(item => item.id === id);
     if (!seleccionada) return;

@@ -80,7 +80,7 @@ function fechaLocalNovedad() {
 }
 
 // El aviso se muestra al entrar; el usuario puede ocultar esa novedad por hoy.
-async function mostrarNovedadInicio() {
+async function mostrarNovedadInicio(idSeleccionado = null) {
     const usuarioId = localStorage.getItem("user_id_cloud");
     if (!usuarioId) return;
     try {
@@ -89,13 +89,14 @@ async function mostrarNovedadInicio() {
             localStorage.getItem("user_id_cloud") !== usuarioId || !obtenerToken()) return;
         const inicio = document.getElementById("dashboard-overview");
         const dashboard = document.getElementById("vista-dashboard");
-        if (!inicio || !dashboard || dashboard.classList.contains("hidden") || dashboard.dataset.currentView !== "dashboard") return;
+        if (idSeleccionado === null && (!inicio || !dashboard || dashboard.classList.contains("hidden") || dashboard.dataset.currentView !== "dashboard")) return;
         const anuncioExistente = document.getElementById("novedad-inicio");
         if (anuncioExistente?.open) return;
         anuncioExistente?.remove();
-        const novedad = respuesta.data[0];
+        const novedad = idSeleccionado === null ? respuesta.data[0] : respuesta.data.find(item => String(item.id) === String(idSeleccionado));
+        if (!novedad) { if (idSeleccionado !== null) mostrarNotificacion("Esta novedad ya no está disponible.", "info"); return; }
         const clave = `smartcity_novedad_oculta_${usuarioId}_${novedad.id}`;
-        try { if (localStorage.getItem(clave) === fechaLocalNovedad()) return; } catch { /* El aviso sigue disponible sin almacenamiento local. */ }
+        try { if (idSeleccionado === null && localStorage.getItem(clave) === fechaLocalNovedad()) return; } catch { /* El aviso sigue disponible sin almacenamiento local. */ }
         const tarjeta = document.createElement("dialog");
         tarjeta.id = "novedad-inicio";
         tarjeta.className = "novedad-inicio";
