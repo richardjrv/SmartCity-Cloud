@@ -1469,6 +1469,7 @@ body.sidebar-collapsed .app-sidebar {
 .interactive-model-frame { background: #0b1428; color-scheme: dark; }
 
 /* Encabezado, navegación y maqueta ajustados para móviles. */
+body > header > div.max-w-7xl { max-width: none; width: 100%; }
 .header-brand-group { display: flex; min-width: 0; flex: 0 0 auto; align-items: center; gap: .6rem; }
 .header-brand-group .brand-home-button { min-width: 0; }
 .header-brand-group .brand-home-button h1 { white-space: nowrap; }
