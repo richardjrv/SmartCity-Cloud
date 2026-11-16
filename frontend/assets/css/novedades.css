@@ -1,15 +1,18 @@
 .novedades-page { width: min(100%, 1180px); margin: 0 auto; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--border-color); border-radius: 1.5rem; background: var(--bg-card); color: var(--text-primary); }
 .novedades-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
 .novedades-heading h2 { margin: .35rem 0; font-size: clamp(1.65rem, 3vw, 2.2rem); font-weight: 750; }
+.novedades-heading-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; }
+.novedades-heading-actions #btn-chat-launcher { position: static !important; inset: auto !important; flex: none; width: 2.75rem !important; height: 2.75rem !important; min-height: 2.75rem; padding: .3rem; }
+.novedades-heading-actions #btn-chat-launcher img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .novedades-heading p:last-child, .novedades-form p, .novedades-status { color: var(--text-secondary); font-size: .9rem; }
 .novedades-page button, .novedades-form input, .novedades-form select { min-height: 2.75rem; padding: .65rem .85rem; border: 1px solid var(--border-color); border-radius: .75rem; background: var(--bg-input); color: var(--text-primary); font: inherit; }
 .novedades-page button { cursor: pointer; font-weight: 650; }
 .novedades-page button:hover { border-color: var(--accent); }
 .novedades-page button:focus-visible, .novedades-form input:focus-visible, .novedades-form select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .novedades-page button:disabled { opacity: .65; cursor: wait; }
-.novedades-form { display: grid; gap: .6rem; max-width: 42rem; padding: 1.2rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color); border-radius: 1rem; background: var(--bg-input); }
+.novedades-form { display: grid; gap: .7rem; max-width: 42rem; padding: clamp(1rem, 3vw, 1.5rem); margin-bottom: 1.5rem; border: 1px solid var(--border-color); border-radius: 1.15rem; background: var(--bg-input); }
 .novedades-form.hidden { display: none; }
-.novedades-form h3 { font-size: 1.1rem; font-weight: 700; }
+.novedades-form h3 { margin: 0 0 .3rem; font-size: 1.1rem; font-weight: 700; }
 .novedades-form label { font-size: .88rem; font-weight: 650; }
 .novedades-fechas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
 .novedades-fechas div { display: grid; gap: .5rem; min-width: 0; }

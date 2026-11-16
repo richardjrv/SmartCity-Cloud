@@ -37,6 +37,11 @@ body {
     z-index: var(--z-chat) !important;
 }
 
+#dashboard-purpose { margin-top: .8rem; font-size: .85rem; line-height: 1.55; color: var(--text-primary); }
+.sensor-details-disclosure > summary { cursor: pointer; padding: .4rem 0; color: var(--text-primary); font-weight: 700; }
+.sensor-details-disclosure > summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: .35rem; }
+.sensor-details-disclosure[open] > summary { margin-bottom: 1rem; }
+
 #chat-mensajes {
     overscroll-behavior: contain;
     scroll-behavior: smooth;

@@ -60,6 +60,52 @@ let sidebarTooltipNode = null;
 let sidebarTooltipTarget = null;
 let pasosRecorridoActual = [];
 let vistaAntesDelRecorrido = "dashboard";
+let posicionOriginalBrunito = null;
+
+function organizarInicioYBrunito() {
+    const copy = document.querySelector("#dashboard-overview .dashboard-overview-copy");
+    if (copy && !document.getElementById("dashboard-purpose")) {
+        const purpose = document.createElement("p");
+        purpose.id = "dashboard-purpose";
+        purpose.textContent = "Explora la maqueta, consulta las lecturas de sus sensores y revisa los avisos del proyecto.";
+        copy.appendChild(purpose);
+    }
+    const section = document.getElementById("sensor-map-section");
+    if (section && !section.querySelector(".sensor-details-disclosure")) {
+        const details = document.createElement("details");
+        details.className = "sensor-details-disclosure";
+        const summary = document.createElement("summary");
+        summary.textContent = "Ver detalle de las lecturas del ESP32";
+        details.appendChild(summary);
+        while (section.firstChild) details.appendChild(section.firstChild);
+        section.appendChild(details);
+    }
+}
+
+function ubicarBrunitoEnNovedades(activo) {
+    const launcher = document.getElementById("btn-chat-launcher");
+    const heading = document.querySelector("#vista-novedades .novedades-heading");
+    if (!launcher || !heading) return;
+    if (activo) {
+        if (!posicionOriginalBrunito) {
+            posicionOriginalBrunito = document.createComment("posición original de Brunito");
+            launcher.before(posicionOriginalBrunito);
+        }
+        let actions = heading.querySelector(".novedades-heading-actions");
+        if (!actions) {
+            actions = document.createElement("div");
+            actions.className = "novedades-heading-actions";
+            const refresh = document.getElementById("novedades-refresh");
+            if (refresh) actions.appendChild(refresh);
+            heading.appendChild(actions);
+        }
+        actions.appendChild(launcher);
+    } else if (posicionOriginalBrunito?.parentNode) {
+        posicionOriginalBrunito.before(launcher);
+        posicionOriginalBrunito.remove();
+        posicionOriginalBrunito = null;
+    }
+}
 
 const INICIO_POR_ROL = {
     1: {
@@ -301,6 +347,8 @@ function navegarA(vista) {
         navegarA("auth");
         return;
     }
+
+    ubicarBrunitoEnNovedades(vista === "novedades");
 
     sincronizarVisorMaqueta(vista);
     document.body.classList.toggle("sidebar-fixed-layout", vista !== "auth");
@@ -698,6 +746,7 @@ function cerrarRecorridoGuiado() {
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("login-only");
+    organizarInicioYBrunito();
     inicializarAnimacionLecturas();
     if (!obtenerToken()) animarEntradaAuth();
     inicializarBarraLateral();
